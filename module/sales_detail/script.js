@@ -44,16 +44,17 @@ async function loadProdukList() {
 }
 
 function filterclientSuggestions() {
-  const input = document.getElementById("client").value.toLowerCase();
+  const inputVal = document.getElementById("client").value.toLowerCase();
   const suggestionBox = document.getElementById("clientSuggestions");
+
   suggestionBox.innerHTML = "";
 
-  if (input.length < 2) {
+  if (inputVal.length < 2) {
     return suggestionBox.classList.add("hidden");
   }
 
   const filtered = customerList.filter(
-    (c) => c.nama && c.nama.toLowerCase().includes(input)
+    (c) => c.nama && c.nama.toLowerCase().includes(inputVal)
   );
 
   if (filtered.length === 0) {
@@ -64,16 +65,11 @@ function filterclientSuggestions() {
     const li = document.createElement("li");
     li.textContent = `${item.nama} (${item.whatsapp || "No WA"})`;
     li.className = "px-3 py-2 hover:bg-gray-200 cursor-pointer";
+
+    // Saat item diklik, isi input dan sembunyikan list
     li.addEventListener("click", () => {
       document.getElementById("client").value = item.nama;
-      document.getElementById("client_id").value = item.pelanggan_id;
-      document.getElementById("no_hp").value =
-        item.whatsapp || item.phone || "";
-      document.getElementById("alamat").value = item.alamat || "";
-      document.getElementById("city").value = item.city_name || "";
-      document.getElementById("city_id").value = "";
 
-      // Tutup suggestion box
       suggestionBox.classList.add("hidden");
     });
 
@@ -83,12 +79,17 @@ function filterclientSuggestions() {
   suggestionBox.classList.remove("hidden");
 }
 
+// Sembunyikan suggestion jika klik di luar input dan list
 document.addEventListener("click", (e) => {
   const input = document.getElementById("client");
   const suggestionBox = document.getElementById("clientSuggestions");
 
-  if (!input.contains(e.target) && !suggestionBox.contains(e.target)) {
-    suggestionBox.classList.add("hidden");
+  // Cek dulu apakah kedua elemen ada
+  if (input && suggestionBox) {
+    // Jika yang diklik bukan input dan bukan list, sembunyikan
+    if (!input.contains(e.target) && !suggestionBox.contains(e.target)) {
+      suggestionBox.classList.add("hidden");
+    }
   }
 });
 

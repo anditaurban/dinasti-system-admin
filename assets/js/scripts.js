@@ -187,13 +187,19 @@ async function loadModuleContent(module, Id, Detail) {
     }
 
     // Load script baru
-    currentScript = document.createElement("script");
-    currentScript.src = `./module/${module}/script.js?v=${Date.now()}`;
-    currentScript.onload = () =>
-      console.log(`Script ${module} loaded successfully.`);
-    currentScript.onerror = () =>
-      console.error(`Gagal memuat script: ${module}`);
-    document.body.appendChild(currentScript);
+    await new Promise((resolve, reject) => {
+      currentScript = document.createElement("script");
+      currentScript.src = `./module/${module}/script.js?v=${Date.now()}`;
+      currentScript.onload = () => {
+        console.log(`Script ${module} loaded successfully.`);
+        resolve();
+      };
+      currentScript.onerror = () => {
+        console.error(`Gagal memuat script: ${module}`);
+        reject();
+      };
+      document.body.appendChild(currentScript);
+    });
   } catch (error) {
     console.error(error);
     document.getElementById(

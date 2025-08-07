@@ -178,10 +178,10 @@ window.rowTemplate = function (item, index, perPage = 10) {
   </tr>`;
 };
 
-document.getElementById("addButton").addEventListener("click", () => {
-  // showFormModal();
-  // loadDropdownCall();
-  loadModuleContent("sales_detail");
+document.getElementById("addButton").addEventListener("click", async () => {
+  statusLoaded = false;
+  await loadModuleContent("sales_detail");
+  loadStatusOptions(); // sekarang dijamin status select-nya udah ada & function-nya udah terdefinisi
 });
 
 formHtml = ``;
