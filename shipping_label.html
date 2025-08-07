@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Shipping Label</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body class="bg-white font-sans text-[10px]">
+
+  <!-- Label Container -->
+  <div id="label" class="mx-auto border border-black overflow-hidden p-3 relative">
+    <!-- Diisi via JS -->
+  </div>
+
+  <script>
+    const script = document.createElement('script');
+    script.src = `./assets/js/api.js?v=${new Date().getTime()}`;
+    document.body.appendChild(script);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const shipment_id = urlParams.get('shipment_id');
+
+    // Default ukuran label thermal 100x150mm
+    const defaultWidth = '100mm';
+    const defaultHeight = '150mm';
+
+    // Dapatkan dari localStorage atau gunakan default
+    const labelWidth = localStorage.getItem('label_width') || defaultWidth;
+    const labelHeight = localStorage.getItem('label_height') || defaultHeight;
+
+    const labelContainer = document.getElementById('label');
+    labelContainer.style.width = labelWidth;
+    labelContainer.style.height = labelHeight;
+
+    async function loadLabelAndPrint() {
+      const res = await fetch(`${baseUrl}/detail/sales_shipment/${shipment_id}`, {
+        headers: {
+          'Authorization': `Bearer ${API_TOKEN}`
+        }
+      });
+
+      const data = await res.json();
+      const detail = data.detail;
+
+      const weight = detail.weight_kg;
+      const qty = detail.qty_items;
+      const items = detail.item_list ? detail.item_list.join(', ') : "Item belum tersedia";
+
+      // Isi HTML label
+      labelContainer.innerHTML = `
+        <img src="assets/img/cropped-Logo-MKI.webp" alt="Logo" class="h-6 mb-2">
+        <div class="mb-1">
+          <p><strong>Berat</strong> : ${weight}Kg</p>
+          <p><strong>Kuantitas</strong> : ${qty} item</p>
+        </div>
+
+        <div class="border-t border-black mt-3 pt-1 text-center">
+          <p class="text-[10px] font-bold">JASA PENGIRIMAN</p>
+          <svg id="shipmentBarcode" class="w-full h-12"></svg>
+          <p class="text-[10px] font-mono mt-1">${detail.courier} | ${detail.shipment_receipt}</p>
+        </div>
+
+        <div class="border border-black py-1 text-center text-[10px] font-semibold mb-2">
+          CATATAN PENGIRIMAN
+        </div>
+        <div class="flex gap-2 text-[10px] leading-tight">
+          <div class="w-1/2">
+            <strong>Pengirim :</strong><br>
+            PT. Master Kuliner Indonesia<br>
+            Jl. Moh. Kahfi I No.31<br>
+            Jakarta Selatan 12620
+          </div>
+          <div class="w-1/2">
+            <strong>Penerima :</strong><br>
+            ${detail.nama}<br>
+            ${detail.shipment_address}<br>
+            ${detail.region_name}<br>
+            ${detail.whatsapp}
+          </div>
+        </div>
+        <div class="mt-2 text-[10px]">
+          <strong>ISI PAKET :</strong><br>
+          ${items}
+        </div>
+        <div class="border-t border-black mt-3 pt-1 text-center">
+          <p class="text-[10px] font-bold">NOMOR INVOICE</p>
+          <svg id="invoiceBarcode" class="w-full h-12"></svg>
+          <p class="text-[10px] font-mono mt-1">${detail.no_inv}</p>
+        </div>
+      `;
+
+      // Generate barcodes
+      JsBarcode("#shipmentBarcode", detail.shipment_receipt, {
+        format: "CODE128",
+        width: 1.5,
+        height: 40,
+        displayValue: false
+      });
+
+      JsBarcode("#invoiceBarcode", detail.no_inv, {
+        format: "CODE128",
+        width: 1.5,
+        height: 40,
+        displayValue: false
+      });
+
+      // Tunggu sebentar lalu print ke PDF
+      setTimeout(() => {
+        
+if (window !== window.parent) {
+  // Berarti halaman ini dibuka dari dalam iframe
+  html2pdf()
+    .set({
+      margin: 0,
+      filename: `shipping-label-${shipment_id}.pdf`,
+      image: { type: 'jpeg', quality: 1 },
+      html2canvas: { scale: 2 },
+      jsPDF: {
+        unit: 'mm',
+        format: [parseFloat(labelWidth), parseFloat(labelHeight)],
+        orientation: 'portrait'
+      }
+    })
+    .from(labelContainer)
+    .save()
+    .then(() => {
+      // Notifikasi ke parent kalau perlu
+      window.parent.postMessage({ type: 'PDF_DONE' }, '*');
+    });
+}else{
+  window.print();
+}
+
+      }, 500);
+    }
+  if (window !== window.parent) {
+    window.parent.postMessage({
+      type: "LABEL_READY",
+      shipment_id: shipment_id,
+      html: document.getElementById('label').outerHTML
+    }, "*");
+  }
+    window.onload = loadLabelAndPrint;
+  </script>
+</body>
+</html>

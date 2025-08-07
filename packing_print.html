@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Packing List</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: auto;
+    }
+
+    #packingContainer {
+      margin: 0;
+      padding: 0;
+    }
+
+    .print-page {
+      width: 210mm;
+      height: 297mm;
+      padding: 20mm 25mm;
+      box-sizing: border-box;
+      position: relative;
+    }
+  </style>
+</head>
+<body class="bg-white text-black font-sans text-sm">
+  <div id="packingContainer"></div>
+
+  <script>
+    const script = document.createElement('script');
+    script.src = `./assets/js/api.js?v=${new Date().getTime()}`;
+    document.body.appendChild(script);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const package_id = urlParams.get('package_id');
+    const isDownload = urlParams.get('mode') === 'download';
+    const today = new Date().toISOString().split('T')[0];
+    const container = document.getElementById('packingContainer');
+
+    async function loadPackingData() {
+      try {
+        const res = await fetch(`${baseUrl}/detail/sales_package/${package_id}`, {
+          headers: { 'Authorization': `Bearer ${API_TOKEN}` }
+        });
+
+        const result = await res.json();
+        const detail = result?.detail;
+        const items = detail?.items || [];
+
+        if (!detail) throw new Error("Data kosong");
+
+        const section = document.createElement('section');
+        section.className = 'print-page';
+        section.innerHTML = `
+          <img src="assets/img/cropped-Logo-MKI.webp" alt="Logo MKI" class="absolute top-[20mm] left-[25mm] h-10" />
+          <h2 class="text-center text-xl font-bold">PACKING LIST</h2>
+          <h4 class="text-center text-base font-medium mt-1">${detail.no_package || '-'}</h4>
+
+          <div class="mt-6 grid gap-1 w-full max-w-md">
+            <div class="grid grid-cols-3">
+              <div class="font-medium">No Invoice</div>
+              <div class="col-span-2">: ${detail.no_inv}</div>
+            </div>
+            <div class="grid grid-cols-3">
+              <div class="font-medium">Tanggal</div>
+              <div class="col-span-2">: ${detail.date}</div>
+            </div>
+            <div class="grid grid-cols-3">
+              <div class="font-medium">Catatan</div>
+              <div class="col-span-2">: ${detail.notes || '-'}</div>
+            </div>
+            <div class="grid grid-cols-3">
+              <div class="font-medium">Total Item</div>
+              <div class="col-span-2">: ${detail.total_items}</div>
+            </div>
+          </div>
+
+          <table class="w-full border border-black mt-6 text-sm">
+            <thead>
+              <tr class="bg-gray-100">
+                <th class="border border-black px-2 py-1 w-[15%] text-left">QTY</th>
+                <th class="border border-black px-2 py-1 text-left">ITEM</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map(item => `
+                <tr>
+                  <td class="border border-black px-2 py-1">${item.qty}</td>
+                  <td class="border border-black px-2 py-1">${item.item_name}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="mt-6 grid gap-1 w-full max-w-md">
+            <div class="grid grid-cols-3">
+              <div class="font-medium">Di Pack Oleh</div>
+              <div class="col-span-2">: ${detail.pic_name || '-'}</div>
+            </div>
+            <div class="grid grid-cols-3">
+              <div class="font-medium">Tanggal</div>
+              <div class="col-span-2">: ${today}</div>
+            </div>
+          </div>
+        `;
+
+        container.appendChild(section);
+
+        if (isDownload) {
+          // Tunggu render selesai, lalu generate PDF
+          setTimeout(() => {
+            html2pdf()
+              .set({
+                margin: 0,
+                filename: `${detail.no_package || 'packing-list'}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+              })
+              .from(container)
+              .save();
+          }, 800);
+        }
+
+      } catch (err) {
+        console.error('❌ Gagal mengambil atau render data packing:', err);
+        alert('Gagal memuat data packing!');
+      }
+    }
+
+    window.onload = loadPackingData;
+  </script>
+</body>
+</html>

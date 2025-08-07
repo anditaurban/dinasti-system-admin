@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gabungan Packing List</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: auto;
+    }
+
+    #packingContainer {
+      margin: 0;
+      padding: 0;
+    }
+
+    .print-page {
+      width: 210mm;
+      height: 297mm;
+      padding: 20mm 25mm;
+      box-sizing: border-box;
+      position: relative;
+    }
+  </style>
+</head>
+<body class="bg-white text-black font-sans text-sm">
+  <div id="combinedContainer"></div>
+
+  <script>
+    const script = document.createElement('script');
+    script.src = `./assets/js/api.js?v=${new Date().getTime()}`;
+    document.body.appendChild(script);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const ids = (urlParams.get('ids') || '').split(',');
+    const isDownload = urlParams.get('mode') === 'download';
+    const today = new Date().toISOString().split('T')[0];
+    const container = document.getElementById('combinedContainer');
+
+    async function loadAllPacking() {
+      for (const package_id of ids) {
+        try {
+          const res = await fetch(`${baseUrl}/detail/sales_package/${package_id}`, {
+            headers: { 'Authorization': `Bearer ${API_TOKEN}` }
+          });
+
+          const data = await res.json();
+          const detail = data?.detail;
+          const items = detail?.items || [];
+
+          if (!detail) continue;
+
+          const section = document.createElement('section');
+          section.className = 'print-page';
+          section.innerHTML = `
+            <img src="assets/img/cropped-Logo-MKI.webp" alt="Logo MKI" class="absolute top-[20mm] left-[25mm] h-10" />
+            <h2 class="text-center text-xl font-bold">PACKING LIST</h2>
+            <h4 class="text-center text-base font-medium mt-1">${detail.no_package || '-'}</h4>
+
+            <div class="mt-6 grid gap-1 w-full max-w-md">
+              <div class="grid grid-cols-3">
+                <div class="font-medium">No Invoice</div>
+                <div class="col-span-2">: ${detail.no_inv}</div>
+              </div>
+              <div class="grid grid-cols-3">
+                <div class="font-medium">Tanggal</div>
+                <div class="col-span-2">: ${detail.date}</div>
+              </div>
+              <div class="grid grid-cols-3">
+                <div class="font-medium">Catatan</div>
+                <div class="col-span-2">: ${detail.notes || '-'}</div>
+              </div>
+              <div class="grid grid-cols-3">
+                <div class="font-medium">Total Item</div>
+                <div class="col-span-2">: ${detail.total_items}</div>
+              </div>
+            </div>
+
+            <table class="w-full border border-black mt-6 text-sm">
+              <thead>
+                <tr class="bg-gray-100">
+                  <th class="border border-black px-2 py-1 w-[15%] text-left">QTY</th>
+                  <th class="border border-black px-2 py-1 text-left">ITEM</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${items.map(item => `
+                  <tr>
+                    <td class="border border-black px-2 py-1">${item.qty}</td>
+                    <td class="border border-black px-2 py-1">${item.item_name}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+
+            <div class="mt-6 grid gap-1 w-full max-w-md">
+              <div class="grid grid-cols-3">
+                <div class="font-medium">Di Pack Oleh</div>
+                <div class="col-span-2">: ${detail.pic_name || '-'}</div>
+              </div>
+              <div class="grid grid-cols-3">
+                <div class="font-medium">Tanggal</div>
+                <div class="col-span-2">: ${today}</div>
+              </div>
+            </div>
+          `;
+
+          container.appendChild(section);
+        } catch (err) {
+          console.error(`❌ Gagal ambil paket ${package_id}`, err);
+        }
+      }
+
+      if (isDownload) {
+        setTimeout(() => {
+          html2pdf()
+            .set({
+              margin: 0,
+              filename: `packing-list-combined.pdf`,
+              image: { type: 'jpeg', quality: 1 },
+              html2canvas: { scale: 2 },
+              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            })
+            .from(container)
+            .save();
+        }, 800);
+      }
+    }
+
+    window.onload = loadAllPacking;
+  </script>
+</body>
+</html>

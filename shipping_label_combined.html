@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Gabungan Label Pengiriman</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    .page-break {
+      page-break-after: always;
+    }
+  </style>
+</head>
+<body class="bg-white font-sans text-[10px]">
+
+  <div id="combinedLabels" class="px-4 py-6">
+    <!-- Semua label akan dimuat di sini -->
+  </div>
+
+  <script>
+    const script = document.createElement('script');
+    script.src = `./assets/js/api.js?v=${new Date().getTime()}`;
+    document.body.appendChild(script);
+
+    const labelWidth = localStorage.getItem('label_width') || '100';
+    const labelHeight = localStorage.getItem('label_height') || '150';
+
+    const container = document.getElementById('combinedLabels');
+    const urlParams = new URLSearchParams(window.location.search);
+    const idsParam = urlParams.get('ids'); // format: 2,3,4
+    const shipmentIds = idsParam ? idsParam.split(',') : [];
+
+    async function loadAllLabels() {
+      for (const id of shipmentIds) {
+        try {
+          const res = await fetch(`${baseUrl}/detail/sales_shipment/${id}`, {
+            headers: {
+              'Authorization': `Bearer ${API_TOKEN}`
+            }
+          });
+
+          const data = await res.json();
+          const detail = data.detail[0];
+
+          const labelDiv = document.createElement('div');
+          labelDiv.className = 'mx-auto border border-black overflow-hidden p-3 relative page-break';
+          labelDiv.style.width = labelWidth + 'mm';
+          labelDiv.style.height = labelHeight + 'mm';
+
+          const weight = detail.weight_kg || 5;
+          const qty = detail.qty_items || 100;
+          const items = detail.item_list ? detail.item_list.join(', ') : "Item belum tersedia";
+
+          labelDiv.innerHTML = `
+            <img src="assets/img/cropped-Logo-MKI.webp" alt="Logo" class="h-6 mb-2">
+            <div class="mb-1">
+              <p><strong>Berat</strong> : ${weight}Kg</p>
+              <p><strong>Kuantitas</strong> : ${qty} item</p>
+            </div>
+            <svg class="barcode-shipment w-full h-12 mb-2" data-value="${detail.shipment_receipt}"></svg>
+            <div class="border border-black py-1 text-center text-[10px] font-semibold mb-2">
+              CATATAN PENGIRIMAN
+            </div>
+            <div class="flex gap-2 text-[10px] leading-tight">
+              <div class="w-1/2">
+                <strong>Pengirim :</strong><br>
+                PT. Master Kuliner Indonesia<br>
+                Jl. Moh. Kahfi I No.31<br>
+                Jakarta Selatan 12620
+              </div>
+              <div class="w-1/2">
+                <strong>Penerima :</strong><br>
+                ${detail.nama}<br>
+                ${detail.shipment_address}<br>
+                ${detail.region_name}<br>
+                ${detail.whatsapp}
+              </div>
+            </div>
+            <div class="mt-2 text-[10px]">
+              <strong>ISI PAKET :</strong><br>
+              ${items}
+            </div>
+            <div class="border-t border-black mt-3 pt-1 text-center">
+              <p class="text-[10px] font-bold">NOMOR INVOICE</p>
+              <svg class="barcode-invoice w-full h-12" data-value="${detail.no_inv}"></svg>
+              <p class="text-[10px] font-mono mt-1">${detail.no_inv}</p>
+            </div>
+          `;
+
+          container.appendChild(labelDiv);
+        } catch (error) {
+          console.error('Gagal memuat shipment ID:', id, error);
+        }
+      }
+
+      // Setelah semua label selesai dimuat:
+      generateBarcodes();
+    //   printToPDF();
+    }
+
+    function generateBarcodes() {
+      document.querySelectorAll('.barcode-shipment').forEach(svg => {
+        JsBarcode(svg, svg.dataset.value, {
+          format: "CODE128",
+          width: 1.5,
+          height: 40,
+          displayValue: false
+        });
+      });
+
+      document.querySelectorAll('.barcode-invoice').forEach(svg => {
+        JsBarcode(svg, svg.dataset.value, {
+          format: "CODE128",
+          width: 1.5,
+          height: 40,
+          displayValue: false
+        });
+      });
+    }
+
+    function printToPDF() {
+      setTimeout(() => {
+        html2pdf()
+          .set({
+            margin: 0,
+            filename: `shipping-labels-combined.pdf`,
+            image: { type: 'jpeg', quality: 1 },
+            html2canvas: { scale: 2 },
+            jsPDF: {
+              unit: 'mm',
+              format: [parseFloat(labelWidth), parseFloat(labelHeight)],
+              orientation: 'portrait'
+            }
+          })
+          .from(container)
+          .save();
+      }, 1000);
+    }
+
+    window.onload = loadAllLabels;
+  </script>
+</body>
+</html>
