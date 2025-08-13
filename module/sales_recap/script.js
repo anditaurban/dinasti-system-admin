@@ -18,29 +18,55 @@ async function fetchSalesData(year) {
   }
 }
 
+function formatRupiah(angka) {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(angka);
+}
+
 function updateMetrics(data) {
-  const { total_achievement, total_pipeline, total_target, remaining_target } =
-    data.yearly_totals;
+  const {
+    total_achievement,
+    total_target,
+    remaining_target,
+    ongoing,
+    won,
+    loss,
+  } = data.yearly_totals;
 
   document.getElementById(
     "metricAchievement"
   ).innerText = `Rp${total_achievement.toLocaleString("id-ID")}`;
+
   document.getElementById("metricAchievementRate").innerText = `${(
     (total_achievement / total_target) *
     100
   ).toFixed(1)}% of target`;
 
   document.getElementById(
-    "metricPipeline"
-  ).innerText = `Rp${total_pipeline.toLocaleString("id-ID")}`;
-
-  document.getElementById(
     "metricRemaining"
   ).innerText = `Rp${remaining_target.toLocaleString("id-ID")}`;
+
   document.getElementById("metricRemainingRate").innerText = `${(
     (remaining_target / total_target) *
     100
   ).toFixed(1)}% to achieve`;
+
+  // Tambahan: Update Qty & Nominal dari status won, ongoing, dan loss
+  document.getElementById("wonQty").innerText = won.qty;
+  document.getElementById("wonNominal").innerText = formatCurrency(won.nominal);
+
+  document.getElementById("ongoingQty").innerText = ongoing.qty;
+  document.getElementById("ongoingNominal").innerText = formatCurrency(
+    ongoing.nominal
+  );
+
+  document.getElementById("lossQty").innerText = loss.qty;
+  document.getElementById("lossNominal").innerText = formatCurrency(
+    loss.nominal
+  );
 }
 
 function renderChart(data) {
@@ -159,7 +185,6 @@ function renderTable(data) {
     )}</td></tr>`;
   });
 
-  // Row TOTAL
   tbody += `<tr class="bg-gray-100 font-bold">
     <td class="border px-3 py-2">TOTAL</td>`;
   data.table.rows.forEach((row) => {
@@ -196,7 +221,6 @@ function setupYearFilter() {
   const yearDropdown = document.getElementById("yearDropdown");
   if (!filterButton || !yearDropdown) return;
 
-  // Generate year options (current year and previous 5 years)
   const currentYear = new Date().getFullYear();
   for (let year = currentYear; year >= currentYear - 5; year--) {
     const option = document.createElement("button");
@@ -213,16 +237,13 @@ function setupYearFilter() {
     yearDropdown.appendChild(option);
   }
 
-  // Initialize button with current year
   updateFilterButton(selectedYear);
 
-  // Toggle dropdown
   filterButton.addEventListener("click", (e) => {
     e.stopPropagation();
     yearDropdown.classList.toggle("hidden");
   });
 
-  // Close dropdown when clicking outside
   document.addEventListener("click", () => {
     yearDropdown.classList.add("hidden");
   });

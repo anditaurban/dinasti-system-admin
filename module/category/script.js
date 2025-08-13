@@ -1,25 +1,24 @@
-pagemodule = 'Business category'
+pagemodule = "Business category";
 colSpanCount = 9;
-setDataType('business_category');
+setDataType("business_category");
 fetchAndUpdateData();
 
 function validateFormData(formData, requiredFields = []) {
-  console.log('Validasi Form');
+  console.log("Validasi Form");
   for (const { field, message } of requiredFields) {
-    if (!formData[field] || formData[field].trim() === '') {
+    if (!formData[field] || formData[field].trim() === "") {
       alert(message);
       return false;
     }
   }
   return true;
-} 
+}
 
 async function fillFormData(data) {
   console.log(data);
-  document.getElementById('formCat').value = data.business_category || '';
-  document.getElementById('formDesc').value = data.description || '';
+  document.getElementById("formCat").value = data.business_category || "";
+  document.getElementById("formDesc").value = data.description || "";
 }
-
 
 async function loadDropdown(selectId, apiUrl, valueField, labelField) {
   const select = document.getElementById(selectId);
@@ -27,11 +26,11 @@ async function loadDropdown(selectId, apiUrl, valueField, labelField) {
 
   try {
     const response = await fetch(apiUrl, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Authorization': `Bearer ${API_TOKEN}`,
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Bearer ${API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
     });
 
     const result = await response.json();
@@ -41,16 +40,15 @@ async function loadDropdown(selectId, apiUrl, valueField, labelField) {
     select.innerHTML = `<option value="">Pilih...</option>`;
 
     if (Array.isArray(listData)) {
-      listData.forEach(item => {
-        const option = document.createElement('option');
+      listData.forEach((item) => {
+        const option = document.createElement("option");
         option.value = item[valueField];
         option.textContent = item[labelField];
         select.appendChild(option);
       });
     } else {
-      console.error('Format listData tidak sesuai:', listData);
+      console.error("Format listData tidak sesuai:", listData);
     }
-
   } catch (error) {
     console.error(`Gagal memuat data untuk ${selectId}:`, error);
     select.innerHTML = `<option value="">Gagal memuat data</option>`;
@@ -58,16 +56,25 @@ async function loadDropdown(selectId, apiUrl, valueField, labelField) {
 }
 
 function loadDropdownCall() {
-  // loadDropdown('formProject', `${baseUrl}/list/project_won/${owner_id}`, 'pesanan_id', 'project_name');
-  // loadDropdown('formPM', `${baseUrl}/list/project_manager/${owner_id}`, 'project_manager_id', 'name');
-} 
+  // loadDropdown(
+  //   "formProject",
+  //   `${baseUrl}/list/project_won/${owner_id}`,
+  //   "pesanan_id",
+  //   "project_name"
+  // );
+  // loadDropdown(
+  //   "formPM",
+  //   `${baseUrl}/list/project_manager/${owner_id}`,
+  //   "project_manager_id",
+  //   "name"
+  // );
+}
 
+window.rowTemplate = function (item, index, perPage = 10) {
+  const { currentPage } = state[currentDataType];
+  const globalIndex = (currentPage - 1) * perPage + index + 1;
 
-  window.rowTemplate = function (item, index, perPage = 10) {
-    const { currentPage } = state[currentDataType];
-    const globalIndex = (currentPage - 1) * perPage + index + 1;
-  
-    return `
+  return `
   <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50">  
      <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
     <span class="font-medium sm:hidden">Name</span>  
@@ -91,14 +98,14 @@ function loadDropdownCall() {
       </div>
     </td>
   </tr>`;
-  };
-  
-  document.getElementById('addButton').addEventListener('click', () => {
-    showFormModal();
-    loadDropdownCall();
-  });
+};
 
-  formHtml = `
+document.getElementById("addButton").addEventListener("click", () => {
+  showFormModal();
+  loadDropdownCall();
+});
+
+formHtml = `
 <form id="dataform" class="space-y-2">
 
   <label for="formCat" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Kode</label>
@@ -111,13 +118,10 @@ function loadDropdownCall() {
 
 </form>
 
-  `
+  `;
 requiredFields = [
-    { field: 'formProject', message: 'Project Name is required!' },
-    { field: 'formPM', message: 'Project Manager is required!' },
-    { field: 'formStartDate', message: 'Starting Date is required!' },
-    { field: 'formDeadline', message: 'Deadline is required!' }
-  ];  
-
-
-
+  { field: "formProject", message: "Project Name is required!" },
+  { field: "formPM", message: "Project Manager is required!" },
+  { field: "formStartDate", message: "Starting Date is required!" },
+  { field: "formDeadline", message: "Deadline is required!" },
+];

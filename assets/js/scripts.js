@@ -2,7 +2,7 @@ const user = JSON.parse(localStorage.getItem("user") || "{}");
 const user_detail = JSON.parse(localStorage.getItem("user_detail") || "{}");
 const company = JSON.parse(localStorage.getItem("company") || "{}");
 
-const owner_id = user.owner_id;
+const owner_id = 100;
 const user_id = user.user_id;
 const status_active = user.status_active;
 const level = user.level;
@@ -176,12 +176,13 @@ async function loadModuleContent(module, Id, Detail) {
     const htmlContent = await htmlResponse.text();
     document.getElementById("content").innerHTML = htmlContent;
 
+    // Simpan ke variabel global biar bisa dipakai di script.js
     if (htmlContent.trim() !== "") {
-      window.detail_id = Id;
-      window.detail_desc = Detail;
+      window.detail_id = Id || null;
+      window.detail_desc = Detail || null;
     }
 
-    // Hapus script sebelumnya jika ada
+    // Hapus script sebelumnya
     if (currentScript) {
       document.body.removeChild(currentScript);
     }
@@ -192,6 +193,16 @@ async function loadModuleContent(module, Id, Detail) {
       currentScript.src = `./module/${module}/script.js?v=${Date.now()}`;
       currentScript.onload = () => {
         console.log(`Script ${module} loaded successfully.`);
+
+        // ✅ Auto load log sales history kalau modulnya sales_log_detail
+        if (module === "sales_log_detail") {
+          if (typeof loadPesananData === "function") {
+            loadPesananData(Id); // ✅ pakai Id, bukan pesananId
+          } else {
+            console.warn("loadPesananData belum terdefinisi.");
+          }
+        }
+
         resolve();
       };
       currentScript.onerror = () => {
@@ -206,7 +217,8 @@ async function loadModuleContent(module, Id, Detail) {
       "content"
     ).innerHTML = `<p class="text-red-600">Terjadi kesalahan saat memuat modul: ${module}</p>`;
   } finally {
-    hideLoading(); // Disembunyikan hanya setelah semua proses selesai (sukses atau gagal)
+    hideLoading();
+    // ❌ Jangan panggil loadPesananData lagi di sini
   }
 }
 

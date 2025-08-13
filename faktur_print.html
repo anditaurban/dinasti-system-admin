@@ -2,40 +2,57 @@
 <html lang="id">
 
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Invoice</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f9fafb;
-      margin: 0;
-      padding: 0;
-    }
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
 
-    .invoice-box {
+    body {
+      font-family: 'Roboto', sans-serif;
       background: #fff;
-      width: 210mm;
-      min-height: 297mm;
-      margin: auto;
-      padding: 25mm 20mm;
-      color: #000;
-      box-sizing: border-box;
     }
 
     .bordered th,
     .bordered td {
-      border: 1px solid #ccc;
-      padding: 6px;
-      vertical-align: top;
+      border: 1px solid #e2e8f0;
+    }
+
+    .header-divider {
+      border-bottom: 1px solid #000;
+      margin: 1rem 0;
+    }
+
+    .company-name {
+      letter-spacing: 1px;
+    }
+
+    .invoice-title {
+      letter-spacing: 2px;
+    }
+
+    .total-row {
+      background-color: #f8fafc;
+    }
+
+    .signature-area {
+      border-top: 1px dashed #64748b;
+      padding-top: 1rem;
+    }
+    
+    .category-header {
+      background-color: #f1f5f9;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.8rem;
     }
   </style>
 </head>
 
 <body>
-  <div id="invoiceContainer" class="invoice-box"></div>
+  <div id="invoiceContainer" class="w-[210mm] min-h-[297mm] mx-auto p-[15mm] bg-white"></div>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
@@ -44,159 +61,232 @@
     const container = document.getElementById("invoiceContainer");
 
     const formatRp = val => `Rp ${(+val).toLocaleString("id-ID")}`;
-    const formatDot = val => (+val).toLocaleString("id-ID");
 
-    async function loadpesananData() {
+    function terbilang(n) {
+      const satuan = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
+      n = Math.floor(n);
+      if (n < 12) return satuan[n];
+      if (n < 20) return terbilang(n - 10) + " Belas";
+      if (n < 100) return terbilang(Math.floor(n / 10)) + " Puluh " + terbilang(n % 10);
+      if (n < 200) return "Seratus " + terbilang(n - 100);
+      if (n < 1000) return terbilang(Math.floor(n / 100)) + " Ratus " + terbilang(n % 100);
+      if (n < 2000) return "Seribu " + terbilang(n - 1000);
+      if (n < 1000000) return terbilang(Math.floor(n / 1000)) + " Ribu " + terbilang(n % 1000);
+      if (n < 1000000000) return terbilang(Math.floor(n / 1000000)) + " Juta " + terbilang(n % 1000000);
+      return "";
+    }
+
+    async function loadSubCategories() {
       try {
-        const res = await fetch(`https://devdinasti.katib.cloud/detail/sales/${pesanan_id}/pdf`, {
-          headers: {
-            Authorization: `Bearer e29c2e3db5f5299dc954eae580893689c35ecde79f40213365f56fb54850f9b1`,
-          },
+        const res = await fetch('https://devdinasti.katib.cloud/list/sub_category/100', {
+          headers: { Authorization: `Bearer e29c2e3db5f5299dc954eae580893689c35ecde79f40213365f56fb54850f9b1` }
         });
-
         const result = await res.json();
-        const data = result?.data;
+        return result.listData || [];
+      } catch (err) {
+        console.error("Gagal memuat kategori", err);
+        return [];
+      }
+    }
+
+    async function loadPesananData() {
+      try {
+        const [subCategories, pesananRes] = await Promise.all([
+          loadSubCategories(),
+          fetch(`https://devdinasti.katib.cloud/detail/sales/${pesanan_id}`, {
+            headers: { Authorization: `Bearer e29c2e3db5f5299dc954eae580893689c35ecde79f40213365f56fb54850f9b1` }
+          })
+        ]);
+        
+        const pesananResult = await pesananRes.json();
+        const data = pesananResult?.detail;
         if (!data) throw new Error("Data pesanan tidak ditemukan");
 
+        const revisionInfo = data.revision_status && data.revision_number
+          ? `${data.revision_status}`
+          : '-';
+
+        // Group items by category
+        const groupedItems = {};
+        data.items.forEach(item => {
+          const categoryId = item.sub_category_id || 3; // Default to "Lainnya" if no category
+          if (!groupedItems[categoryId]) {
+            groupedItems[categoryId] = {
+              categoryName: subCategories.find(c => c.sub_category_id == categoryId)?.nama || 'Lainnya',
+              items: []
+            };
+          }
+          groupedItems[categoryId].items.push(item);
+        });
+
         const html = `
-        <!-- HEADER -->
-        <div class="flex justify-between items-start mb-6">
-          <div>
-            <img src="./assets/img/cropped-logo.png" class="h-12"/>
-            <h1 class="text-lg font-bold text-red-600">PT. Dinasti Elektrik Indonesia</h1>
-            <p class="text-xs leading-snug">
-              ELECTRICAL ENGINEERING & MAINTENANCE<br>
-              Jl Krisa Ayu IV Blok A3 No 11 Rt.002/RW.008<br>
-              Periuk, Cipedok, Tangerang 11750
-            </p>
-            <p class="text-xs mt-1">
-              Instagram: @dinastielektrik.id<br>
-              Instagram: @Dinasti_Electrical_Projectz
-            </p>
-          </div>
-          <div class="text-right text-sm">
-  <h2 class="text-3xl font-bold text-blue-700 mb-2">Invoice</h2>
-  <table class="text-sm border border-gray-400 border-collapse w-full max-w-xs ml-auto">
-    <tr>
-      <td class="border border-gray-400 px-2 py-1 font-semibold text-left">Referensi</td>
-      <td class="border border-gray-400 px-2 py-1">${data.no_qtn}</td>
-    </tr>
-    <tr>
-      <td class="border border-gray-400 px-2 py-1 font-semibold text-left">Tanggal</td>
-      <td class="border border-gray-400 px-2 py-1">${data.tanggal_invoice}</td>
-    </tr>
-    <tr>
-      <td class="border border-gray-400 px-2 py-1 font-semibold text-left">No. Qtn</td>
-      <td class="border border-gray-400 px-2 py-1">${data.no_qtn}</td>
-    </tr>
-  </table>
-</div>
+          <!-- Header -->
+          <div class="relative mb-2">
+              <!-- Logo di kiri -->
+              <div class="absolute left-0 top-0">
+                <img src="./assets/img/cropped-logo.png" class="h-16" />
+              </div>
 
-        </div>
+              <!-- Teks center di halaman -->
+              <div class="text-center">
+                <h1 class="font-bold text-red-700 text-lg">PT. DINASTI ELEKTRIK INDONESIA</h1>
+                <p class="text-xs font-semibold">ELEKTRIKAL ENGINEERING & MAINTENANCE</p>
+                <p class="text-xs">
+                  Jl. Krisa Ayu 4 RT/RW 002/008 Blok A3 No. 19, Cipondoh, Tangerang<br>
+                  Telp.: 0823-7142-5300, Email: admin@dinasti.id
+                </p>
+              </div>
+            </div>
 
-        <!-- CLIENT INFO -->
-        <div class="text-sm border-b border-gray-400 pb-2 mb-6">
-          <h3 class="font-semibold">Tagihan Untuk</h3>
-          <p>
-            ${data.pelanggan_nama}<br>
-            Project: ${data.project_name}<br>
-            Tipe: ${data.project_type}<br>
-          </p>
-        </div>
+             <!-- Garis bawah -->
+           <hr class="border-t-4 border-black mb-3 w-full">
 
-        <h3 class="text-lg font-semibold text-black mb-2">${data.project_name}</h3>
-
-        <!-- PRODUCT TABLE -->
-        <table class="w-full text-sm border-collapse bordered mb-4">
-          <thead class="bg-gray-200">
-            <tr>
-              <th class="text-center px-3 py-2">Produk</th>
-              <th class="text-center px-3 py-2">Kuantitas</th>
-              <th class="text-center px-3 py-2">Harga (Rp)</th>
-              <th class="text-center px-3 py-2">Jumlah (Rp)</th>
-            </tr>
-          </thead>
-          <tbody id="tabelItem">
-            <!-- akan diisi oleh JS -->
-          </tbody>
-        </table>
-
-        <!-- FOOTER -->
-        <div class="flex flex-col md:flex-row justify-between mt-6">
-          <div class="text-sm w-full md:w-1/2">
-            <h4 class="font-semibold mb-2">Keterangan</h4>
-            <p class="text-xs leading-relaxed">
-              ${data.catatan || 'Terima Kasih atas Pesanan Anda!'}<br>
-              Silakan lakukan pembayaran ke rekening berikut:
-            </p>
-            <ul class="text-xs mt-2">
-              <li><strong>Term Pembayaran:</strong> ${data.term_pembayaran || 'Pembayaran via transfer ke Mandiri 123456789 a/n PT Example.'}</li>
-            </ul>
-            <p class="text-xs mt-2">${data.syarat_ketentuan || 'Konfirmasi melalui WhatsApp atau email dengan melampirkan bukti transfer.'}</p>
+          <!-- Client and Invoice Info -->
+          <div class="flex justify-between mb-6 p-3 bg-gray-50 rounded">
+            <div class="text-sm">
+              <h3 class="font-bold text-gray-700 mb-1">Kepada YTH:</h3>
+              <p class="font-semibold text-gray-800">${data.pelanggan_nama}</p>
+              ${data.project_name ? `<p class="text-gray-600">${data.project_name}</p>` : ''}
+              ${data.project_type ? `<p class="text-gray-600">${data.project_type}</p>` : ''}
+            </div>
+            <div class="text-sm text-right">
+              <h3 class="font-bold text-gray-700 mb-1">Detail Invoice:</h3>
+              <p class="text-sm text-gray-600 mt-1"><strong>No:</strong> ${data.no_qtn}</p>
+                <p class="text-sm text-gray-600"><strong>Tanggal:</strong> ${data.tanggal_invoice}</p>
+              <p class="text-gray-600"><span class="font-medium">No. Revisi:</span> ${revisionInfo}</p>
+            </div>
           </div>
 
-          <div class="text-sm w-full md:w-1/2 mt-6 md:mt-0">
-            <table class="ml-auto w-full max-w-xs">
-              <tr><td class="text-right pr-2">Subtotal</td><td class="text-right">${formatDot(data.subtotal)}</td></tr>
-              <tr><td class="text-right pr-2">Diskon Tambahan</td><td class="text-right">- ${formatDot(data.disc)}</td></tr>
-              <tr><td class="text-right pr-2">PPN</td><td class="text-right">${formatDot(data.ppn)}</td></tr>
-              <tr class="font-bold border-t border-black">
-                <td class="text-right pr-2">Total</td>
-                <td class="text-right">${formatDot((+data.subtotal - +data.disc + +data.ppn))}</td>
+          <!-- Table Items -->
+          <table class="w-full text-sm border-collapse bordered mb-4">
+            <thead class="bg-gray-100">
+              <tr class="text-gray-700">
+                <th class="p-2 text-center w-10">No</th>
+                <th class="p-2 text-left">Description</th>
+                <th class="p-2 text-center w-16">Qty</th>
+                <th class="p-2 text-center w-16">Satuan</th>
+                <th class="p-2 text-right w-24">Harga Satuan</th>
+                <th class="p-2 text-right w-28">Jumlah</th>
+              </tr>
+            </thead>
+            <tbody id="tabelItem"></tbody>
+          </table>
+
+          <!-- Totals -->
+          <div class="flex justify-end mb-4">
+            <table class="text-sm w-72">
+              <tr>
+                <td class="pr-4 py-1 text-right font-semibold text-gray-700">Sub Total</td>
+                <td class="py-1 text-right text-gray-800">${formatRp(data.subtotal)}</td>
+              </tr>
+              <tr>
+                <td class="pr-4 py-1 text-right font-semibold text-gray-700">PPN 11%</td>
+                <td class="py-1 text-right text-gray-800">${formatRp(data.ppn)}</td>
+              </tr>
+              <tr class="font-bold border-t-2 border-gray-300 total-row">
+                <td class="pr-4 py-2 text-right text-gray-900">TOTAL</td>
+                <td class="py-2 text-right text-red-600">${formatRp(data.total)}</td>
               </tr>
             </table>
           </div>
-        </div>
+
+          <!-- Terbilang -->
+          <div class="text-sm mb-4">
+            <span class="font-semibold text-gray-700">Terbilang:</span> 
+            <span class="italic text-gray-800">${terbilang(data.total)} Rupiah</span>
+          </div>
+
+          <!-- Payment Info -->
+          <div class="text-sm mb-4 p-3 bg-blue-50 rounded">
+            <p class="font-semibold text-blue-700 mb-1">Pembayaran dapat dilakukan melalui:</p>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <p class="text-gray-700"><span class="font-medium">Bank:</span> BCA (Bank Central Asia)</p>
+                <p class="text-gray-700"><span class="font-medium">Nama:</span> PT Dinasti Elektrik Indonesia</p>
+                <p class="text-gray-700"><span class="font-medium">No. Rekening:</span> 629-0798777</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notes and Signature -->
+          <div class="flex justify-between items-end mt-8">
+            <div class="text-sm w-1/2">
+              <p class="font-semibold text-gray-700 mb-1">Catatan:</p>
+              <ul class="list-disc list-inside text-gray-600">
+                <li>Barang yang sudah dibeli tidak dapat dikembalikan</li>
+                <li>Pembayaran dianggap lunas setelah dana diterima</li>
+                <li>Invoice ini valid tanpa tanda tangan</li>
+              </ul>
+            </div>
+            <div class="text-center signature-area w-1/2">
+              <p class="text-sm text-gray-600">Jakarta, ${data.tanggal_invoice}</p>
+              <p class="text-sm text-gray-600 mb-6">Hormat kami,</p>
+              <div class="flex justify-center space-x-8">
+                <div>
+                  <img src="./assets/img/ttd.png" class="h-14 mx-auto mb-1" />
+                </div>
+                <div>
+                  <img src="./assets/img/stempel.png" class="h-14 mx-auto mb-1" />
+                </div>
+              </div>
+              <p class="text-sm font-bold text-gray-800 mt-2">PT. DINASTI ELEKTRIK INDONESIA</p>
+            </div>
+          </div>
+          
+          <!-- Footer -->
+          <div class="mt-6 pt-3 border-t border-gray-200 text-xs text-center text-gray-500">
+            <p>Terima kasih atas kepercayaan Anda kepada PT Dinasti Elektrik Indonesia</p>
+            <p class="mt-1">Invoice ini dikeluarkan secara elektronik dan tidak memerlukan tanda tangan</p>
+          </div>
         `;
 
         container.innerHTML = html;
 
-        // ✅ Baru bisa akses #tabelItem di sini
+        // Render items table grouped by category
         const tbody = document.getElementById("tabelItem");
         tbody.innerHTML = "";
-
-        data.items.forEach(item => {
-          const detailLines = (item.description || "-")
-            .split(",") // pecah berdasarkan koma
-            .map(line => `<li>${line.trim()}</li>`) // hapus spasi ekstra, bungkus <li>
-            .join("");
-
-          const row = `
-    <tr>
-  <td class="px-3 py-2 align-middle">
-    <div class="font-semibold text-sm mb-1">${item.product}</div>
-    <ul class="list-disc list-inside text-xs text-gray-700 leading-snug">
-      ${detailLines}
-    </ul>
-  </td>
-  <td class="px-3 py-2 text-center align-middle">
-    <div class="inline-block">${item.qty || 0}</div>
-  </td>
-  <td class="px-3 py-2 text-center align-middle w-[17%]">
-    <div class="inline-block">${formatRp(item.unit_price || 0)}</div>
-  </td>
-  <td class="px-3 py-2 text-center align-middle w-[17%]">
-    <div class="inline-block">${formatRp(item.total || 0)}</div>
-  </td>
-</tr>
-
-  `;
-
-          tbody.insertAdjacentHTML("beforeend", row);
-        });
+        let itemCounter = 1;
+        
+        for (const categoryId in groupedItems) {
+          const category = groupedItems[categoryId];
+          
+          // Add category header row
+          const headerRow = `
+            <tr class="category-header">
+              <td colspan="6" class="p-2 font-semibold">${category.categoryName}</td>
+            </tr>
+          `;
+          tbody.insertAdjacentHTML("beforeend", headerRow);
+          
+          // Add items for this category
+          category.items.forEach(item => {
+            const row = `
+              <tr class="${itemCounter % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
+                <td class="p-2 text-center text-gray-700">${itemCounter}</td>
+                <td class="p-2 text-gray-800">
+                  <p class="font-medium">${item.product || '-'}</p>
+                  <p class="text-xs text-gray-500 mt-1">${item.description || ''}</p>
+                </td>
+                <td class="p-2 text-center text-gray-700">${item.qty || 0}</td>
+                <td class="p-2 text-center text-gray-700">${item.unit || '-'}</td>
+                <td class="p-2 text-right text-gray-800">${formatRp(item.unit_price || 0)}</td>
+                <td class="p-2 text-right text-gray-800 font-medium">${formatRp(item.total || 0)}</td>
+              </tr>
+            `;
+            tbody.insertAdjacentHTML("beforeend", row);
+            itemCounter++;
+          });
+        }
 
         if (isDownload) {
           setTimeout(() => {
-            html2pdf()
-              .set({
-                margin: 0,
-                filename: `${data.no_qtn || "invoice"}.pdf`,
-                image: { type: "jpeg", quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-              })
-              .from(container)
-              .save();
+            html2pdf().set({
+              margin: 0,
+              filename: `${data.no_qtn || "invoice"}.pdf`,
+              image: { type: "jpeg", quality: 0.98 },
+              html2canvas: { scale: 2 },
+              jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+            }).from(container).save();
           }, 1000);
         }
       } catch (err) {
@@ -205,7 +295,7 @@
       }
     }
 
-    window.onload = loadpesananData;
+    window.onload = loadPesananData;
   </script>
 </body>
 

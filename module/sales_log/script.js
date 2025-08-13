@@ -183,16 +183,16 @@ window.rowTemplate = function (item, index, perPage = 10) {
   }');" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
     👁️ View Order
   </button>
-  <button onclick="event.stopPropagation(); loadModuleContent('sales_log_detail', '${
+  <button onclick="event.stopPropagation(); loadModuleContent('sales_log', '${
     item.pesanan_id
-  }');" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+  }',);" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
     🧾 Log
   </button>
 
   <!-- Delete Order -->
   ${
     item.status_id !== 2
-      ? `<button onclick="(event) => { event.stopPropagation(); loadModuleContent('sales_log_detail', '${item.pesanan_id}'); }" class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">
+      ? `<button onclick="handleDelete('${item.pesanan_id}')" class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">
       🗑 Delete Order
     </button>`
       : ""
@@ -200,17 +200,11 @@ window.rowTemplate = function (item, index, perPage = 10) {
 
 </div>
 
+    </td>
     <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-  <span class="font-medium sm:hidden">Revision</span>
-  ${
-    item.status === "On Going"
-      ? `R${item.revision_number || 0}`
-      : `R${item.revision_number || 0}`
-  }
-</td>
-
-
-
+      <span class="font-medium sm:hidden">Revision Status</span>
+      ${item.revision_status}
+    </td>
   </tr>`;
 };
 
@@ -218,7 +212,6 @@ document.getElementById("addButton").addEventListener("click", async () => {
   statusLoaded = false;
   await loadModuleContent("sales_detail");
   loadStatusOptions(); // sekarang dijamin status select-nya udah ada & function-nya udah terdefinisi
-  loadDetailSales(id, detail);
 });
 
 formHtml = ``;

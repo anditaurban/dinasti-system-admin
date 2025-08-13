@@ -24,10 +24,10 @@ document.getElementById("logout").addEventListener("click", function () {
   });
 });
 
-if (owner_id || user_id || level || username) {
-  const welcomeMessageSpan = document.getElementById("nameUser");
-  welcomeMessageSpan.textContent = `Hi, ${username} 👋`;
-}
+// if (owner_id || user_id || level || username) {
+//   const welcomeMessageSpan = document.getElementById("nameUser");
+//   welcomeMessageSpan.textContent = `Hi, ${username} 👋`;
+// }
 
 expandSidebar();
 

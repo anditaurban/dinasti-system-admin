@@ -34,23 +34,52 @@
   </div>
 
   <!-- Key Metrics -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mb-8">
+    <!-- Total PO Achievement -->
+    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 w-full">
       <p class="text-sm text-blue-600 font-medium">Total PO Achievement</p>
-      <p id="metricAchievement" class="text-2xl font-bold text-gray-800">Rp0</p>
-      <p id="metricAchievementRate" class="text-xs text-gray-500">0% of target</p>
+      <p id="metricAchievement" class="text-2xl font-bold text-gray-800">Rp20.000.000.000</p>
+      <p id="metricAchievementRate" class="text-xs text-gray-500">57.1% of target</p>
     </div>
-    <div class="bg-green-50 p-4 rounded-xl border border-green-100">
-      <p class="text-sm text-green-600 font-medium">Pipeline Value</p>
-      <p id="metricPipeline" class="text-2xl font-bold text-gray-800">Rp0</p>
-      <p class="text-xs text-gray-500">Potential revenue</p>
-    </div>
-    <div class="bg-orange-50 p-4 rounded-xl border border-orange-100">
-      <p class="text-sm text-orange-600 font-medium">Remaining Target</p>
-      <p id="metricRemaining" class="text-2xl font-bold text-gray-800">Rp0</p>
-      <p id="metricRemainingRate" class="text-xs text-gray-500">0% to achieve</p>
+
+    <!-- Remaining Target -->
+    <div class="bg-red-50 p-4 rounded-xl border border-red-100 w-full">
+      <p class="text-sm text-red-600 font-medium">Remaining Target</p>
+      <p id="metricRemaining" class="text-2xl font-bold text-gray-800">Rp15.000.000.000</p>
+      <p id="metricRemainingRate" class="text-xs text-gray-500">42.9% to achieve</p>
     </div>
   </div>
+
+  <!-- Recap PO -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <!-- WON -->
+    <div class="bg-orange-50 p-4 rounded-xl border border-orange-100">
+      <p class="text-sm text-orange-600 font-medium">
+        Won Qty: <span id="wonQty">0</span>
+      </p>
+      <p id="wonNominal" class="text-2xl font-bold text-gray-800">Rp0</p>
+    </div>
+
+    <!-- ONGOING -->
+    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+      <p class="text-sm text-blue-600 font-medium">
+        Ongoing Qty: <span id="ongoingQty">0</span>
+      </p>
+      <p id="ongoingNominal" class="text-2xl font-bold text-gray-800">Rp0</p>
+    </div>
+
+    <!-- LOSS -->
+    <div class="bg-red-50 p-4 rounded-xl border border-red-100">
+      <p class="text-sm text-red-600 font-medium">
+        Loss Qty: <span id="lossQty">0</span>
+      </p>
+      <p id="lossNominal" class="text-2xl font-bold text-gray-800">Rp0</p>
+    </div>
+
+  </div>
+
+
+
 
   <!-- Charts (Hanya Bar Chart) -->
   <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 h-[400px] mb-8">

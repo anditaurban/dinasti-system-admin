@@ -1,0 +1,42 @@
+<div class="w-full mx-auto py-8" id="projectDetailBudgetCashflow">
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h1 class="text-2xl font-bold mb-1">Log Detail</h1>
+            <nav class="text-gray-500 text-sm flex items-center flex-wrap gap-1">
+                <span>Home</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+                <span>Sales</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+                <span class="font-medium">Faktur</span>
+            </nav>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+        <!-- Invoice Preview -->
+        <div class="md:col-span-9 bg-white rounded shadow overflow-hidden p-6">
+            <div id="loadPesananData">
+                <div id="invoiceContent"></div>
+            </div>
+        </div>
+
+        <!-- Riwayat Versi -->
+        <div class="md:col-span-3 bg-white p-4 rounded shadow flex flex-col">
+            <div>
+                <h2>Version History (<span id="versionCount">0</span>)</h2>
+                <ul id="versionHistoryList"></ul>
+            </div>
+
+            <button id="printBtn">Print</button>
+
+        </div>
+    </div>
+</div>
+
+<script>
+
+</script>
