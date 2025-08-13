@@ -1,0 +1,212 @@
+<div class="w-full mx-auto py-8" id="projectDetailBudgetCashflow">
+  <!-- Header -->
+  <div class="flex flex-wrap items-start justify-between mb-4 gap-4">
+    <div>
+      <h1 id="formTitle" class="text-2xl font-bold mb-1">TAMBAH PROJECT</h1>
+      <nav class="text-gray-500 text-sm flex items-center flex-wrap gap-1">
+        <span>Home</span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+        <span>Sales</span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+        <span class="font-medium">Faktur</span>
+      </nav>
+    </div>
+
+    <!-- Tombol-tombol sejajar -->
+    <div class="flex flex-wrap items-center gap-2">
+      <button onclick="submitInvoice()" class="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded text-sm">💾
+        Simpan</button>
+      <button onclick="updateInvoice()"
+        class="bg-yellow-700 hover:bg-yellow-800 text-white px-4 py-2 rounded text-sm hidden">🔄 Update</button>
+      <button onclick="printInvoice(detail_id)"
+        class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded text-sm">📄 Download PDF</button>
+
+      <button onclick="loadModuleContent('sales')" class="bg-gray-300 text-sm px-4 py-2 rounded">⬅️ Back</button>
+    </div>
+  </div>
+
+  <!-- Form + Ringkasan -->
+  <div class="grid grid-cols-1 md:grid-cols-10 gap-6">
+    <!-- Form 70% -->
+    <div class="md:col-span-7 bg-white p-6 rounded shadow space-y-6">
+      
+
+
+      <div class="space-y-4">
+        <!-- Row 1 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium">Project Manager</label>
+            <select id="project_manager" name="project_manager" class="w-full border px-3 py-2 rounded">
+              <option value="">Pilih Project Manager</option>
+              <!-- Opsi diisi via JS -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium">Pilih Project</label>
+            <select id="deskripsi" name="deskripsi" class="w-full border px-3 py-2 rounded">
+              <option value="">Pilih Deskripsi</option>
+              <!-- Opsi diisi via JS -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium">Nilai Kontrak (Rp)</label>
+            <input type="text" id="nilai_kontrak" name="nilai_kontrak" placeholder="Nilai Kontrak (Rp)"
+              class="w-full border px-3 py-2 rounded" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium">Perkiraan Biaya (Rp)</label>
+            <input type="text" id="perkiraan_biaya" name="perkiraan_biaya" placeholder="Perkiraan Biaya (Rp)"
+              class="w-full border px-3 py-2 rounded" />
+          </div>
+        </div>
+
+        <!-- Row 3 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium">Start Date <span class="text-red-500">*</span></label>
+            <input type="date" id="start_date" name="start_date" class="w-full border px-3 py-2 rounded" required />
+          </div>
+          <div>
+            <label class="block text-sm font-medium">Finish Date <span class="text-red-500">*</span></label>
+            <input type="date" id="finish_date" name="finish_date" class="w-full border px-3 py-2 rounded" required />
+          </div>
+        </div>
+      </div>
+
+
+
+      <div>
+        <h3 class="text-sm font-semibold mb-2">📦 Daftar Item</h3>
+        <div class="overflow-auto border rounded">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="px-3 py-2 border text-left">Produk</th>
+                <th class="px-3 py-2 border text-left">Type</th>
+                <th class="px-3 py-2 border text-left">Deksripsi</th>
+                <th class="px-3 py-2 border text-right">Unit</th>
+                <th class="px-3 py-2 border text-right">Qty</th>
+                <th class="px-3 py-2 border text-right">Harga</th>
+                <th class="px-3 py-2 border text-right">Subtotal</th>
+                <th class="px-3 py-2 border text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tabelItem" class="bg-white"></tbody>
+          </table>
+        </div>
+        <button onclick="tambahItem()" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">+
+          Tambah Item</button>
+      </div>
+
+
+      <!-- <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium">📝 Catatan</label>
+            <textarea id="catatan" rows="3" class="w-full border rounded px-3 py-2"></textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-medium">📌 Syarat & Ketentuan</label>
+            <textarea id="syarat_ketentuan" rows="3" class="w-full border rounded px-3 py-2"></textarea>
+          </div>
+          <div class="mt-4">
+            <label class="block text-sm font-medium">💰 Term of Payment</label>
+            <textarea id="term_pembayaran" rows="2" class="w-full border rounded px-3 py-2"></textarea>
+          </div>
+        </div>
+
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium">💸 Diskon (Rp)</label>
+            <input type="text" id="discount" class="formatNumber w-full border px-3 py-2 rounded" value="0"
+              oninput="calculateInvoiceTotals()" />
+          </div>
+
+        </div>
+      </div> -->
+
+
+
+
+
+
+
+      <div class="text-right pt-4 border-t">
+
+      </div>
+    </div>
+
+    <!-- Ringkasan 30% -->
+    <div class="md:col-span-3 bg-gray-50 p-4 rounded shadow space-y-4">
+      <h4 class="font-semibold">💡 Ringkasan</h4>
+      <div class="text-sm space-y-2">
+        <p><span class="text-gray-500">Subtotal:</span> <span id="contract_amount_display" class="float-right">0</span>
+        </p>
+        <p><span class="text-gray-500">Diskon:</span> <span id="diskon" class="float-right">0</span></p>
+        <p><span class="text-gray-500">Pajak (11%):</span> <span id="ppn_display" class="float-right">0</span></p>
+        <hr />
+        <p class="font-bold text-green-600">Total: <span id="total_display" class="float-right">0</span></p>
+        </p>
+        <hr />
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium">File Pendukung</label>
+          <input type="file" id="file" name="file" class="w-full border px-3 py-2 rounded" />
+        </div>
+
+      </div>
+
+      <!-- <div class="border rounded">
+        <button onclick="toggleSection('pembayaranSection')"
+          class="w-full text-left px-3 py-2 bg-gray-200 hover:bg-gray-300 font-medium">
+          💳 Daftar Pembayaran
+        </button>
+        <div id="pembayaranSection" class="hidden p-3 text-sm space-y-2 bg-white">
+          <div class="flex justify-between border-b pb-1">
+            <span>Shopee - 10/08/2025</span>
+            <span class="font-semibold text-green-600">Rp 4.564.740</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="border rounded">
+        <button onclick="toggleSection('fileSection')"
+          class="w-full text-left px-3 py-2 bg-gray-200 hover:bg-gray-300 font-medium">
+          📂 File Pendukung
+        </button>
+        <div id="fileSection" class="hidden p-3 text-sm space-y-2 bg-white">
+  
+          <input type="file" id="file" name="file" class="w-full border px-3 py-2 rounded" />
+  
+          <div class="flex items-center justify-between border p-2 rounded">
+            <span>invoice.pdf</span>
+            <a href="#" class="text-blue-600 hover:underline">Download</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="border rounded">
+        <button onclick="toggleSection('uangMukaSection')"
+          class="w-full text-left px-3 py-2 bg-gray-200 hover:bg-gray-300 font-medium">
+          💰 Invoice Uang Muka
+        </button>
+        <div id="uangMukaSection" class="hidden p-3 text-sm space-y-2 bg-white">
+          <div class="flex justify-between border-b pb-1">
+            <span>Invoice #INV-001</span>
+            <span class="font-semibold text-green-600">Rp 2.000.000</span>
+          </div>
+        </div>
+      </div> -->
+
+    </div>
+  </div>
+</div>

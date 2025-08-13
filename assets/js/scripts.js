@@ -13,6 +13,9 @@ const business_place = company.business_place;
 const address = company.address;
 const company_phone = company.company_phone;
 const printer_setting = company.printer_setting;
+const lihatVersiBtn = document.getElementById("lihatVersiBtn");
+const popupOverlay = document.getElementById("popupOverlay");
+const closePopup = document.getElementById("closePopup");
 
 const default_module = "sales_recap";
 

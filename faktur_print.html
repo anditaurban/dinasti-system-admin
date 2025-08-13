@@ -41,13 +41,6 @@
       border-top: 1px dashed #64748b;
       padding-top: 1rem;
     }
-    
-    .category-header {
-      background-color: #f1f5f9;
-      font-weight: 600;
-      text-transform: uppercase;
-      font-size: 0.8rem;
-    }
   </style>
 </head>
 
@@ -97,7 +90,7 @@
             headers: { Authorization: `Bearer e29c2e3db5f5299dc954eae580893689c35ecde79f40213365f56fb54850f9b1` }
           })
         ]);
-        
+
         const pesananResult = await pesananRes.json();
         const data = pesananResult?.detail;
         if (!data) throw new Error("Data pesanan tidak ditemukan");
@@ -106,17 +99,13 @@
           ? `${data.revision_status}`
           : '-';
 
-        // Group items by category
-        const groupedItems = {};
-        data.items.forEach(item => {
-          const categoryId = item.sub_category_id || 3; // Default to "Lainnya" if no category
-          if (!groupedItems[categoryId]) {
-            groupedItems[categoryId] = {
-              categoryName: subCategories.find(c => c.sub_category_id == categoryId)?.nama || 'Lainnya',
-              items: []
-            };
-          }
-          groupedItems[categoryId].items.push(item);
+        // Map category names to items
+        const itemsWithCategory = data.items.map(item => {
+          const category = subCategories.find(c => c.sub_category_id == item.sub_category_id);
+          return {
+            ...item,
+            categoryName: category ? category.nama : 'Lainnya'
+          };
         });
 
         const html = `
@@ -162,14 +151,28 @@
             <thead class="bg-gray-100">
               <tr class="text-gray-700">
                 <th class="p-2 text-center w-10">No</th>
-                <th class="p-2 text-left">Description</th>
+                <th class="p-2 text-center">Produk</th>
                 <th class="p-2 text-center w-16">Qty</th>
                 <th class="p-2 text-center w-16">Satuan</th>
-                <th class="p-2 text-right w-24">Harga Satuan</th>
-                <th class="p-2 text-right w-28">Jumlah</th>
+                <th class="p-2 text-center w-32">Harga Satuan</th>
+                <th class="p-2 text-center w-32">Jumlah</th>
               </tr>
             </thead>
-            <tbody id="tabelItem"></tbody>
+            <tbody>
+              ${itemsWithCategory.map((item, index) => `
+                <tr class="${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
+                  <td class="p-2 text-center text-gray-700">${index + 1}</td>
+                  <td class="p-2 text-gray-800">
+                    <p class="font-medium">${item.product || '-'}</p>
+                    ${item.description ? `<p class="text-xs text-gray-500 mt-1">${item.description}</p>` : ''}
+                  </td>
+                  <td class="p-2 text-center text-gray-700">${item.qty || 0}</td>
+                  <td class="p-2 text-center text-gray-700">${item.unit || '-'}</td>
+                  <td class="p-2 text-right text-gray-800">${formatRp(item.unit_price || 0)}</td>
+                  <td class="p-2 text-right text-gray-800 font-medium">${formatRp(item.total || 0)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
           </table>
 
           <!-- Totals -->
@@ -178,6 +181,10 @@
               <tr>
                 <td class="pr-4 py-1 text-right font-semibold text-gray-700">Sub Total</td>
                 <td class="py-1 text-right text-gray-800">${formatRp(data.subtotal)}</td>
+              </tr>
+              <tr>
+                <td class="pr-4 py-1 text-right font-semibold text-gray-700">Discount</td>
+                <td class="py-1 text-right text-gray-800">${formatRp(data.disc)}</td>
               </tr>
               <tr>
                 <td class="pr-4 py-1 text-right font-semibold text-gray-700">PPN 11%</td>
@@ -241,42 +248,6 @@
         `;
 
         container.innerHTML = html;
-
-        // Render items table grouped by category
-        const tbody = document.getElementById("tabelItem");
-        tbody.innerHTML = "";
-        let itemCounter = 1;
-        
-        for (const categoryId in groupedItems) {
-          const category = groupedItems[categoryId];
-          
-          // Add category header row
-          const headerRow = `
-            <tr class="category-header">
-              <td colspan="6" class="p-2 font-semibold">${category.categoryName}</td>
-            </tr>
-          `;
-          tbody.insertAdjacentHTML("beforeend", headerRow);
-          
-          // Add items for this category
-          category.items.forEach(item => {
-            const row = `
-              <tr class="${itemCounter % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
-                <td class="p-2 text-center text-gray-700">${itemCounter}</td>
-                <td class="p-2 text-gray-800">
-                  <p class="font-medium">${item.product || '-'}</p>
-                  <p class="text-xs text-gray-500 mt-1">${item.description || ''}</p>
-                </td>
-                <td class="p-2 text-center text-gray-700">${item.qty || 0}</td>
-                <td class="p-2 text-center text-gray-700">${item.unit || '-'}</td>
-                <td class="p-2 text-right text-gray-800">${formatRp(item.unit_price || 0)}</td>
-                <td class="p-2 text-right text-gray-800 font-medium">${formatRp(item.total || 0)}</td>
-              </tr>
-            `;
-            tbody.insertAdjacentHTML("beforeend", row);
-            itemCounter++;
-          });
-        }
 
         if (isDownload) {
           setTimeout(() => {

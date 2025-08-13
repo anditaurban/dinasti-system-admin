@@ -168,12 +168,12 @@ window.rowTemplate = function (item, index, perPage = 10) {
     </td>
   
     <td class="px-6 py-4 text-center text-sm text-gray-700 sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Status</span>
-      <span class="${getStatusClass(
-        item.status
-      )}  px-2 py-1 rounded-full text-xs font-medium">
-        ${item.status}
-      </span>
+  <span class="font-medium sm:hidden">Status</span>
+  <span class="${getStatusClass(
+    item.status
+  )} px-2 py-1 rounded-full text-xs font-medium">
+    ${item.status}
+  </span>
       <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
   <!-- View Order -->
   <button onclick="event.stopPropagation(); loadModuleContent('sales_detail', '${
@@ -202,17 +202,26 @@ window.rowTemplate = function (item, index, perPage = 10) {
 
     <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
   <span class="font-medium sm:hidden">Revision</span>
-  ${
-    item.status === "On Going"
-      ? `R${item.revision_number || 0}`
-      : `R${item.revision_number || 0}`
-  }
+  ${`R${item.revision_number || 0}`}
 </td>
 
 
 
   </tr>`;
 };
+
+function getStatusClass(status) {
+  switch (status) {
+    case "On Going":
+      return "bg-yellow-100 text-yellow-800 border border-yellow-400";
+    case "Won":
+      return "bg-green-100 text-green-800 border border-green-400";
+    case "Lose":
+      return "bg-red-100 text-red-800 border border-red-400";
+    default:
+      return "bg-gray-100 text-gray-800 border border-gray-300";
+  }
+}
 
 document.getElementById("addButton").addEventListener("click", async () => {
   statusLoaded = false;

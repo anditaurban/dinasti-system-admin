@@ -97,6 +97,14 @@ function renderInvoice(invoiceData, isDownload = false) {
   // Ensure items is an array
   const items = Array.isArray(invoiceData.items) ? invoiceData.items : [];
 
+  // Calculate values if not provided
+  const subtotal =
+    invoiceData.subtotal ||
+    items.reduce((sum, item) => sum + (item.total || 0), 0);
+  const disc = invoiceData.disc || 0;
+  const ppn = invoiceData.ppn || Math.round(subtotal * 0.11); // Default PPN 11%
+  const total = invoiceData.total_order || subtotal - disc + ppn;
+
   const revisionInfo =
     invoiceData.revision_status && invoiceData.revision_number
       ? `${invoiceData.revision_status}`
@@ -125,6 +133,26 @@ function renderInvoice(invoiceData, isDownload = false) {
       )
       .join("") ||
     '<tr><td colspan="6" class="text-center py-4">No items found</td></tr>';
+
+  // Perbaikan bagian total - tambahkan pengecekan dan fallback calculation
+  const totalsHtml = `
+    <tr>
+      <td class="pr-4 py-2 text-right font-semibold text-gray-700">Sub Total</td>
+      <td class="py-2 text-right text-gray-800">${formatCurrency(subtotal)}</td>
+    </tr>
+    <tr>
+      <td class="pr-4 py-2 text-right font-semibold text-gray-700">Discount</td>
+      <td class="py-2 text-right text-gray-800">${formatCurrency(disc)}</td>
+    </tr>
+    <tr>
+      <td class="pr-4 py-2 text-right font-semibold text-gray-700">PPN 11%</td>
+      <td class="py-2 text-right text-gray-800">${formatCurrency(ppn)}</td>
+    </tr>
+    <tr class="font-bold border-t-2 border-gray-300 total-row">
+      <td class="pr-4 py-3 text-right text-gray-900">TOTAL</td>
+      <td class="py-3 text-right text-red-600">${formatCurrency(total)}</td>
+    </tr>
+  `;
 
   const html = `
     <div class="invoice-container p-6 max-w-4xl mx-auto">
@@ -201,33 +229,14 @@ function renderInvoice(invoiceData, isDownload = false) {
       <!-- Totals -->
       <div class="flex justify-end mb-6">
         <table class="text-sm w-72">
-          <tr>
-            <td class="pr-4 py-2 text-right font-semibold text-gray-700">Sub Total</td>
-            <td class="py-2 text-right text-gray-800">${formatCurrency(
-              invoiceData.subtotal || 0
-            )}</td>
-          </tr>
-          <tr>
-            <td class="pr-4 py-2 text-right font-semibold text-gray-700">PPN 11%</td>
-            <td class="py-2 text-right text-gray-800">${formatCurrency(
-              invoiceData.ppn || 0
-            )}</td>
-          </tr>
-          <tr class="font-bold border-t-2 border-gray-300 total-row">
-            <td class="pr-4 py-3 text-right text-gray-900">TOTAL</td>
-            <td class="py-3 text-right text-red-600">${formatCurrency(
-              invoiceData.total_order || 0
-            )}</td>
-          </tr>
+          ${totalsHtml}
         </table>
       </div>
 
       <!-- Terbilang -->
       <div class="text-sm mb-8 p-3 bg-gray-50 rounded">
         <span class="font-semibold text-gray-700">Terbilang:</span> 
-        <span class="italic text-gray-800">${terbilang(
-          invoiceData.total_order || 0
-        )} Rupiah</span>
+        <span class="italic text-gray-800">${terbilang(total)} Rupiah</span>
       </div>
 
       <!-- Payment Info -->

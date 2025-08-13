@@ -25,8 +25,8 @@ document.getElementById("logout").addEventListener("click", function () {
 });
 
 // if (owner_id || user_id || level || username) {
-//   const welcomeMessageSpan = document.getElementById("nameUser");
-//   welcomeMessageSpan.textContent = `Hi, ${username} 👋`;
+//     const welcomeMessageSpan = document.getElementById('nameUser');
+//     welcomeMessageSpan.textContent = `Hi, ${username} 👋`;
 // }
 
 expandSidebar();
@@ -144,7 +144,7 @@ document.addEventListener("click", (e) => {
 
 //   for (const config of badgeConfigs) {
 //     try {
-//       const response = await fetch(`${baseUrl}/${config.endpoint}/${owner_id}`, {
+//       const response = await fetch(`${baseUrl}/${config.endpoint}/100`, {
 //         headers: {
 //           'Authorization': `Bearer ${API_TOKEN}`
 //         }
@@ -164,4 +164,4 @@ document.addEventListener("click", (e) => {
 //   }
 // }
 
-setInterval(loadBadge, 1000);
+// setInterval(loadBadge, 1000);

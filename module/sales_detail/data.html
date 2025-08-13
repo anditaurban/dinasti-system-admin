@@ -37,10 +37,88 @@
         <div>
           <h2 class="text-xl font-bold">🧾 Tambah Sales</h2>
         </div>
+        <!-- Versi Saat Ini -->
         <div class="bg-blue-50 border border-blue-200 rounded p-2 text-sm flex items-center justify-between">
           <span>Versi Saat Ini: <strong id="currentVersion">3</strong></span>
-          <a href="#" class="text-blue-600 hover:underline">Lihat versi lainnya di sini</a>
+          <a href="#" id="lihatVersiBtn" class="text-blue-600 hover:underline">Lihat versi lainnya di sini</a>
         </div>
+
+        <!-- Popup Overlay -->
+        <div id="popupOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+          <!-- Popup Box -->
+          <div class="bg-white p-4 rounded shadow-lg w-full max-w-3xl z-50">
+            <!-- Header -->
+            <div class="flex justify-between items-center border-b pb-2 mb-4">
+              <h2 class="text-lg font-bold">Aktifitas INVOICE NO. XXXXXX</h2>
+              <button id="closePopup" class="text-gray-500 hover:text-gray-700">&times;</button>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto">
+              <table class="w-full border border-gray-300 text-sm">
+                <thead class="bg-gray-100">
+                  <tr>
+                    <th class="border px-3 py-2 text-left">Waktu</th>
+                    <th class="border px-3 py-2 text-left">Aktifitas</th>
+                    <th class="border px-3 py-2 text-left">PIC</th>
+                    <th class="border px-3 py-2 text-left">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="border px-3 py-2">6 Aug 2025 10:59</td>
+                    <td class="border px-3 py-2 text-blue-600 hover:underline cursor-pointer">Dokumen dibuat</td>
+                    <td class="border px-3 py-2">Akbar</td>
+                    <td class="border px-3 py-2 text-blue-600 hover:underline cursor-pointer">Lihat</td>
+                  </tr>
+                  <tr>
+                    <td class="border px-3 py-2">6 Aug 2025 12:59</td>
+                    <td class="border px-3 py-2 text-blue-600 hover:underline cursor-pointer">Update Dokumen</td>
+                    <td class="border px-3 py-2">Akbar</td>
+                    <td class="border px-3 py-2 text-blue-600 hover:underline cursor-pointer">Lihat</td>
+                  </tr>
+                  <tr>
+                    <td class="border px-3 py-2">6 Aug 2025 17:59</td>
+                    <td class="border px-3 py-2">Menambahkan Lampiran</td>
+                    <td class="border px-3 py-2">Akbar</td>
+                    <td class="border px-3 py-2 text-blue-600 hover:underline cursor-pointer">Lihat</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <script>
+          document.addEventListener('DOMContentLoaded', function () {
+            const lihatVersiBtn = document.getElementById('lihatVersiBtn');
+            const popupOverlay = document.getElementById('popupOverlay');
+            const closePopup = document.getElementById('closePopup');
+
+            if (lihatVersiBtn && popupOverlay && closePopup) {
+              lihatVersiBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                popupOverlay.classList.remove('hidden');
+                popupOverlay.classList.add('flex');
+              });
+
+              closePopup.addEventListener('click', function () {
+                popupOverlay.classList.add('hidden');
+                popupOverlay.classList.remove('flex');
+              });
+
+              popupOverlay.addEventListener('click', function (e) {
+                if (e.target === popupOverlay) {
+                  popupOverlay.classList.add('hidden');
+                  popupOverlay.classList.remove('flex');
+                }
+              });
+            } else {
+              console.error('Salah satu elemen tidak ditemukan');
+            }
+          });
+        </script>
+
 
       </div>
 

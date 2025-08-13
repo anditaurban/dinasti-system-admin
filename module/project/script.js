@@ -13,71 +13,89 @@ window.rowTemplate = function (item, index, perPage = 10) {
   const globalIndex = (currentPage - 1) * perPage + index + 1;
 
   return `
-  <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50 relative group">
+  <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50">
 
-    <td class="px-6 py-4 text-sm border-b sm:border-0 flex justify-between sm:table-cell bg-gray-800 text-white sm:bg-transparent sm:text-gray-700">
-      <span class="font-medium sm:hidden">Project Number</span>  
+    <!-- Index -->
+
+    <!-- Project Number -->
+    <td class="px-6 py-4 text-sm border-b sm:border-0">
+      <span class="font-medium sm:hidden">Project#</span>
       ${item.project_number}
     </td>
 
-    <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Description</span>  
+    <!-- Project Name -->
+    <td class="px-6 py-4 text-sm border-b sm:border-0">
+      <span class="font-medium sm:hidden">Project Name</span>
       ${item.project_name}
     </td>
 
-    <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Type</span>  
-      ${item.type}
+    <!-- Type -->
+    <td class="px-6 py-4 text-sm border-b sm:border-0">
+      <span class="font-medium sm:hidden">Type</span>
+      ${item.type || "-"}
     </td>
 
-    <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Customer</span>  
+    <!-- Customer -->
+    <td class="px-6 py-4 text-sm border-b sm:border-0">
+      <span class="font-medium sm:hidden">Customer</span>
       ${item.customer}
     </td>
 
-    <td class="px-6 py-4 text-sm text-left text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Project Value</span>  
-      Rp ${item.project_value}
+    <!-- Project Value -->
+    <td class="px-6 py-4 text-sm border-b sm:border-0 text-right">
+      <span class="font-medium sm:hidden">Project Value</span>
+      ${formatRupiah(item.project_value)}
     </td>
 
-    <td class="px-6 py-4 text-sm text-right text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Plan Costing (%)</span>  
+    <!-- Plan Costing % -->
+    <td class="px-6 py-4 text-sm border-b sm:border-0 text-right">
+      <span class="font-medium sm:hidden">Plan Costing %</span>
       ${item.plan_costing_percent}%
     </td>
 
-    <td class="px-6 py-4 text-sm text-right text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Actual Cost (%)</span>  
+    <!-- Actual Cost % -->
+    <td class="px-6 py-4 text-sm border-b sm:border-0 text-right">
+      <span class="font-medium sm:hidden">Actual Cost %</span>
       ${item.actual_cost_percent}%
     </td>
 
-    <td class="px-6 py-4 text-sm text-right text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Margin (%)</span>  
+    <!-- Margin % -->
+    <td class="px-6 py-4 text-sm border-b sm:border-0 text-right">
+      <span class="font-medium sm:hidden">Margin %</span>
       ${item.margin_percent}%
     </td>
 
-    <td class="px-6 py-4 text-sm text-gray-700 flex justify-between sm:table-cell">
-      <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">
+    <!-- Status -->
+    <td class="px-6 py-4 text-sm border-b sm:border-0 text-center">
+      <span class="font-medium sm:hidden">Status</span>
+      <span class="${getStatusClass(
+        item.status
+      )} px-2 py-1 rounded-full text-xs font-medium">
         ${item.status}
       </span>
-      <!-- Dropdown trigger -->
-      <button class="sm:hidden text-gray-500 hover:text-gray-700 ml-2">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
-        </svg>
-      </button>
+      <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
+  <!-- View Order -->
+  <button onclick="event.stopPropagation(); loadModuleContent('project_detail');" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+    👁️ View Order
+  </button>
+  <button onclick="event.stopPropagation(); loadModuleContent('sales_log_detail', '${
+    item.pesanan_id
+  }');" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+    🧾 Log
+  </button>
+
+  <!-- Delete Order -->
+  ${
+    item.status_id !== 2
+      ? `<button onclick="(event) => { event.stopPropagation(); loadModuleContent('sales_log_detail', '${item.pesanan_id}'); }" class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">
+      🗑 Delete Order
+    </button>`
+      : ""
+  }
+
+</div>
     </td>
 
-    <!-- Dropdown menu (hidden by default) -->
-    <td class="absolute right-0 top-full sm:top-auto sm:relative hidden group-hover:block sm:group-hover:hidden bg-white shadow-lg rounded-md z-10 w-48 sm:w-auto sm:px-6 sm:py-4">
-      <div class="py-1">
-        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Edit</a>
-        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Delete</a>
-        <div class="border-t border-gray-100"></div>
-        <a href="#" class="block px-4 py-2 text-sm text-blue-600 hover:bg-gray-100">Set On Going</a>
-        <a href="#" class="block px-4 py-2 text-sm text-green-600 hover:bg-gray-100">Set Won</a>
-        <a href="#" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Set Lose</a>
-      </div>
-    </td>
   </tr>`;
 };
 
@@ -148,4 +166,11 @@ document.addEventListener("click", () => {
   document.querySelectorAll("td.absolute").forEach((dropdown) => {
     dropdown.classList.add("hidden");
   });
+});
+
+document.getElementById("addButton").addEventListener("click", async () => {
+  await loadModuleContent("project_detail");
+//   showFormModal();
+  loadStatusOptions(); // sekarang dijamin status select-nya udah ada & function-nya udah terdefinisi
+  loadDetailSales(id, detail);
 });
