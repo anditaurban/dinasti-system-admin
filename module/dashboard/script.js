@@ -1,191 +1,268 @@
-async function loadDashboardSummary() {
-  const headers = {
-    'Authorization': `Bearer ${API_TOKEN}`,
-    'Content-Type': 'application/json'
-  };
+pagemoduleparent = "salesrecap";
 
+selectedYear = new Date().getFullYear();
+chartInstance = null;
+
+async function fetchSalesData(year) {
   try {
-    const [resTransactions, resItemsSold, resSales] = await Promise.all([
-      fetch(`${baseUrl}/dashboard/total_transactions/${owner_id}`, { headers }),
-      fetch(`${baseUrl}/dashboard/total_items_sold/${owner_id}`, { headers }),
-      fetch(`${baseUrl}/dashboard/total_sales/${owner_id}`, { headers })
-    ]);
-
-    const transactionsData = await resTransactions.json();
-    const itemsSoldData = await resItemsSold.json();
-    const salesData = await resSales.json();
-
-    // Update UI
-    document.getElementById('totalTransactions').textContent =
-      transactionsData?.data?.total_transactions?.toLocaleString('id-ID') ?? '0';
-
-    document.getElementById('totalItemsSold').textContent =
-      itemsSoldData?.data?.total_items_sold?.toLocaleString('id-ID') ?? '0';
-
-    document.getElementById('totalSales').textContent =
-      'Rp ' + (salesData?.data?.total_sales ?? 0).toLocaleString('id-ID');
-
+    const res = await fetch(`${baseUrl}/marketing/recap_sales/${year}`, {
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    });
+    return await res.json();
   } catch (error) {
-    console.error('Gagal memuat summary dashboard:', error);
+    console.error("Error fetching sales data:", error);
+    return null;
   }
 }
 
-async function loadSalesGraph(period = 'weekly') {
-  currentPeriod = period; // simpan state period
-  chartType = document.getElementById('chartTypeSelector')?.value || 'bar'; // ambil jenis chart terbaru
+function formatRupiah(angka) {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(angka);
+}
 
-  const endpoint = `${baseUrl}/dashboard/sales_overview/${owner_id}?period=${period}`;
-  const loader = document.getElementById('chartLoader');
-  const chartCanvas = document.getElementById('salesChart');
+function updateMetrics(data) {
+  const {
+    total_achievement,
+    total_target,
+    remaining_target,
+    ongoing,
+    won,
+    loss,
+  } = data.yearly_totals;
 
-  try {
-    // Tampilkan loader
-    loader.classList.remove('hidden');
-    chartCanvas.classList.add('opacity-50');
+  document.getElementById(
+    "metricAchievement"
+  ).innerText = `Rp${total_achievement.toLocaleString("id-ID")}`;
 
-    const response = await fetch(endpoint, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${API_TOKEN}`,
-        'Content-Type': 'application/json'
-      }
-    });
+  document.getElementById("metricAchievementRate").innerText = `${(
+    (total_achievement / total_target) *
+    100
+  ).toFixed(1)}% of target`;
 
-    const result = await response.json();
-    console.log(result);
+  document.getElementById(
+    "metricRemaining"
+  ).innerText = `Rp${remaining_target.toLocaleString("id-ID")}`;
 
-    if (!result.data.graphData || !Array.isArray(result.data.graphData.data)) {
-      throw new Error('Invalid graph data');
+  document.getElementById("metricRemainingRate").innerText = `${(
+    (remaining_target / total_target) *
+    100
+  ).toFixed(1)}% to achieve`;
+
+  // Tambahan: Update Qty & Nominal dari status won, ongoing, dan loss
+  document.getElementById("wonQty").innerText = won.qty;
+  document.getElementById("wonNominal").innerText = formatCurrency(won.nominal);
+
+  document.getElementById("ongoingQty").innerText = ongoing.qty;
+  document.getElementById("ongoingNominal").innerText = formatCurrency(
+    ongoing.nominal
+  );
+
+  document.getElementById("lossQty").innerText = loss.qty;
+  document.getElementById("lossNominal").innerText = formatCurrency(
+    loss.nominal
+  );
+}
+
+function renderChart(data) {
+  const colors = [
+    "#1e40af",
+    "#3b82f6",
+    "#93c5fd",
+    "#f59e0b",
+    "#10b981",
+    "#ef4444",
+  ];
+  const labels = data.chart.months;
+  const typeKeys = data.chart.types;
+
+  const barDatasets = typeKeys.map((type, idx) => ({
+    type: "bar",
+    label: type,
+    data: data.table.rows.map((r) => r[type] || 0),
+    backgroundColor: colors[idx % colors.length],
+    borderRadius: 4,
+    order: 1,
+  }));
+
+  const trendDataset = {
+    type: "line",
+    label: "Total",
+    data: data.chart.lineData,
+    borderColor: "#111827",
+    borderWidth: 2,
+    pointRadius: 3,
+    pointHoverRadius: 4,
+    fill: false,
+    tension: 0.25,
+    order: 2,
+  };
+
+  const ctxBar = document.getElementById("chartMarketingBar");
+  if (ctxBar) {
+    if (chartInstance) {
+      chartInstance.destroy();
     }
 
-    const { data, period: periodLabel, month_label, year } = result.data.graphData;
-    const labels = data.map(item => item.date);
-    const values = data.map(item => item.sales_count);
-
-    const activeIndex = labels.length - 1;
-
-    const backgroundColors = labels.map((_, i) =>
-      i === activeIndex ? 'rgba(30, 0, 255, 0.7)' : 'rgba(75, 192, 192, 0.7)'
-    );
-    const borderColors = labels.map((_, i) =>
-      i === activeIndex ? 'rgba(30, 0, 255, 0.7)' : 'rgb(75, 192, 192)'
-    );
-
-    // Hapus chart lama jika ada
-    if (window.salesChartInstance) {
-      window.salesChartInstance.destroy();
-    }
-
-    const ctx = chartCanvas.getContext('2d');
-    window.salesChartInstance = new Chart(ctx, {
-      type: chartType,
+    chartInstance = new Chart(ctxBar, {
+      type: "bar",
       data: {
-        labels: labels,
-        datasets: [{
-          label: `Total Penjualan (${periodLabel})`,
-          data: values,
-          backgroundColor: backgroundColors,
-          borderColor: borderColors,
-          borderWidth: 1,
-          tension: 0.3, // hanya berpengaruh pada line chart
-          pointRadius: chartType === 'line' ? 4 : 0,
-          pointBackgroundColor: 'rgb(75, 192, 192)'
-        }]
+        labels,
+        datasets: [...barDatasets, trendDataset],
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
         plugins: {
-          title: {
-            display: true,
-            text: period === 'weekly'
-              ? `Periode ${month_label ?? '-'} ${year ?? ''}`
-              : period === 'monthly'
-              ? `Periode Bulan ${month_label ?? '-'} ${year ?? ''}`
-              : `Periode Tahun ${year ?? '-'}`
+          legend: {
+            position: "bottom",
+            labels: { boxWidth: 12, padding: 16 },
           },
           tooltip: {
             callbacks: {
-              label: function(context) {
-                const value = context.raw || 0;
-                return `Penjualan: Rp ${value.toLocaleString('id-ID')}`;
-              }
-            }
+              label: (context) =>
+                `${context.dataset.label}: Rp${Number(
+                  context.raw || 0
+                ).toLocaleString("id-ID")}`,
+            },
           },
-          legend: {
-            display: false
-          }
         },
         scales: {
           y: {
             beginAtZero: true,
             ticks: {
-              callback: function(value) {
-                return 'Rp ' + value.toLocaleString('id-ID');
-              }
-            }
-          }
-        }
-      }
+              callback: (value) => "Rp" + (value / 1_000_000).toFixed(1) + "jt",
+            },
+            grid: { drawBorder: false },
+          },
+          x: { grid: { display: false } },
+        },
+      },
     });
-
-  } catch (error) {
-    console.error('Gagal load grafik:', error);
-  } finally {
-    // Sembunyikan loader
-    loader.classList.add('hidden');
-    chartCanvas.classList.remove('opacity-50');
   }
 }
 
-async function loadTopProducts() {
-  const endpoint = `${baseUrl}/dashboard/top_products/${owner_id}`;
+function renderTable(data) {
+  const tableEl = document.getElementById("salesRecapTable");
 
-  try {
-    const response = await fetch(endpoint, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${API_TOKEN}`,
-        'Content-Type': 'application/json'
-      }
+  let thead = `<thead class="bg-gray-50">
+    <tr>
+      <th class="border px-3 py-2 text-left">Type</th>`;
+  data.table.rows.forEach((row) => {
+    thead += `<th class="border px-3 py-2">${row.month}</th>`;
+  });
+  thead += `<th class="border px-3 py-2">Total</th></tr></thead>`;
+
+  const types = data.table.columns
+    .filter((c) => c.key !== "month" && c.key !== "total")
+    .map((c) => c.key);
+
+  let tbody = `<tbody>`;
+  types.forEach((typeKey) => {
+    const label =
+      data.table.columns.find((c) => c.key === typeKey)?.label || typeKey;
+    tbody += `<tr class="hover:bg-gray-50">
+      <td class="border px-3 py-2 font-medium">${label}</td>`;
+    data.table.rows.forEach((row) => {
+      const val = row[typeKey] || 0;
+      tbody += `<td class="border px-3 py-2 text-right">Rp${val.toLocaleString(
+        "id-ID"
+      )}</td>`;
     });
 
-    const result = await response.json();
-    const products = result.data || [];
+    const totalPerType = data.table.rows.reduce(
+      (sum, row) => sum + (row[typeKey] || 0),
+      0
+    );
+    tbody += `<td class="border px-3 py-2 font-semibold text-right">Rp${totalPerType.toLocaleString(
+      "id-ID"
+    )}</td></tr>`;
+  });
 
-    const container = document.getElementById('topProductsContainer');
-    container.innerHTML = '';
+  tbody += `<tr class="bg-gray-100 font-bold">
+    <td class="border px-3 py-2">TOTAL</td>`;
+  data.table.rows.forEach((row) => {
+    const totalMonth = types.reduce((sum, key) => sum + (row[key] || 0), 0);
+    tbody += `<td class="border px-3 py-2 text-right">Rp${totalMonth.toLocaleString(
+      "id-ID"
+    )}</td>`;
+  });
 
-    if (products.length === 0) {
-      container.innerHTML = '<p class="text-gray-500 text-sm">Tidak ada data produk.</p>';
-      return;
-    }
+  const grandTotal = types.reduce(
+    (sum, key) =>
+      sum + data.table.rows.reduce((s, row) => s + (row[key] || 0), 0),
+    0
+  );
+  tbody += `<td class="border px-3 py-2 text-right">Rp${grandTotal.toLocaleString(
+    "id-ID"
+  )}</td></tr>`;
+  tbody += `</tbody>`;
 
-    products.forEach((item, index) => {
-      const html = `
-        <div class="flex justify-between items-center bg-white p-3 rounded-xl shadow text-sm">
-          <div class="flex items-center space-x-3">
-            <span class="text-gray-500 font-medium">#${index + 1}</span>
-            <span class="font-semibold text-gray-800">${item.product}</span>
-          </div>
-          <span class="text-blue-600 font-semibold">${item.total_sold.toLocaleString('id-ID')} terjual</span>
-        </div>
-      `;
-      container.insertAdjacentHTML('beforeend', html);
+  tableEl.innerHTML = thead + tbody;
+}
+
+async function renderSalesRecap(year = selectedYear) {
+  const result = await fetchSalesData(year);
+  if (!result?.data) return;
+
+  updateMetrics(result.data);
+  renderChart(result.data);
+  renderTable(result.data);
+}
+
+function setupYearFilter() {
+  const filterButton = document.getElementById("filterButton");
+  const yearDropdown = document.getElementById("yearDropdown");
+  if (!filterButton || !yearDropdown) return;
+
+  const currentYear = new Date().getFullYear();
+  for (let year = currentYear; year >= currentYear - 5; year--) {
+    const option = document.createElement("button");
+    option.type = "button";
+    option.className =
+      "block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors";
+    option.textContent = year;
+    option.addEventListener("click", () => {
+      selectedYear = year;
+      updateFilterButton(year);
+      yearDropdown.classList.add("hidden");
+      renderSalesRecap(year);
     });
+    yearDropdown.appendChild(option);
+  }
 
-  } catch (error) {
-    console.error('Gagal memuat top produk:', error);
+  updateFilterButton(selectedYear);
+
+  filterButton.addEventListener("click", (e) => {
+    e.stopPropagation();
+    yearDropdown.classList.toggle("hidden");
+  });
+
+  document.addEventListener("click", () => {
+    yearDropdown.classList.add("hidden");
+  });
+}
+
+function updateFilterButton(year) {
+  const filterButton = document.getElementById("filterButton");
+  if (filterButton) {
+    filterButton.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+      </svg>
+      ${year}
+    `;
   }
 }
 
-
-
-
-
-  
-
-
-loadDashboardSummary();
-loadSalesGraph('weekly');
-loadTopProducts(); 
-
+if (pagemoduleparent === "salesrecap") {
+  setupYearFilter();
+  renderSalesRecap();
+}

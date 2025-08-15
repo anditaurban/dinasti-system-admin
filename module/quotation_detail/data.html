@@ -2,13 +2,13 @@
   <!-- Header -->
   <div class="flex flex-wrap items-start justify-between mb-4 gap-4">
     <div>
-      <h1 id="formTitle" class="text-2xl font-bold mb-1">TAMBAH SALES</h1>
+      <h1 id="formTitle" class="text-2xl font-bold mb-1">TAMBAH QUOTATION</h1>
       <nav class="text-gray-500 text-sm flex items-center flex-wrap gap-1">
         <span>Home</span>
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
-        <span>Sales</span>
+        <span>Quotation</span>
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
@@ -25,7 +25,7 @@
       <button onclick="printInvoice(detail_id)"
         class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded text-sm">📄 Download PDF</button>
 
-      <button onclick="loadModuleContent('sales')" class="bg-gray-300 text-sm px-4 py-2 rounded">⬅️ Back</button>
+      <button onclick="loadModuleContent('quotation')" class="bg-gray-300 text-sm px-4 py-2 rounded">⬅️ Back</button>
     </div>
   </div>
 
@@ -40,86 +40,60 @@
         <!-- Versi Saat Ini -->
         <div class="bg-blue-50 border border-blue-200 rounded p-2 text-sm flex items-center justify-between">
           <span>Versi Saat Ini: <strong id="currentVersion">3</strong></span>
-          <a href="#" id="lihatVersiBtn" class="text-blue-600 hover:underline">Lihat versi lainnya di sini</a>
+          <a href="#" onclick="showVersionHistory()" class="text-blue-600 hover:underline">Lihat versi lainnya di
+            sini</a>
         </div>
+      </div>
 
-        <!-- Popup Overlay -->
-        <div id="popupOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-          <!-- Popup Box -->
-          <div class="bg-white p-4 rounded shadow-lg w-full max-w-3xl z-50">
-            <!-- Header -->
-            <div class="flex justify-between items-center border-b pb-2 mb-4">
-              <h2 class="text-lg font-bold">Aktifitas INVOICE NO. XXXXXX</h2>
-              <button id="closePopup" class="text-gray-500 hover:text-gray-700">&times;</button>
-            </div>
+      <!-- Version History Popup -->
+      <div id="versionHistoryPopup"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white p-4 rounded shadow-lg w-full max-w-3xl max-h-[80vh] overflow-y-auto">
+          <!-- Header -->
+          <div class="flex justify-between items-center border-b pb-2 mb-4 sticky top-0 bg-white">
+            <h2 class="text-lg font-bold">Aktivitas <span id="documentNumber"></span></h2>
+            <button onclick="closeVersionHistory()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+          </div>
 
-            <!-- Table -->
-            <div class="overflow-x-auto">
-              <table class="w-full border border-gray-300 text-sm">
-                <thead class="bg-gray-100">
-                  <tr>
-                    <th class="border px-3 py-2 text-left">Waktu</th>
-                    <th class="border px-3 py-2 text-left">Aktifitas</th>
-                    <th class="border px-3 py-2 text-left">PIC</th>
-                    <th class="border px-3 py-2 text-left">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td class="border px-3 py-2">6 Aug 2025 10:59</td>
-                    <td class="border px-3 py-2 text-blue-600 hover:underline cursor-pointer">Dokumen dibuat</td>
-                    <td class="border px-3 py-2">Akbar</td>
-                    <td class="border px-3 py-2 text-blue-600 hover:underline cursor-pointer">Lihat</td>
-                  </tr>
-                  <tr>
-                    <td class="border px-3 py-2">6 Aug 2025 12:59</td>
-                    <td class="border px-3 py-2 text-blue-600 hover:underline cursor-pointer">Update Dokumen</td>
-                    <td class="border px-3 py-2">Akbar</td>
-                    <td class="border px-3 py-2 text-blue-600 hover:underline cursor-pointer">Lihat</td>
-                  </tr>
-                  <tr>
-                    <td class="border px-3 py-2">6 Aug 2025 17:59</td>
-                    <td class="border px-3 py-2">Menambahkan Lampiran</td>
-                    <td class="border px-3 py-2">Akbar</td>
-                    <td class="border px-3 py-2 text-blue-600 hover:underline cursor-pointer">Lihat</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+          <!-- Version Info -->
+          <div class="bg-blue-50 border border-blue-200 rounded p-2 text-sm flex items-center justify-between mb-4">
+            <span>Versi Saat Ini: <strong id="currentVersion">${item.version || '1'}</strong></span>
+          </div>
+
+          <!-- Loading State -->
+          <div id="versionLoading" class="text-center py-4">
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500 inline-block" xmlns="http://www.w3.org/2000/svg"
+              fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+              </path>
+            </svg>
+            <span>Memuat data...</span>
+          </div>
+
+          <!-- Table -->
+          <div id="versionTable" class="hidden">
+            <table class="w-full border border-gray-300 text-sm">
+              <thead class="bg-gray-100 sticky top-12">
+                <tr>
+                  <th class="border px-3 py-2 text-left">Waktu</th>
+                  <th class="border px-3 py-2 text-left">Aktivitas</th>
+                  <th class="border px-3 py-2 text-left">PIC</th>
+                  <th class="border px-3 py-2 text-left">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="versionTableBody">
+                <!-- Data will be inserted here dynamically -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Error State -->
+          <div id="versionError" class="hidden text-center py-4 text-red-500">
+            Gagal memuat data aktivitas. Silakan coba lagi.
           </div>
         </div>
-
-        <script>
-          document.addEventListener('DOMContentLoaded', function () {
-            const lihatVersiBtn = document.getElementById('lihatVersiBtn');
-            const popupOverlay = document.getElementById('popupOverlay');
-            const closePopup = document.getElementById('closePopup');
-
-            if (lihatVersiBtn && popupOverlay && closePopup) {
-              lihatVersiBtn.addEventListener('click', function (e) {
-                e.preventDefault();
-                popupOverlay.classList.remove('hidden');
-                popupOverlay.classList.add('flex');
-              });
-
-              closePopup.addEventListener('click', function () {
-                popupOverlay.classList.add('hidden');
-                popupOverlay.classList.remove('flex');
-              });
-
-              popupOverlay.addEventListener('click', function (e) {
-                if (e.target === popupOverlay) {
-                  popupOverlay.classList.add('hidden');
-                  popupOverlay.classList.remove('flex');
-                }
-              });
-            } else {
-              console.error('Salah satu elemen tidak ditemukan');
-            }
-          });
-        </script>
-
-
       </div>
 
 
@@ -288,55 +262,35 @@
         <hr />
         <div class="md:col-span-2">
           <label class="block text-sm font-medium">File Pendukung</label>
-          <input type="file" id="file" name="file" class="w-full border px-3 py-2 rounded" />
+          <input type="file" id="files" name="files" class="w-full border px-3 py-2 rounded" />
         </div>
 
       </div>
 
-      <div class="border rounded">
-        <button onclick="toggleSection('pembayaranSection')"
-          class="w-full text-left px-3 py-2 bg-gray-200 hover:bg-gray-300 font-medium">
-          💳 Daftar Pembayaran
-        </button>
-        <div id="pembayaranSection" class="hidden p-3 text-sm space-y-2 bg-white">
-          <!-- Contoh data pembayaran -->
-          <div class="flex justify-between border-b pb-1">
-            <span>Shopee - 10/08/2025</span>
-            <span class="font-semibold text-green-600">Rp 4.564.740</span>
-          </div>
+      <!-- Daftar Pembayaran -->
+      <div class="border rounded p-3 bg-white text-sm space-y-2">
+        <div class="font-medium text-gray-700 border-b pb-1 mb-2">💳 Daftar Pembayaran</div>
+        <div id="pembayaranSection" class="space-y-2">
+          <div class="text-gray-500 italic">-</div> <!-- default kalau kosong -->
         </div>
       </div>
 
-      <!-- Collapsible File Pendukung -->
-      <div class="border rounded">
-        <button onclick="toggleSection('fileSection')"
-          class="w-full text-left px-3 py-2 bg-gray-200 hover:bg-gray-300 font-medium">
-          📂 File Pendukung
-        </button>
-        <div id="fileSection" class="hidden p-3 text-sm space-y-2 bg-white">
-          <!-- Input Upload -->
-          <input type="file" id="file" name="file" class="w-full border px-3 py-2 rounded" />
-          <!-- Contoh file terlampir -->
-          <div class="flex items-center justify-between border p-2 rounded">
-            <span>invoice.pdf</span>
-            <a href="#" class="text-blue-600 hover:underline">Download</a>
-          </div>
+      <!-- File Pendukung -->
+      <div class="border rounded p-3 bg-white text-sm space-y-2">
+        <div class="font-medium text-gray-700 border-b pb-1 mb-2">📂 File Pendukung</div>
+        <div id="fileSection" class="space-y-2">
+          <div class="text-gray-500 italic">-</div> <!-- default kalau kosong -->
         </div>
       </div>
 
-      <!-- Collapsible Invoice Uang Muka -->
-      <div class="border rounded">
-        <button onclick="toggleSection('uangMukaSection')"
-          class="w-full text-left px-3 py-2 bg-gray-200 hover:bg-gray-300 font-medium">
-          💰 Invoice Uang Muka
-        </button>
-        <div id="uangMukaSection" class="hidden p-3 text-sm space-y-2 bg-white">
-          <div class="flex justify-between border-b pb-1">
-            <span>Invoice #INV-001</span>
-            <span class="font-semibold text-green-600">Rp 2.000.000</span>
-          </div>
+      <!-- Invoice Uang Muka -->
+      <div class="border rounded p-3 bg-white text-sm space-y-2">
+        <div class="font-medium text-gray-700 border-b pb-1 mb-2">💰 Invoice Uang Muka</div>
+        <div id="uangMukaSection" class="space-y-2">
+          <div class="text-gray-500 italic">-</div> <!-- default kalau kosong -->
         </div>
       </div>
+
 
     </div>
   </div>

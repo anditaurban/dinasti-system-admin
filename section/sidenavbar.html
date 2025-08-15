@@ -2,7 +2,7 @@
   class="hidden md:flex flex-col bg-white shadow-lg h-screen transition-all duration-300 fixed top-0 left-0 z-40 mt-16 w-16 hover:w-64 group">
   <nav class="sidebar-menu space-y-1 p-2 overflow-y-auto">
     <!-- Dashboard -->
-    <!-- <a href="#" data-module="dashboard"
+    <a href="#" data-module="dashboard"
       class="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-100 transition-colors">
       <div class="w-6 h-6 flex items-center justify-center">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700" viewBox="0 0 20 20" fill="currentColor">
@@ -11,8 +11,9 @@
         </svg>
       </div>
       <span class="menu-text transition-opacity duration-200 text-gray-900 font-medium">Dashboard</span>
-    </a> -->
+    </a>
 
+    <!-- Sales - submenu -->
     <div class="flex flex-col space-y-1">
       <div class="flex items-center justify-between p-3 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
         onclick="toggleSubMenu('salesSubmenu')">
@@ -34,27 +35,43 @@
         </svg>
       </div>
       <div id="salesSubmenu" class="hidden ml-4 pl-4 border-l-2 border-gray-200 flex flex-col space-y-1">
-        <a data-module="sales_recap" class="text-sm flex items-center gap-3 p-2 rounded-lg hover:bg-blue-100 ">
+        <!-- Quotation -->
+        <a data-module="quotation" class="text-sm flex items-center gap-3 p-2 rounded-lg hover:bg-blue-100">
           <div class="w-5 h-5 flex items-center justify-center ml-1">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" viewBox="0 0 20 20"
               fill="currentColor">
               <path fill-rule="evenodd"
-                d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4zm3 2h2v2H7V6zm4 0h2v2h-2V6zM7 10h2v2H7v-2zm4 0h2v2h-2v-2zm-4 4h2v2H7v-2zm4 0h2v2h-2v-2z"
+                d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4zm2 1h2v2H6V5zm4 0h2v2h-2V5zM6 9h2v2H6V9zm4 0h2v2h-2V9z"
                 clip-rule="evenodd" />
-              <path d="M15 4h1a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1v-1h12V4z" />
             </svg>
           </div>
-          <span class="menu-text text-gray-800 cursor-pointer">Recap</span>
+          <span class="menu-text text-gray-800 cursor-pointer">Quotation</span>
         </a>
-        <a data-module="sales" class="text-sm flex items-center gap-3 p-2 rounded-lg hover:bg-blue-100">
+
+        <!-- Invoice -->
+        <a data-module="invoice" class="text-sm flex items-center gap-3 p-2 rounded-lg hover:bg-blue-100">
           <div class="w-5 h-5 flex items-center justify-center ml-1">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" viewBox="0 0 20 20"
               fill="currentColor">
-              <path d="M1 1h1v3h18V1h1v18h-1v-3H2v3H1V1zm2 9h16V5H3v5zm0 2v5h16v-5H3z" />
-              <path d="M5 7h2v1H5V7zm3 0h2v1H8V7zm3 0h2v1h-2V7zM5 10h2v1H5v-1zm3 0h2v1H8v-1zm3 0h2v1h-2v-1z" />
+              <path fill-rule="evenodd"
+                d="M5 2a2 2 0 00-2 2v14l3.5-2 3.5 2 3.5-2 3.5 2V4a2 2 0 00-2-2H5zm2.5 3a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm6.207.293a1 1 0 00-1.414 0l-6 6a1 1 0 101.414 1.414l6-6a1 1 0 000-1.414zM12.5 10a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"
+                clip-rule="evenodd" />
             </svg>
           </div>
-          <span class="menu-text text-gray-800 cursor-pointer">Sales</span>
+          <span class="menu-text text-gray-800 cursor-pointer">Invoice</span>
+        </a>
+
+        <!-- Receipt -->
+        <a data-module="receipt" class="text-sm flex items-center gap-3 p-2 rounded-lg hover:bg-blue-100">
+          <div class="w-5 h-5 flex items-center justify-center ml-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" viewBox="0 0 20 20"
+              fill="currentColor">
+              <path fill-rule="evenodd"
+                d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4zm2 1h2v2H6V5zm4 0h2v2h-2V5zM6 9h2v2H6V9zm4 0h2v2h-2V9zm-4 4h2v2H6v-2zm4 0h2v2h-2v-2z"
+                clip-rule="evenodd" />
+            </svg>
+          </div>
+          <span class="menu-text text-gray-800 cursor-pointer">Receipt</span>
         </a>
 
       </div>

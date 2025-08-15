@@ -3,9 +3,12 @@ colSpanCount = 9;
 setDataType("project");
 fetchAndUpdateData();
 
-document.getElementById("addButton").addEventListener("click", () => {
-  showFormModal();
-  loadDropdownCall();
+document.getElementById("addButton").addEventListener("click", async () => {
+  await loadModuleContent("project_detail");
+  //   showFormModal();
+  //   loadDetailProject(id, detail);
+  loadProjectManagers();
+  loadProjects();
 });
 
 window.rowTemplate = function (item, index, perPage = 10) {
@@ -75,9 +78,12 @@ window.rowTemplate = function (item, index, perPage = 10) {
       </span>
       <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
   <!-- View Order -->
-  <button onclick="event.stopPropagation(); loadModuleContent('project_detail');" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+ <button onclick="event.stopPropagation(); loadModuleContent('project_detail', '${
+   item.pesanan_id
+ }');" 
+    class="block w-full text-left px-4 py-2 hover:bg-gray-100">
     👁️ View Order
-  </button>
+</button>
   <button onclick="event.stopPropagation(); loadModuleContent('sales_log_detail', '${
     item.pesanan_id
   }');" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
@@ -99,59 +105,59 @@ window.rowTemplate = function (item, index, perPage = 10) {
   </tr>`;
 };
 
-formHtml = `
-<form id="dataform" class="space-y-4 text-center">
+// formHtml = `
+// <form id="dataform" class="space-y-4 text-center">
 
-  <div>
-    <select id="projectManager" name="project_manager_id"
-      class="form-control w-full px-3 py-2 border rounded-md bg-white text-gray-700">
-      <option value="">Pilih Project Manager</option>
-      <option value="100">Manager 1</option>
-      <option value="101">Manager 2</option>
-      <!-- Tambah data dari API jika diperlukan -->
-    </select>
-  </div>
+//   <div>
+//     <select id="projectManager" name="project_manager_id"
+//       class="form-control w-full px-3 py-2 border rounded-md bg-white text-gray-700">
+//       <option value="">Pilih Project Manager</option>
+//       <option value="100">Manager 1</option>
+//       <option value="101">Manager 2</option>
+//       <!-- Tambah data dari API jika diperlukan -->
+//     </select>
+//   </div>
 
-  <div>
-    <select id="description" name="description"
-      class="form-control w-full px-3 py-2 border rounded-md bg-white text-gray-700">
-      <option value="">Pilih Deskripsi</option>
-      <option value="SAMPLE1">SAMPLE1</option>
-      <option value="SAMPLE2">SAMPLE2</option>
-      <option value="SAMPLE3">SAMPLE3</option>
-      <!-- Bisa diisi dinamis juga -->
-    </select>
-  </div>
+//   <div>
+//     <select id="description" name="description"
+//       class="form-control w-full px-3 py-2 border rounded-md bg-white text-gray-700">
+//       <option value="">Pilih Deskripsi</option>
+//       <option value="SAMPLE1">SAMPLE1</option>
+//       <option value="SAMPLE2">SAMPLE2</option>
+//       <option value="SAMPLE3">SAMPLE3</option>
+//       <!-- Bisa diisi dinamis juga -->
+//     </select>
+//   </div>
 
-  <div>
-    <input id="contractValue" name="contract_value" type="number" placeholder="Nilai Kontrak (Rp)"
-      class="form-control w-full px-3 py-2 border rounded-md bg-white text-gray-700" />
-  </div>
+//   <div>
+//     <input id="contractValue" name="contract_value" type="number" placeholder="Nilai Kontrak (Rp)"
+//       class="form-control w-full px-3 py-2 border rounded-md bg-white text-gray-700" />
+//   </div>
 
-  <div>
-    <input id="planCosting" name="plan_costing" type="number" placeholder="Perkiraan Biaya (Rp)"
-      class="form-control w-full px-3 py-2 border rounded-md bg-white text-gray-700" />
-  </div>
+//   <div>
+//     <input id="planCosting" name="plan_costing" type="number" placeholder="Perkiraan Biaya (Rp)"
+//       class="form-control w-full px-3 py-2 border rounded-md bg-white text-gray-700" />
+//   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div>
-      <label for="startDate" class="block text-left text-sm font-medium text-gray-700">
-        Start Date <span class="text-red-500">*</span>
-      </label>
-      <input id="startDate" name="start_date" type="date"
-        class="form-control w-full px-3 py-2 border rounded-md bg-white text-gray-700" />
-    </div>
+//   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+//     <div>
+//       <label for="startDate" class="block text-left text-sm font-medium text-gray-700">
+//         Start Date <span class="text-red-500">*</span>
+//       </label>
+//       <input id="startDate" name="start_date" type="date"
+//         class="form-control w-full px-3 py-2 border rounded-md bg-white text-gray-700" />
+//     </div>
 
-    <div>
-      <label for="finishDate" class="block text-left text-sm font-medium text-gray-700">
-        Finish Date <span class="text-red-500">*</span>
-      </label>
-      <input id="finishDate" name="finish_date" type="date"
-        class="form-control w-full px-3 py-2 border rounded-md bg-white text-gray-700" />
-    </div>
-  </div>
-</form>
-`;
+//     <div>
+//       <label for="finishDate" class="block text-left text-sm font-medium text-gray-700">
+//         Finish Date <span class="text-red-500">*</span>
+//       </label>
+//       <input id="finishDate" name="finish_date" type="date"
+//         class="form-control w-full px-3 py-2 border rounded-md bg-white text-gray-700" />
+//     </div>
+//   </div>
+// </form>
+// `;
 
 document.querySelectorAll("tr button").forEach((button) => {
   button.addEventListener("click", (e) => {
@@ -166,11 +172,4 @@ document.addEventListener("click", () => {
   document.querySelectorAll("td.absolute").forEach((dropdown) => {
     dropdown.classList.add("hidden");
   });
-});
-
-document.getElementById("addButton").addEventListener("click", async () => {
-  await loadModuleContent("project_detail");
-//   showFormModal();
-  loadStatusOptions(); // sekarang dijamin status select-nya udah ada & function-nya udah terdefinisi
-  loadDetailSales(id, detail);
 });

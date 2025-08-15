@@ -93,7 +93,6 @@ document.addEventListener("click", (e) => {
     }
   }
 });
-
 async function tambahItem() {
   const tbody = document.getElementById("tabelItem");
 
@@ -103,9 +102,7 @@ async function tambahItem() {
         <input type="text" class="w-full border rounded px-2 itemProduct" placeholder="product">
     </td>
     <td class="border px-3 py-2">
-        <select class="w-full border rounded px-2 itemSubcategory">
-            <option value="">Loading...</option>
-        </select>
+        <select class="w-full border rounded px-2 itemSubcategory"></select>
     </td>
     <td class="border px-3 py-2">
         <input type="text" class="w-full border rounded px-2 itemDesc" placeholder="Deskripsi">
@@ -126,47 +123,38 @@ async function tambahItem() {
   `;
 
   tbody.appendChild(tr);
-
   setupRupiahFormattingForElement(tr.querySelector(".itemHarga"));
 
-  const subcategorySelect = tr.querySelector(".itemSubcategory");
-  await loadSubcategories(subcategorySelect);
+  // Langsung load subcategories tanpa placeholder
+  await loadSubcategories(tr.querySelector(".itemSubcategory"));
 }
 
-async function loadSubcategories(selectElement, defaultValue = null) {
+async function loadSubcategories(selectElement, selectedValue = null) {
   try {
     const res = await fetch(`${baseUrl}/list/sub_category/${owner_id}`, {
       headers: { Authorization: `Bearer ${API_TOKEN}` },
     });
     const data = await res.json();
 
-    selectElement.innerHTML = `<option value="">-- Pilih Subcategory --</option>`;
-
-    if (data.listData && Array.isArray(data.listData)) {
-      data.listData.forEach((item) => {
-        const option = document.createElement("option");
-        option.value = item.sub_category_id;
-        option.textContent = item.nama;
-        selectElement.appendChild(option);
-      });
+    if (!data.listData || !Array.isArray(data.listData)) {
+      selectElement.innerHTML = "";
+      return;
     }
 
-    // Set default value jika ada
-    if (defaultValue !== null) {
-      selectElement.value = defaultValue;
+    // Kosongkan dulu dropdown
+    selectElement.innerHTML = "";
 
-      // Jika tidak ada yang terpilih, tambahkan opsi khusus
-      if (selectElement.value !== defaultValue && defaultValue) {
-        const newOpt = document.createElement("option");
-        newOpt.value = defaultValue;
-        newOpt.text = `[${defaultValue}] (Tidak ditemukan)`;
-        newOpt.selected = true;
-        selectElement.appendChild(newOpt);
+    // Isi dengan data aktual
+    data.listData.forEach((item) => {
+      const option = new Option(item.nama, item.sub_category_id);
+      if (selectedValue && item.sub_category_id == selectedValue) {
+        option.selected = true;
       }
-    }
+      selectElement.add(option);
+    });
   } catch (err) {
     console.error("Gagal load subcategory:", err);
-    selectElement.innerHTML = `<option value="">Gagal load</option>`;
+    selectElement.innerHTML = "";
   }
 }
 
@@ -299,7 +287,7 @@ async function submitInvoice() {
         unit_price <= 0
       ) {
         throw new Error(
-          `❌ Invalid item data in row ${
+          `Invalid item data in row ${
             i + 1
           }: product, qty, unit, and price are required`
         );
@@ -354,20 +342,26 @@ async function submitInvoice() {
     formData.append("status_id", 1);
     formData.append("revision_number", 0);
 
+    // Hitung revision status
     let revisionText = "R0";
-    if (window.detail_id) {
-      if (typeof window.lastRevision === "number") {
-        revisionText = `R${window.lastRevision + 1}`;
-      }
+    if (window.detail_id && typeof window.lastRevision === "number") {
+      revisionText = `R${window.lastRevision + 1}`;
     }
     document.getElementById("revision_number").value = revisionText;
     formData.append("revision_status", revisionText);
 
+    // Append items JSON
     formData.append("items", JSON.stringify(items));
 
-    if (document.getElementById("file")?.files?.[0]) {
-      formData.append("file", document.getElementById("file")?.files?.[0]);
+    // Ambil file dari input yang pasti ada di DOM saat submit
+    const fileInput = document.querySelector("input[type='file']#file");
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+      formData.append("file", fileInput.files[0]);
+    } else {
+      console.warn("⚠ Tidak ada file yang dipilih");
     }
+
+    // Append field lainnya
     formData.append(
       "catatan",
       document.getElementById("catatan")?.value || "-"
@@ -381,6 +375,17 @@ async function submitInvoice() {
       document.getElementById("term_pembayaran")?.value || "-"
     );
 
+    // DEBUG: Cek semua formData sebelum dikirim
+    console.group("FormData yang akan dikirim:");
+    for (let [key, value] of formData.entries()) {
+      if (value instanceof File) {
+        console.log(key, `File: ${value.name}, size: ${value.size} bytes`);
+      } else {
+        console.log(key, value);
+      }
+    }
+    console.groupEnd();
+
     const res = await fetch(`${baseUrl}/add/sales`, {
       method: "POST",
       headers: { Authorization: `Bearer ${API_TOKEN}` },
@@ -390,20 +395,17 @@ async function submitInvoice() {
     const json = await res.json();
 
     if (res.ok) {
-      Swal.fire(
-        "Sukses",
-        "✅ Quotation berhasil dibuat dengan status On Going",
-        "success"
-      );
-      loadModuleContent("sales");
+      Swal.fire("Sukses", "Quotation berhasil dibuat", "success");
+      loadModuleContent("quotation");
     } else {
-      Swal.fire("Gagal", json.message || "❌ Gagal menyimpan data", "error");
+      Swal.fire("Gagal", json.message || "Gagal menyimpan data", "error");
     }
   } catch (err) {
     console.error("Submit error:", err);
-    Swal.fire("Error", err.message || "❌ Terjadi kesalahan", "error");
+    Swal.fire("Error", err.message || "Terjadi kesalahan", "error");
   }
 }
+
 // Initialize automatic features when DOM is loaded
 document.addEventListener("DOMContentLoaded", function () {
   // Setup Rupiah formatting
@@ -466,11 +468,11 @@ async function updateInvoice() {
 
       return {
         product,
-        sub_category: sub_category_id,
         description,
-        qty,
         unit,
+        qty,
         unit_price,
+        sub_category: sub_category_id,
       };
     });
 
@@ -482,13 +484,14 @@ async function updateInvoice() {
     const disc = parseRupiah(document.getElementById("discount")?.value || 0);
     const dpp = nominalKontrak - disc;
     const ppn = Math.round(dpp * 0.11);
+    const total = dpp + ppn;
 
-    // PERBAIKAN: Hitung revisi dengan benar
-    const currentRevision = parseInt(window.lastRevision) || 0;
-    const newRevision = currentRevision + 1;
-    const revision_status = `Revisi ke ${newRevision}`;
+    // Ambil data status
+    const status_id = parseInt(document.getElementById("status")?.value || 1);
+    const revisionNumber = window.revision_count || 1;
+    const revision_status = `Revisi ${revisionNumber}`;
 
-    // Body untuk update sales dengan format baru
+    // Body untuk update sales (status_id & revision_status langsung dikirim di sini)
     const bodySales = {
       owner_id: 100,
       user_id: 100,
@@ -498,10 +501,11 @@ async function updateInvoice() {
       type_id: document.getElementById("type_id")?.value || 0,
       order_date: document.getElementById("tanggal")?.value || "",
       contract_amount: nominalKontrak,
-      disc: disc,
+      discount: disc,
       ppn: ppn,
-      status_id: parseInt(document.getElementById("status")?.value || 1),
-      status_revision: revision_status,
+      total: total,
+      status_id: status_id,
+      revision_status: revision_status, // langsung dikirim
       items: items,
       catatan: document.getElementById("catatan")?.value || "-",
       syarat_ketentuan:
@@ -509,7 +513,7 @@ async function updateInvoice() {
       term_pembayaran: document.getElementById("term_pembayaran")?.value || "-",
     };
 
-    // Single endpoint call
+    // Update Sales
     const resSales = await fetch(
       `${baseUrl}/update/sales/${window.detail_id}`,
       {
@@ -524,18 +528,20 @@ async function updateInvoice() {
 
     const jsonSales = await resSales.json();
     if (!resSales.ok) {
-      Swal.fire("Gagal", jsonSales.message || "❌ Gagal update data", "error");
+      Swal.fire(
+        "Gagal",
+        jsonSales.message || "❌ Gagal update data utama",
+        "error"
+      );
       return;
     }
 
-    // PERBAIKAN: Update nilai revisi di form dan di memory
+    // Set nilai revisi di form
     document.getElementById("revision_number").value = revision_status;
-    window.lastRevision = newRevision;
 
-    Swal.fire("Sukses", "✅ Data berhasil diperbarui", "success");
-    loadModuleContent("sales");
+    Swal.fire("Berhasil", "✅ Data berhasil diupdate", "success");
+    loadModuleContent("quotation");
   } catch (error) {
-    console.error("Update error:", error);
     Swal.fire("Error", error.message || "❌ Terjadi kesalahan", "error");
   }
 }
@@ -561,11 +567,11 @@ async function loadDetailSales(Id, Detail) {
   window.detail_desc = Detail;
 
   try {
-    // 1. Load data sales
     const res = await fetch(`${baseUrl}/detail/sales/${Id}`, {
       headers: { Authorization: `Bearer ${API_TOKEN}` },
     });
     const response = await res.json();
+    console.log("Response API:", response);
 
     if (!response || !response.detail) {
       throw new Error("Invalid API response structure - missing detail");
@@ -575,33 +581,10 @@ async function loadDetailSales(Id, Detail) {
     window.revision_count = data.revision_number || 0;
     window.lastRevision = window.revision_count;
 
-    // 2. Load data pendukung
     await loadSalesType();
     await loadStatusOptions();
 
-    // 3. Load subcategories terlebih dahulu
-    const subcategoryRes = await fetch(`${baseUrl}/list/sub_category/100`, {
-      headers: { Authorization: `Bearer ${API_TOKEN}` },
-    });
-
-    if (!subcategoryRes.ok) {
-      throw new Error(
-        `Failed to load subcategories, status: ${subcategoryRes.status}`
-      );
-    }
-
-    const subcatResponse = await subcategoryRes.json();
-    const subcats = Array.isArray(subcatResponse.listData)
-      ? subcatResponse.listData // <-- Pastikan menggunakan subcatResponse
-      : [];
-
-    // 4. Buat mapping subcategories untuk pencarian cepat
-    const subcatMap = {};
-    subcats.forEach((sc) => {
-      subcatMap[sc.sub_category_id] = sc.nama;
-    });
-
-    // 5. Isi form utama
+    // 📝 Isi form utama
     document.getElementById("formTitle").innerText = `Edit ${Detail}`;
     document.getElementById("tanggal").value = data.tanggal_ymd || "";
     document.getElementById("type_id").value = data.type_id || "";
@@ -610,10 +593,8 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("client").value = data.pelanggan_nama || "";
     document.getElementById("contract_amount").value =
       data.contract_amount || 0;
-
     const discountEl = document.getElementById("discount");
     if (discountEl) discountEl.value = data.disc || 0;
-
     document.getElementById("ppn").value = data.ppn || 0;
     document.getElementById("total").value = data.total || 0;
     document.getElementById("status").value = data.status_id || 1;
@@ -625,7 +606,6 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("term_pembayaran").value =
       data.term_pembayaran || "";
 
-    // 6. Atur tombol aksi
     const simpanBtn = document.querySelector(
       'button[onclick="submitInvoice()"]'
     );
@@ -641,88 +621,216 @@ async function loadDetailSales(Id, Detail) {
       );
       logBtn.classList.remove("hidden");
     }
-
     if (data.status_id === 2) {
       updateBtn?.classList.add("hidden");
     } else {
       updateBtn?.classList.remove("hidden");
     }
-
     simpanBtn?.classList.add("hidden");
 
-    // 7. Render item rows
+    // 🔹 Ambil list sub category dari API
+    // 🔹 Ambil list sub category dari API
+    const subcategoryRes = await fetch(`${baseUrl}/list/sub_category/100`, {
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+    });
+    if (!subcategoryRes.ok) {
+      throw new Error(
+        `Failed to load subcategories, status: ${subcategoryRes.status}`
+      );
+    }
+    const subcatResponse = await subcategoryRes.json();
+    console.log("Subcategory response:", subcatResponse);
+
+    // Perbaikan: Akses data subcategory dari response yang benar
+    const subcats = Array.isArray(subcatResponse.listData)
+      ? subcatResponse.listData
+      : [];
+
+    console.log("Subcategory array parsed:", subcats);
+
+    // 🔹 Render item rows
     const tbody = document.getElementById("tabelItem");
     tbody.innerHTML = "";
 
     for (const item of data.items || []) {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td class="border px-3 py-2">
-            <input type="text" class="w-full border rounded px-2 itemProduct" placeholder="product" value="${
-              item.product || ""
-            }">
-        </td>
-        <td class="border px-3 py-2">
-            <select class="w-full border rounded px-2 itemSubcategory">
-                <option value="">-- Pilih Subcategory --</option>
-                ${subcats
-                  .map(
-                    (sc) =>
-                      `<option value="${sc.sub_category_id}" ${
-                        item.sub_category_id == sc.sub_category_id
-                          ? "selected"
-                          : ""
-                      }>
-                    ${sc.nama}
-                  </option>`
-                  )
-                  .join("")}
-                ${
-                  !subcatMap[item.sub_category_id] && item.sub_category_id
-                    ? `<option value="${item.sub_category_id}" selected>
-                    [${item.sub_category_id}] (Tidak ditemukan)
-                  </option>`
-                    : ""
-                }
-            </select>
-        </td>
-        <td class="border px-3 py-2">
-            <input type="text" class="w-full border rounded px-2 itemDesc" placeholder="Deskripsi" value="${
-              item.description || ""
-            }">
-        </td>
-        <td class="border px-3 py-2 w-[10%]">
-            <input type="text" class="w-full border rounded px-2 itemUnit" placeholder="pcs/lusin" value="${
-              item.unit || ""
-            }">
-        </td>
-        <td class="border px-3 py-2 w-[12%]">
-            <input type="number" class="w-full border rounded px-2 itemQty text-right" value="${
-              item.qty || 1
-            }" oninput="recalculateTotal()">
-        </td>
-        <td class="border px-3 py-2 w-[17%]">
-            <input type="text" class="w-full border rounded px-2 itemHarga text-right" value="${formatNumber(
-              item.unit_price || 0
-            )}" oninput="recalculateTotal()">
-        </td>
-        <td class="border px-3 py-2 text-right w-[12%] itemTotal">${formatNumber(
-          item.total || item.qty * item.unit_price
-        )}</td>
-        <td class="border px-3 py-2 text-center w-[10%]">
-            <button onclick="hapusItem(this)" class="text-red-500 hover:underline">Hapus</button>
-        </td>
-      `;
+      tambahItem();
+      const row = tbody.lastElementChild;
 
-      tbody.appendChild(tr);
-      setupRupiahFormattingForElement(tr.querySelector(".itemHarga"));
+      row.querySelector(".itemProduct").value = item.product || "";
+      row.querySelector(".itemDesc").value = item.description || "";
+      row.querySelector(".itemUnit").value = item.unit || "";
+      row.querySelector(".itemQty").value = item.qty || 1;
+      row.querySelector(".itemHarga").value = formatNumber(
+        item.unit_price || 0
+      );
+      row.querySelector(".itemTotal").innerText = formatNumber(
+        item.total || item.qty * item.unit_price
+      );
+
+      const subcatSelect = row.querySelector(".itemSubcategory");
+      await loadSubcategories(subcatSelect, item.sub_category || null);
     }
 
+    // --- Render Daftar Pembayaran ---
+    const pembayaranSection = document.getElementById("pembayaranSection");
+    pembayaranSection.innerHTML = "";
+
+    if (data.payments && data.payments.length > 0) {
+      // Add header row
+      const header = document.createElement("div");
+      header.className =
+        "grid grid-cols-3 gap-2 font-semibold text-gray-700 border-b pb-2";
+      header.innerHTML = `
+    <span>Tanggal</span>
+    <span>Sumber</span>
+    <span class="text-right">Jumlah</span>
+  `;
+      pembayaranSection.appendChild(header);
+
+      // Add payment rows
+      data.payments.forEach((pay) => {
+        const div = document.createElement("div");
+        div.className = "grid grid-cols-3 gap-2 border-b pb-2 last:border-0";
+        div.innerHTML = `
+      <span class="text-sm">${pay.date || "-"}</span>
+      <span class="text-sm">${pay.source || "-"}</span>
+      <span class="text-right font-medium text-green-600">Rp ${formatNumber(
+        pay.amount || 0
+      )}</span>
+    `;
+        pembayaranSection.appendChild(div);
+      });
+
+      // Add total row
+      const total = data.payments.reduce(
+        (sum, pay) => sum + (pay.amount || 0),
+        0
+      );
+      const totalRow = document.createElement("div");
+      totalRow.className = "grid grid-cols-3 gap-2 font-semibold pt-2";
+      totalRow.innerHTML = `
+    <span colspan="2">Total Pembayaran</span>
+    <span class="text-right text-green-700">Rp ${formatNumber(total)}</span>
+  `;
+      pembayaranSection.appendChild(totalRow);
+    } else {
+      pembayaranSection.innerHTML = `<div class="text-gray-500 italic text-center py-4">Belum ada pembayaran</div>`;
+    }
+
+    // --- Render File Pendukung ---
+    const fileSection = document.getElementById("fileSection");
+    fileSection.innerHTML = "";
+
+    if (data.supporting_files && data.supporting_files.length > 0) {
+      data.supporting_files.forEach((file) => {
+        const div = document.createElement("div");
+        div.className =
+          "flex items-center justify-between p-2 hover:bg-gray-50 rounded";
+        div.innerHTML = `
+      <div class="flex items-center space-x-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <span class="truncate max-w-xs">${file.name || "File"}</span>
+      </div>
+      <div class="flex space-x-2">
+        <span class="text-xs text-gray-500">${formatFileSize(file.size)}</span>
+        <a href="${
+          file.url || "#"
+        }" target="_blank" class="text-blue-600 hover:underline flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          <span class="ml-1">Download</span>
+        </a>
+      </div>
+    `;
+        fileSection.appendChild(div);
+      });
+    } else {
+      fileSection.innerHTML = `
+    <div class="text-center py-4">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+      </svg>
+      <p class="text-gray-500 mt-2">Tidak ada file pendukung</p>
+    </div>
+  `;
+    }
+
+    // --- Render Invoice Uang Muka ---
+    const uangMukaSection = document.getElementById("uangMukaSection");
+    uangMukaSection.innerHTML = "";
+
+    if (data.down_payments && data.down_payments.length > 0) {
+      // Add header row
+      const header = document.createElement("div");
+      header.className =
+        "grid grid-cols-3 gap-2 font-semibold text-gray-700 border-b pb-2";
+      header.innerHTML = `
+    <span>No. Invoice</span>
+    <span>Tanggal</span>
+    <span class="text-right">Jumlah</span>
+  `;
+      uangMukaSection.appendChild(header);
+
+      // Add down payment rows
+      data.down_payments.forEach((dp) => {
+        const div = document.createElement("div");
+        div.className = "grid grid-cols-3 gap-2 border-b pb-2 last:border-0";
+        div.innerHTML = `
+      <span class="text-sm">${dp.invoice_no || "-"}</span>
+      <span class="text-sm">${dp.date || "-"}</span>
+      <span class="text-right font-medium text-green-600">Rp ${formatNumber(
+        dp.amount || 0
+      )}</span>
+    `;
+        uangMukaSection.appendChild(div);
+      });
+
+      // Add total row
+      const total = data.down_payments.reduce(
+        (sum, dp) => sum + (dp.amount || 0),
+        0
+      );
+      const totalRow = document.createElement("div");
+      totalRow.className = "grid grid-cols-3 gap-2 font-semibold pt-2";
+      totalRow.innerHTML = `
+    <span colspan="2">Total Uang Muka</span>
+    <span class="text-right text-green-700">Rp ${formatNumber(total)}</span>
+  `;
+      uangMukaSection.appendChild(totalRow);
+    } else {
+      uangMukaSection.innerHTML = `
+    <div class="text-center py-4">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+      <p class="text-gray-500 mt-2">Belum ada invoice uang muka</p>
+    </div>
+  `;
+    }
+
+    // Helper function to format file size
+    function formatFileSize(bytes) {
+      if (!bytes) return "0 Bytes";
+      const k = 1024;
+      const sizes = ["Bytes", "KB", "MB", "GB"];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    }
+
+    console.log("Items rendered:", data.items || []);
     calculateInvoiceTotals();
   } catch (err) {
     console.error("Gagal load detail:", err);
     Swal.fire("Error", err.message || "Gagal memuat detail penjualan", "error");
   }
+}
+
+function getSubCategoryName(id) {
+  const sub = subCategoryList.find((s) => s.id === id);
+  return sub ? sub.name : "-";
 }
 
 function formatNumber(num) {
@@ -827,6 +935,35 @@ async function tryGenerateNoQtn() {
   }
 }
 
+async function loadSalesType() {
+  if (typeLoaded) return;
+  typeLoaded = true;
+
+  try {
+    const response = await fetch(`${baseUrl}/type/sales`, {
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+    });
+
+    if (!response.ok) throw new Error("Gagal mengambil data sales type");
+
+    const result = await response.json();
+    const salesTypes = result.data;
+
+    const typeSelect = document.getElementById("type_id");
+    typeSelect.innerHTML = '<option value="">Pilih Tipe</option>';
+
+    salesTypes.forEach((item) => {
+      const option = document.createElement("option");
+      option.value = item.type_id;
+      option.textContent = `${item.nama_type} (${item.kode_type})`;
+      typeSelect.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Gagal load sales type:", error);
+  }
+}
 async function loadSalesType() {
   if (typeLoaded) return;
   typeLoaded = true;
@@ -1077,20 +1214,92 @@ async function handleHapus(pesanan_id) {
   }
 }
 
-lihatVersiBtn.addEventListener("click", function (e) {
-  e.preventDefault();
-  popupOverlay.classList.remove("hidden");
-  popupOverlay.classList.add("flex");
-});
+document.addEventListener("DOMContentLoaded", function () {
+  const lihatVersiBtn = document.getElementById("lihatVersiBtn");
+  const popupOverlay = document.getElementById("popupOverlay");
+  const closePopup = document.getElementById("closePopup");
+  const documentNumber = document.getElementById("documentNumber");
+  const activityTableBody = document.getElementById("activityTableBody");
+  const loadingState = document.getElementById("loadingState");
+  const activityTable = document.getElementById("activityTable");
+  const errorState = document.getElementById("errorState");
 
-closePopup.addEventListener("click", function () {
-  popupOverlay.classList.add("hidden");
-  popupOverlay.classList.remove("flex");
-});
+  if (lihatVersiBtn && popupOverlay && closePopup) {
+    lihatVersiBtn.addEventListener("click", async function (e) {
+      e.preventDefault();
 
-popupOverlay.addEventListener("click", function (e) {
-  if (e.target === popupOverlay) {
-    popupOverlay.classList.add("hidden");
-    popupOverlay.classList.remove("flex");
+      // Show popup
+      popupOverlay.classList.remove("hidden");
+      popupOverlay.classList.add("flex");
+
+      // Show loading state
+      loadingState.classList.remove("hidden");
+      activityTable.classList.add("hidden");
+      errorState.classList.add("hidden");
+
+      try {
+        // Fetch data from API
+        const response = await fetch("{{baseUrl}}/activity/sales/31");
+        const data = await response.json();
+
+        if (data.response === "200") {
+          // Set document number
+          documentNumber.textContent = data.data.no_qtn;
+
+          // Clear previous data
+          activityTableBody.innerHTML = "";
+
+          // Populate table with new data
+          data.data.revisions.forEach((revision) => {
+            const row = document.createElement("tr");
+
+            // Format date
+            const date = new Date(revision.waktu);
+            const formattedDate = date.toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+
+            row.innerHTML = `
+                <td class="border px-3 py-2">${formattedDate}</td>
+                <td class="border px-3 py-2 text-blue-600 hover:underline cursor-pointer">${revision.aktivitas}</td>
+                <td class="border px-3 py-2">${revision.pic}</td>
+                <td class="border px-3 py-2">
+                  <a href="${revision.aksi}" class="text-blue-600 hover:underline cursor-pointer">Lihat</a>
+                </td>
+              `;
+
+            activityTableBody.appendChild(row);
+          });
+
+          // Show table
+          loadingState.classList.add("hidden");
+          activityTable.classList.remove("hidden");
+        } else {
+          throw new Error(data.message || "Failed to fetch data");
+        }
+      } catch (error) {
+        console.error("Error fetching activity data:", error);
+        loadingState.classList.add("hidden");
+        errorState.classList.remove("hidden");
+      }
+    });
+
+    closePopup.addEventListener("click", function () {
+      popupOverlay.classList.add("hidden");
+      popupOverlay.classList.remove("flex");
+    });
+
+    popupOverlay.addEventListener("click", function (e) {
+      if (e.target === popupOverlay) {
+        popupOverlay.classList.add("hidden");
+        popupOverlay.classList.remove("flex");
+      }
+    });
+  } else {
+    console.error("Salah satu elemen tidak ditemukan");
   }
 });

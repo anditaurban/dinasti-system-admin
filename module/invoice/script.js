@@ -1,6 +1,6 @@
-pagemodule = "Receipt";
+pagemodule = "Invoice";
 colSpanCount = 9;
-setDataType("sales_receipt");
+setDataType("sales_invoice");
 fetchAndUpdateData();
 
 function validateFormData(formData, requiredFields = []) {
@@ -119,16 +119,21 @@ window.rowTemplate = function (item, index, perPage = 10) {
   
     <td class="px-6 py-4 text-sm border-b sm:border-0 flex justify-between sm:table-cell bg-gray-800 text-white sm:bg-transparent sm:text-gray-700">
       <span class="font-medium sm:hidden">Tanggal</span>
-      ${item.tanggal_transaksi}
+      ${item.invoice_date}
     </td>
   
     <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">No. Receipt</span>
-      ${item.receipt_number}
+      <span class="font-medium sm:hidden">No. Invoice</span>
+      ${item.inv_number}
     </td>
 
     <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Project</span>  
+      <span class="font-medium sm:hidden">No. PO</span>  
+      ${item.po_number}
+    </td>
+  
+    <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
+      <span class="font-medium sm:hidden">Project</span>
       ${item.project_name}
     </td>
   
@@ -138,18 +143,8 @@ window.rowTemplate = function (item, index, perPage = 10) {
     </td>
   
     <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Akun</span>
-      ${item.akun} (${item.no_rekening})
-    </td>
-  
-    <td class="px-6 py-4 text-right text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Jumlah</span>
-      ${formatRupiah(item.nominal)}
-    </td>
-  
-    <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Keterangan</span>
-      ${item.keterangan}
+      <span class="font-medium sm:hidden">Jenis Project</span>
+      ${item.project_type}
     </td>
   
     <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
@@ -168,10 +163,10 @@ window.rowTemplate = function (item, index, perPage = 10) {
       (item.status && item.status != 2) || !item.status
         ? `
       <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
-        <button onclick="event.stopPropagation(); confirmPayment('${item.receipt_id}', 2);" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+        <button onclick="event.stopPropagation(); confirmInvoice('${item.invoice_id}', 2);" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
           ✅ Valid
         </button>
-        <button onclick="event.stopPropagation(); confirmPayment('${item.receipt_id}', 3);" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+        <button onclick="event.stopPropagation(); confirmInvoice('${item.invoice_id}', 3);" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
           ❌ Tidak Valid
         </button>
       </div>

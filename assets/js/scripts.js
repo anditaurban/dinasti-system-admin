@@ -13,11 +13,8 @@ const business_place = company.business_place;
 const address = company.address;
 const company_phone = company.company_phone;
 const printer_setting = company.printer_setting;
-const lihatVersiBtn = document.getElementById("lihatVersiBtn");
-const popupOverlay = document.getElementById("popupOverlay");
-const closePopup = document.getElementById("closePopup");
 
-const default_module = "sales_recap";
+const default_module = "dashboard";
 
 let currentScript = null;
 let formHtml = null;
@@ -26,6 +23,7 @@ let campaignTitle = null;
 let responseData = "";
 let loadingStart = 0;
 let pagemoduleparent = "";
+let subCategories = [];
 const today = new Date();
 const year = today.getFullYear();
 const month = String(today.getMonth() + 1).padStart(2, "0");
@@ -198,7 +196,7 @@ async function loadModuleContent(module, Id, Detail) {
         console.log(`Script ${module} loaded successfully.`);
 
         // ✅ Auto load log sales history kalau modulnya sales_log_detail
-        if (module === "sales_log_detail") {
+        if (module === "quotation_log_detail") {
           if (typeof loadPesananData === "function") {
             loadPesananData(Id); // ✅ pakai Id, bukan pesananId
           } else {

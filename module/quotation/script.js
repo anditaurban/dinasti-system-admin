@@ -176,14 +176,16 @@ window.rowTemplate = function (item, index, perPage = 10) {
   </span>
       <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
   <!-- View Order -->
-  <button onclick="event.stopPropagation(); loadModuleContent('sales_detail', '${
+  <button onclick="event.stopPropagation(); loadModuleContent('quotation_detail', '${
     item.pesanan_id
-  }', '${
+  }', '${item.no_qtn}'); showVersionHistory('${item.pesanan_id}', '${
     item.no_qtn
-  }');" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+  }');" 
+    class="block w-full text-left px-4 py-2 hover:bg-gray-100">
     👁️ View Order
-  </button>
-  <button onclick="event.stopPropagation(); loadModuleContent('sales_log_detail', '${
+</button>
+
+  <button onclick="event.stopPropagation(); loadModuleContent('quotation_log_detail', '${
     item.pesanan_id
   }');" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
     🧾 Log
@@ -192,11 +194,12 @@ window.rowTemplate = function (item, index, perPage = 10) {
   <!-- Delete Order -->
   ${
     item.status_id !== 2
-      ? `<button onclick="(event) => { event.stopPropagation(); loadModuleContent('sales_log_detail', '${item.pesanan_id}'); }" class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">
+      ? `<button onclick="handleDelete('${item.pesanan_id}')" class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">
       🗑 Delete Order
     </button>`
       : ""
   }
+
 
 </div>
 
@@ -225,7 +228,7 @@ function getStatusClass(status) {
 
 document.getElementById("addButton").addEventListener("click", async () => {
   statusLoaded = false;
-  await loadModuleContent("sales_detail");
+  await loadModuleContent("quotation_detail");
   loadStatusOptions(); // sekarang dijamin status select-nya udah ada & function-nya udah terdefinisi
   loadDetailSales(id, detail);
 });
