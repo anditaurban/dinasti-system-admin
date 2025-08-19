@@ -123,30 +123,31 @@ window.rowTemplate = function (item, index, perPage = 10) {
     </td>
   
     <td class="px-6 py-4 text-sm border-b sm:border-0 flex justify-between sm:table-cell bg-gray-800 text-white sm:bg-transparent sm:text-gray-700">
-  <!-- Tampilan mobile: flex layout -->
-  <div class="flex flex-col sm:hidden w-full">
-    <div class="flex justify-between">
-      <span class="font-medium">Sales#</span>
-      <span class="text-gray-300">${item.no_qtn}</span>
-    </div>
-    <div class="flex justify-between mt-1">
-      <span class="font-medium"></span>
-      <span class="font-medium text-right">${item.project_name}</span>
-    </div>
-    <div class="flex justify-between mt-1">
-      <span class="font-medium"></span>
-      <span class="text-gray-300 text-xs text-right">${item.user_nama}</span>
-    </div>
-  </div>
+      <!-- Mobile -->
+      <div class="flex flex-col sm:hidden w-full">
+        <div class="flex justify-between">
+          <span class="font-medium">Sales#</span>
+          <span class="text-gray-300">${item.no_qtn}</span>
+        </div>
+        <div class="flex justify-between mt-1">
+          <span class="font-medium"></span>
+          <span class="font-medium text-right">${item.project_name}</span>
+        </div>
+        <div class="flex justify-between mt-1">
+          <span class="font-medium"></span>
+          <span class="text-gray-300 text-xs text-right">${
+            item.user_nama
+          }</span>
+        </div>
+      </div>
 
-  <!-- Tampilan desktop: table layout -->
-  <div class="hidden sm:block">
-    <div class="text-gray-500 text-xs">${item.no_qtn}</div>
-    <div class="font-medium">${item.project_name}</div>
-    <div class="text-gray-500 text-xs">${item.user_nama}</div>
-  </div>
-</td>
-
+      <!-- Desktop -->
+      <div class="hidden sm:block">
+        <div class="text-gray-500 text-xs">${item.no_qtn}</div>
+        <div class="font-medium">${item.project_name}</div>
+        <div class="text-gray-500 text-xs">${item.user_nama}</div>
+      </div>
+    </td>
   
     <td class="px-6 py-4 text-sm text-gray-700 border-b text-right sm:border-0 flex justify-between sm:table-cell">
       <span class="font-medium sm:hidden">Type</span>
@@ -158,7 +159,7 @@ window.rowTemplate = function (item, index, perPage = 10) {
       ${formatRupiah(item.contract_amount)}
     </td>
     <td class="px-6 py-4 text-sm text-gray-700 border-b text-right sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Amount</span>
+      <span class="font-medium sm:hidden">PPN</span>
       ${formatRupiah(item.ppn)}
     </td>
 
@@ -168,50 +169,128 @@ window.rowTemplate = function (item, index, perPage = 10) {
     </td>
   
     <td class="px-6 py-4 text-center text-sm text-gray-700 sm:border-0 flex justify-between sm:table-cell">
-  <span class="font-medium sm:hidden">Status</span>
-  <span class="${getStatusClass(
-    item.status
-  )} px-2 py-1 rounded-full text-xs font-medium">
-    ${item.status}
-  </span>
+      <span class="font-medium sm:hidden">Status</span>
+      <span class="${getStatusClass(
+        item.status
+      )} px-2 py-1 rounded-full text-xs font-medium">
+        ${item.status}
+      </span>
       <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
-  <!-- View Order -->
-  <button onclick="event.stopPropagation(); loadModuleContent('quotation_detail', '${
-    item.pesanan_id
-  }', '${item.no_qtn}'); showVersionHistory('${item.pesanan_id}', '${
+        <!-- View Order -->
+        <button onclick="event.stopPropagation(); loadModuleContent('quotation_detail', '${
+          item.pesanan_id
+        }', '${item.no_qtn}'); showVersionHistory('${item.pesanan_id}', '${
     item.no_qtn
   }');" 
-    class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-    👁️ View Order
-</button>
+          class="block w-full text-left px-4 py-2 hover:bg-gray-100">👁️ View Order</button>
 
-  <button onclick="event.stopPropagation(); loadModuleContent('quotation_log_detail', '${
-    item.pesanan_id
-  }');" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-    🧾 Log
-  </button>
+        <button onclick="event.stopPropagation(); loadModuleContent('quotation_log_detail', '${
+          item.pesanan_id
+        }');" 
+          class="block w-full text-left px-4 py-2 hover:bg-gray-100">🧾 Log</button>
 
-  <!-- Delete Order -->
-  ${
-    item.status_id !== 2
-      ? `<button onclick="handleDelete('${item.pesanan_id}')" class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">
-      🗑 Delete Order
-    </button>`
-      : ""
-  }
+        <!-- Add Invoice (hanya jika WON) -->
+        ${
+          item.status_id === 2
+            ? `<button onclick="openInvoiceModal('${item.pesanan_id}')" class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-600">➕ Add Invoice</button>`
+            : ""
+        }
 
+        ${
+          item.status_id === 2
+            ? `<button onclick="openSalesReceiptModal('${item.pesanan_id}', '${item.pelanggan_id}')" 
+       class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-600">
+       ➕ Add Receipt
+     </button>`
+            : ""
+        }
 
-</div>
+        <!-- Delete Order -->
+        ${
+          item.status_id !== 2
+            ? `<button onclick="handleDelete('${item.pesanan_id}')" class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">🗑 Delete Order</button>`
+            : ""
+        }
+      </div>
+    </td>
 
     <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-  <span class="font-medium sm:hidden">Revision</span>
-  ${`R${item.revision_number || 0}`}
-</td>
-
-
-
+      <span class="font-medium sm:hidden">Revision</span>
+      ${`R${item.revision_number || 0}`}
+    </td>
   </tr>`;
 };
+
+function openInvoiceModal(pesananId) {
+  const modal = document.getElementById("invoiceModal");
+  const box = document.getElementById("invoiceBox");
+
+  document.getElementById("invoicePesananId").value = pesananId;
+
+  modal.classList.remove("hidden");
+
+  // Delay biar animasi jalan
+  setTimeout(() => {
+    box.classList.remove("scale-90", "opacity-0");
+    box.classList.add("scale-100", "opacity-100");
+  }, 10);
+}
+
+function closeInvoiceModal() {
+  const modal = document.getElementById("invoiceModal");
+  const box = document.getElementById("invoiceBox");
+
+  // animasi keluar
+  box.classList.remove("scale-100", "opacity-100");
+  box.classList.add("scale-90", "opacity-0");
+
+  setTimeout(() => {
+    modal.classList.add("hidden");
+  }, 300); // sesuai duration-300
+}
+
+document
+  .getElementById("invoiceForm")
+  .addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    const pesanan_id = document.getElementById("invoicePesananId").value;
+    const po_number = document.getElementById("po_number").value.trim();
+    const invoice_date = document.getElementById("invoice_date").value;
+
+    if (!po_number || !invoice_date) {
+      alert("PO Number dan Invoice Date wajib diisi!");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${baseUrl}/add/sales_invoice`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+        body: JSON.stringify({
+          owner_id,
+          user_id,
+          pesanan_id,
+          po_number,
+          invoice_date,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        Swal.fire("Berhasil!", "Invoice berhasil ditambahkan", "success");
+        closeInvoiceModal();
+        loadModuleContent("quotation"); // refresh data
+      } else {
+        throw new Error(data.message || "Gagal menambahkan invoice");
+      }
+    } catch (err) {
+      Swal.fire("Error!", err.message, "error");
+    }
+  });
 
 function getStatusClass(status) {
   switch (status) {
@@ -467,50 +546,6 @@ async function addPackage(sales_id) {
   }
 }
 
-document.getElementById("tanggal").addEventListener("change", generateNoQtn);
-document
-  .getElementById("project_type")
-  .addEventListener("change", generateNoQtn);
-
-async function generateNoQtn() {
-  const tanggal = document.getElementById("tanggal").value;
-  const typeId = document.getElementById("project_type").value;
-  const userId = document.querySelector("input[name='user_id']").value;
-  const ownerId = 100;
-
-  if (!tanggal || !typeId) {
-    document.getElementById("no_qtn").value = "";
-    return;
-  }
-
-  try {
-    const response = await fetch(
-      "https://devdinasti.katib.cloud/generate/noqtn",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${API_TOKEN}`,
-        },
-        body: JSON.stringify({
-          order_date: tanggal,
-          type_id: typeId,
-          user_id: parseInt(userId),
-          owner_id: ownerId,
-        }),
-      }
-    );
-
-    if (!response.ok) throw new Error("Gagal generate");
-
-    const data = await response.json();
-    document.getElementById("no_qtn").value = data.data?.no_qtn || "Gagal";
-  } catch (err) {
-    console.error("Error:", err);
-    document.getElementById("no_qtn").value = "Error";
-  }
-}
-
 document.addEventListener("DOMContentLoaded", async () => {
   const select = document.getElementById("project_type");
   console.log("🔍 Select element found:", select);
@@ -540,3 +575,87 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.error("🔥 Error fetching project types:", error);
   }
 });
+
+function openSalesReceiptModal(pesananId, pelangganId) {
+  const modal = document.getElementById("salesReceiptModal");
+  const content = document.getElementById("salesReceiptContent");
+
+  // Set hidden input
+  document.getElementById("sr_pesanan_id").value = pesananId;
+  document.getElementById("sr_pelanggan_id").value = pelangganId || "";
+
+  // Debug biar kelihatan di console
+  console.log("📌 openSalesReceiptModal()", { pesananId, pelangganId });
+
+  modal.classList.remove("hidden");
+
+  setTimeout(() => {
+    content.classList.remove("scale-95", "opacity-0");
+    content.classList.add("scale-100", "opacity-100");
+  }, 10);
+}
+
+function closeSalesReceiptModal() {
+  const modal = document.getElementById("salesReceiptModal");
+  const content = document.getElementById("salesReceiptContent");
+
+  content.classList.remove("scale-100", "opacity-100");
+  content.classList.add("scale-95", "opacity-0");
+
+  setTimeout(() => {
+    modal.classList.add("hidden");
+  }, 300);
+}
+
+document
+  .getElementById("salesReceiptForm")
+  .addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    const form = e.target;
+    const formData = new FormData(form);
+
+    // Convert FormData → JSON object
+    const plainForm = Object.fromEntries(formData.entries());
+
+    // Kalau file ada, handle terpisah (misalnya server ga butuh multipart untuk file kosong)
+    if (plainForm.file && plainForm.file.size === 0) {
+      delete plainForm.file; // hapus file kosong
+    }
+
+    console.group("📌 JSON Payload to API");
+    console.log(plainForm);
+    console.groupEnd();
+
+    try {
+      const res = await fetch(`${baseUrl}/add/sales_receipt`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json", // ✅ penting
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+        body: JSON.stringify(plainForm), // ✅ kirim JSON
+      });
+
+      const rawText = await res.text();
+      console.log("⬅️ Raw Response:", rawText);
+
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        data = { message: rawText };
+      }
+
+      if (res.ok) {
+        Swal.fire("Berhasil!", "Sales Receipt berhasil ditambahkan", "success");
+        closeSalesReceiptModal();
+        loadModuleContent("quotation");
+      } else {
+        throw new Error(data.message || "Gagal menambahkan sales receipt");
+      }
+    } catch (err) {
+      console.error("❌ Error saat submit:", err);
+      Swal.fire("Error!", err.message, "error");
+    }
+  });

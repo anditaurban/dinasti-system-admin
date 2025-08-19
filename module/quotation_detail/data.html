@@ -117,6 +117,11 @@
           <label class="block text-sm font-medium">No Quotation</label>
           <input type="text" id="no_qtn" name="no_qtn" class="w-full border px-3 py-2 rounded bg-gray-100" readonly />
         </div>
+        <div>
+          <label class="block text-sm font-medium">Revision Number</label>
+          <input type="text" id="revision_number" name="revision_number"
+            class="w-full border px-3 py-2 rounded bg-gray-100" readonly />
+        </div>
 
         <!-- Nama Project -->
         <div>
@@ -126,15 +131,7 @@
 
         <!-- Client -->
 
-        <div class="relative">
-          <label class="block text-sm font-medium">Client</label>
-          <input type="text" id="client" name="client" class="w-full border px-3 py-2 rounded" autocomplete="off"
-            oninput="filterclientSuggestions()" />
-          <input type="hidden" id="client_id" />
-          <ul id="clientSuggestions"
-            class="absolute z-10 w-full bg-white border rounded mt-1 text-sm shadow hidden max-h-48 overflow-y-auto">
-          </ul>
-        </div>
+
         <!-- Nominal Kontrak -->
 
         <div class="hidden">
@@ -171,12 +168,18 @@
           </select>
         </div>
 
-
-        <div>
-          <label class="block text-sm font-medium">Revision Number</label>
-          <input type="text" id="revision_number" name="revision_number"
-            class="w-full border px-3 py-2 rounded bg-gray-100" readonly />
+        <div class="col-span-2">
+          <label class="block text-sm font-medium">Client</label>
+          <input type="text" id="client" name="client" class="w-full border px-3 py-2 rounded" autocomplete="off"
+            oninput="filterclientSuggestions()" />
+          <input type="hidden" id="client_id" />
+          <ul id="clientSuggestions"
+            class="absolute z-10 w-full bg-white border rounded mt-1 text-sm shadow hidden max-h-48 overflow-y-auto">
+          </ul>
         </div>
+
+
+
 
 
         <!-- Hidden user_id -->
@@ -193,8 +196,8 @@
                 <th class="px-3 py-2 border text-left">Produk</th>
                 <th class="px-3 py-2 border text-left">Type</th>
                 <th class="px-3 py-2 border text-left">Deksripsi</th>
-                <th class="px-3 py-2 border text-right">Unit</th>
                 <th class="px-3 py-2 border text-right">Qty</th>
+                <th class="px-3 py-2 border text-right">Unit</th>
                 <th class="px-3 py-2 border text-right">Harga</th>
                 <th class="px-3 py-2 border text-right">Subtotal</th>
                 <th class="px-3 py-2 border text-center">Aksi</th>

@@ -181,6 +181,7 @@ window.rowTemplate = function (item, index, perPage = 10) {
 
   </tr>`;
 };
+
 document.getElementById("addButton").addEventListener("click", () => {
   showFormModal();
   loadDropdownCall();
@@ -188,30 +189,82 @@ document.getElementById("addButton").addEventListener("click", () => {
 
 formHtml = `
 <form id="dataform" class="space-y-2">
-  <!-- Project -->
-  <label for="formProject" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Project</label>
-  <select id="formProject" name="pesanan_id" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-    <option value="">Loading...</option>
+  <!-- Tanggal Transaksi -->
+  <label for="formTanggal" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Tanggal Transaksi</label>
+  <input id="formTanggal" name="tanggal_transaksi" type="date" 
+         class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+         rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white 
+         focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+  <!-- Nominal -->
+  <label for="formNominal" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Nominal</label>
+  <input id="formNominal" name="nominal" type="number" placeholder="Masukkan nominal" 
+         class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+         rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white 
+         focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+  <!-- Transaction Type -->
+  <label for="formType" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Transaction Type</label>
+  <select id="formType" name="transaction_type" 
+          class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+          rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white 
+          focus:outline-none focus:ring-2 focus:ring-blue-500">
+    <option value="">Pilih tipe</option>
+    <option value="income">Income</option>
+    <option value="expense">Expense</option>
   </select>
 
-  <!-- PM (Project Manager) -->
-  <label for="formPM" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Project Manager</label>
-  <select id="formPM" name="project_manager_id" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 
-         text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-left">
-    <option value="">Loading...</option>
-  </select>
+  <!-- Category -->
+  <label for="formCategory" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Category</label>
+  <input id="formCategory" name="category" type="text" placeholder="Contoh: payment" 
+         class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+         rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white 
+         focus:outline-none focus:ring-2 focus:ring-blue-500">
 
-  <!-- Starting -->
-  <label for="formStartDate" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Starting</label>
-  <input id="formStartDate" name="start_date" type="date" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-  
-  <!-- Deadline -->
-  <label for="formDeadline" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Deadline</label>
-  <input id="formDeadline" name="deadline" type="date" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-  
+  <!-- Jenis Transaksi -->
+  <label for="formJenis" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Jenis Transaksi</label>
+  <input id="formJenis" name="jenis_transaksi" type="text" placeholder="Contoh: bank" 
+         class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+         rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white 
+         focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+  <!-- Tipe -->
+  <label for="formTipe" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Tipe</label>
+  <input id="formTipe" name="tipe" type="text" placeholder="Contoh: receipt" 
+         class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+         rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white 
+         focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+  <!-- Keterangan -->
+  <label for="formKeterangan" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Keterangan</label>
+  <textarea id="formKeterangan" name="keterangan" rows="2" placeholder="Tambahkan keterangan" 
+            class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+            rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white 
+            focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+
+  <!-- Akun -->
+  <label for="formAkun" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Akun</label>
+  <input id="formAkun" name="akun" type="text" placeholder="Contoh: Bank ABC" 
+         class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+         rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white 
+         focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+  <!-- Nomor Rekening -->
+  <label for="formRekening" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">No Rekening</label>
+  <input id="formRekening" name="no_rekening" type="text" placeholder="Contoh: 123456789" 
+         class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+         rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white 
+         focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+  <!-- Upload File -->
+  <label for="formFile" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Upload File</label>
+  <input id="formFile" name="file" type="file" 
+         class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+         rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white 
+         focus:outline-none focus:ring-2 focus:ring-blue-500">
 </form>
+`;
 
-  `;
 requiredFields = [
   { field: "formProject", message: "Project Name is required!" },
   { field: "formPM", message: "Project Manager is required!" },

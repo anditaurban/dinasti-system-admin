@@ -294,11 +294,10 @@ async function loadDetailProject(Id) {
     const response = await res.json();
     console.log("Response API:", response);
 
-    if (!response || !response.listData) {
-      throw new Error("Invalid API response structure - missing listData");
+    const data = response.listData || response.data || response.detail;
+    if (!data) {
+      throw new Error("Invalid API response structure - data not found");
     }
-
-    const data = response.listData;
 
     // 📝 Isi form utama
     document.getElementById(
@@ -338,14 +337,12 @@ async function loadDetailProject(Id) {
     }
 
     if (data.status_id === 2) {
-      // Assuming 2 is some completed status
       updateBtn?.classList.add("hidden");
     } else {
       updateBtn?.classList.remove("hidden");
     }
     simpanBtn?.classList.add("hidden");
 
-    // Calculate and display derived values
     calculateProjectValues();
   } catch (err) {
     console.error("Gagal load detail project:", err);

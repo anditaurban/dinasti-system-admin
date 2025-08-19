@@ -37,6 +37,112 @@
       </div>
     </div>
 
+    <!-- Modal -->
+    <div id="salesReceiptModal"
+      class="fixed inset-0 hidden items-center justify-center bg-black bg-opacity-50 z-50 transition-opacity duration-300">
+      <div id="salesReceiptContent"
+        class="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 relative transform transition-all duration-300 scale-95 opacity-0">
+
+        <!-- Header -->
+        <div class="flex justify-between items-center border-b pb-3 mb-4">
+          <h2 class="text-lg font-semibold text-gray-700">Tambah Sales Receipt</h2>
+          <button onclick="closeSalesReceiptModal()" class="text-gray-500 hover:text-gray-700">&times;</button>
+        </div>
+
+        <!-- Form -->
+        <form id="salesReceiptForm" class="space-y-4" enctype="multipart/form-data">
+          <!-- Hidden untuk ID -->
+          <input type="hidden" id="sr_pesanan_id" name="pesanan_id">
+          <input type="hidden" id="sr_pelanggan_id" name="pelanggan_id">
+          <input type="hidden" id="owner_id" name="owner_id" value="1">
+          <input type="hidden" id="user_id" name="user_id" value="1">
+          <input type="hidden" id="branch_id" name="branch_id" value="1">
+
+          <!-- Tanggal Transaksi -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Tanggal Transaksi</label>
+            <input type="date" id="tanggal_transaksi" name="tanggal_transaksi" class="w-full border rounded px-3 py-2"
+              required>
+          </div>
+
+          <!-- Nominal -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Nominal</label>
+            <input type="number" id="nominal" name="nominal" class="w-full border rounded px-3 py-2"
+              placeholder="Masukkan nominal" required>
+          </div>
+
+          <!-- Transaction Type -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Transaction Type</label>
+            <select id="transaction_type" name="transaction_type" class="w-full border rounded px-3 py-2">
+              <option value="income">Income</option>
+              <option value="expense">Expense</option>
+            </select>
+          </div>
+
+          <!-- Category -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Category</label>
+            <input type="text" id="category" name="category" value="payment" class="w-full border rounded px-3 py-2"
+              placeholder="Contoh: payment" required>
+          </div>
+
+          <!-- Jenis Transaksi -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Jenis Transaksi</label>
+            <select id="jenis_transaksi" name="jenis_transaksi" class="w-full border rounded px-3 py-2">
+              <option value="bank">Bank</option>
+              <option value="cash">Cash</option>
+              <option value="ewallet">E-Wallet</option>
+            </select>
+          </div>
+
+          <!-- Tipe -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Tipe</label>
+            <input type="text" id="tipe" name="tipe" value="receipt" readonly
+              class="w-full border rounded px-3 py-2 bg-gray-100">
+          </div>
+
+          <!-- Keterangan -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Keterangan</label>
+            <textarea id="keterangan" name="keterangan" rows="2" class="w-full border rounded px-3 py-2"
+              placeholder="Masukkan keterangan"></textarea>
+          </div>
+
+          <!-- Akun -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Akun</label>
+            <input type="text" id="akun" name="akun" class="w-full border rounded px-3 py-2"
+              placeholder="Contoh: Bank ABC">
+          </div>
+
+          <!-- No Rekening -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">No Rekening</label>
+            <input type="text" id="no_rekening" name="no_rekening" class="w-full border rounded px-3 py-2"
+              placeholder="Contoh: 123456789">
+          </div>
+
+          <!-- File -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Upload File</label>
+            <input type="file" id="file" name="file" class="w-full border rounded px-3 py-2">
+          </div>
+
+          <!-- Submit -->
+          <div class="flex justify-end gap-2 pt-4 border-t">
+            <button type="button" onclick="closeSalesReceiptModal()"
+              class="px-4 py-2 bg-gray-300 rounded">Batal</button>
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Simpan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
     <!-- Table -->
     <div class="overflow-x-auto">
       <table class="min-w-full text-sm border dark:border-gray-700">

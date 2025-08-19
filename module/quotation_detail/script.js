@@ -107,11 +107,11 @@ async function tambahItem() {
     <td class="border px-3 py-2">
         <input type="text" class="w-full border rounded px-2 itemDesc" placeholder="Deskripsi">
     </td>
+        <td class="border px-3 py-2 w-[12%]">
+        <input type="number" class="w-full border rounded px-2 itemQty text-right" value="1" oninput="recalculateTotal()">
+    </td>
     <td class="border px-3 py-2 w-[10%]">
         <input type="text" class="w-full border rounded px-2 itemUnit" placeholder="pcs/lusin">
-    </td>
-    <td class="border px-3 py-2 w-[12%]">
-        <input type="number" class="w-full border rounded px-2 itemQty text-right" value="1" oninput="recalculateTotal()">
     </td>
     <td class="border px-3 py-2 w-[17%]">
         <input type="text" class="w-full border rounded px-2 itemHarga text-right" value="0" oninput="recalculateTotal()">
@@ -129,7 +129,7 @@ async function tambahItem() {
   await loadSubcategories(tr.querySelector(".itemSubcategory"));
 }
 
-async function loadSubcategories(selectElement, selectedValue = null) {
+async function loadSubcategories(selectElement, selectedId = "") {
   try {
     const res = await fetch(`${baseUrl}/list/sub_category/${owner_id}`, {
       headers: { Authorization: `Bearer ${API_TOKEN}` },
@@ -137,24 +137,26 @@ async function loadSubcategories(selectElement, selectedValue = null) {
     const data = await res.json();
 
     if (!data.listData || !Array.isArray(data.listData)) {
-      selectElement.innerHTML = "";
+      selectElement.innerHTML = `<option value="">Tidak ada data</option>`;
       return;
     }
 
-    // Kosongkan dulu dropdown
-    selectElement.innerHTML = "";
-
-    // Isi dengan data aktual
+    selectElement.innerHTML = `<option value="">-- Pilih Subcategory --</option>`;
     data.listData.forEach((item) => {
-      const option = new Option(item.nama, item.sub_category_id);
-      if (selectedValue && item.sub_category_id == selectedValue) {
+      const option = document.createElement("option");
+      option.value = item.sub_category_id;
+      option.textContent = item.nama;
+
+      // 🔹 auto-select kalau sama dengan yang di detail sales
+      if (selectedId && selectedId == item.sub_category_id) {
         option.selected = true;
       }
-      selectElement.add(option);
+
+      selectElement.appendChild(option);
     });
   } catch (err) {
     console.error("Gagal load subcategory:", err);
-    selectElement.innerHTML = "";
+    selectElement.innerHTML = `<option value="">Gagal load</option>`;
   }
 }
 
@@ -183,15 +185,7 @@ function setupRupiahFormattingForElement(element) {
 function hapusItem(button) {
   const row = button.closest("tr");
   row.remove();
-
-  // Update ulang nomor urut
-  const rows = document.querySelectorAll("#tabelItem tr");
-  rows.forEach((row, index) => {
-    row.children[0].innerText = index + 1;
-  });
-
-  // Hitung ulang total
-  calculateInvoiceTotals();
+  calculateProjectTotals();
 }
 
 function filterProdukDropdownCustom(inputEl) {
@@ -493,8 +487,8 @@ async function updateInvoice() {
 
     // Body untuk update sales (status_id & revision_status langsung dikirim di sini)
     const bodySales = {
-      owner_id: 100,
-      user_id: 100,
+      owner_id,
+      user_id,
       no_qtn: document.getElementById("no_qtn")?.value || "",
       project_name: document.getElementById("project_name")?.value || "",
       client: document.getElementById("client")?.value || "",
@@ -594,7 +588,10 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("contract_amount").value =
       data.contract_amount || 0;
     const discountEl = document.getElementById("discount");
-    if (discountEl) discountEl.value = data.disc || 0;
+    if (discountEl) {
+      discountEl.value = formatNumber(data.disc || 0);
+    }
+
     document.getElementById("ppn").value = data.ppn || 0;
     document.getElementById("total").value = data.total || 0;
     document.getElementById("status").value = data.status_id || 1;
@@ -630,9 +627,12 @@ async function loadDetailSales(Id, Detail) {
 
     // 🔹 Ambil list sub category dari API
     // 🔹 Ambil list sub category dari API
-    const subcategoryRes = await fetch(`${baseUrl}/list/sub_category/100`, {
-      headers: { Authorization: `Bearer ${API_TOKEN}` },
-    });
+    const subcategoryRes = await fetch(
+      `${baseUrl}/list/sub_category/${owner_id}`,
+      {
+        headers: { Authorization: `Bearer ${API_TOKEN}` },
+      }
+    );
     if (!subcategoryRes.ok) {
       throw new Error(
         `Failed to load subcategories, status: ${subcategoryRes.status}`
@@ -656,6 +656,10 @@ async function loadDetailSales(Id, Detail) {
       tambahItem();
       const row = tbody.lastElementChild;
 
+      const subcatSelect = row.querySelector(".itemSubcategory");
+      // 🔹 panggil dengan sub_category_id biar auto select
+      await loadSubcategories(subcatSelect, item.sub_category_id);
+
       row.querySelector(".itemProduct").value = item.product || "";
       row.querySelector(".itemDesc").value = item.description || "";
       row.querySelector(".itemUnit").value = item.unit || "";
@@ -667,8 +671,7 @@ async function loadDetailSales(Id, Detail) {
         item.total || item.qty * item.unit_price
       );
 
-      const subcatSelect = row.querySelector(".itemSubcategory");
-      await loadSubcategories(subcatSelect, item.sub_category || null);
+      console.log(item.sub_category);
     }
 
     // --- Render Daftar Pembayaran ---
@@ -920,8 +923,8 @@ async function tryGenerateNoQtn() {
       body: JSON.stringify({
         order_date,
         type_id,
-        owner_id: 100,
-        user_id: 100,
+        owner_id: owner_id,
+        user_id: user_id,
       }),
     });
 
@@ -1060,11 +1063,6 @@ document.addEventListener("input", function (e) {
     e.target.value = formatRupiah(angka);
   }
 });
-
-function formatRupiah(angka) {
-  if (isNaN(angka) || angka === "") return "Rp 0";
-  return "Rp " + parseInt(angka).toLocaleString("id-ID");
-}
 
 function parseRupiah(rupiah) {
   if (!rupiah) return 0;

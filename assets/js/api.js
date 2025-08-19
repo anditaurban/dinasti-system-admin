@@ -35,10 +35,9 @@ const state = {
   sales_log_detail: { ...defaultState },
   sales_log_detail: { ...defaultState },
   receipt: { ...defaultState },
-  sales_invoice: { ...defaultState },
   package_slip: { ...defaultState },
   project: { ...defaultState },
-  shipment_slip: { ...defaultState },
+  sales_invoice: { ...defaultState },
   shipment_label: { ...defaultState },
   product: { ...defaultState },
   product_bundling: { ...defaultState },
@@ -54,7 +53,9 @@ const endpoints = [
   "sales_package",
   "sales_detail",
   "sales_detail_log",
+  "sales_receipt",
   "project",
+  "invoice",
   "package_slip",
   "sales_shipment",
   "shipment_slip",
@@ -66,7 +67,7 @@ const endpoints = [
   "business_category",
 ].reduce((acc, type) => {
   acc[type] = {
-    table: `${baseUrl}/table/${type}/100`,
+    table: `${baseUrl}/table/${type}/${owner_id}`,
     list: `${baseUrl}/list/${type}/${owner_id}`,
     detail: `${baseUrl}/detail/${type}`,
     update: `${baseUrl}/update/${type}`,
@@ -81,7 +82,7 @@ async function fetchData(type, page = 1, id = null) {
     let url = id
       ? `${endpoints[type].table}/${id}/${page}?search=${currentDataSearch}`
       : `${endpoints[type].table}/${page}?search=${currentDataSearch}`;
-    // console.log(url);
+    console.log(url);
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${API_TOKEN}` },
     });

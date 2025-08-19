@@ -163,12 +163,14 @@ window.rowTemplate = function (item, index, perPage = 10) {
       (item.status && item.status != 2) || !item.status
         ? `
       <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
-        <button onclick="event.stopPropagation(); confirmInvoice('${item.invoice_id}', 2);" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-          ✅ Valid
+        <button 
+          onclick="openSalesReceiptModal('${item.pesanan_id}', '${item.pelanggan_id}')"
+          class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+          Receipt
         </button>
-        <button onclick="event.stopPropagation(); confirmInvoice('${item.invoice_id}', 3);" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-          ❌ Tidak Valid
-        </button>
+
+
+
       </div>
     `
         : ""
@@ -176,37 +178,92 @@ window.rowTemplate = function (item, index, perPage = 10) {
 
   </tr>`;
 };
-document.getElementById("addButton").addEventListener("click", () => {
-  showFormModal();
-  loadDropdownCall();
+document.addEventListener("click", (e) => {
+  if (e.target.classList.contains("addButton")) {
+    const pesananId = e.target.getAttribute("data-id");
+    showFormModal();
+    loadDropdownCall(pesananId);
+  }
 });
 
 formHtml = `
 <form id="dataform" class="space-y-2">
-  <!-- Project -->
-  <label for="formProject" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Project</label>
-  <select id="formProject" name="pesanan_id" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-    <option value="">Loading...</option>
+    <!-- Tanggal Transaksi -->
+  <label for="formTanggal" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Tanggal Transaksi</label>
+  <input id="formTanggal" name="tanggal_transaksi" type="date" 
+         class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+         rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white 
+         focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+  <!-- Nominal -->
+  <label for="formNominal" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left formatNumber">Nominal</label>
+  <input id="formNominal" name="nominal" type="number" placeholder="Masukkan nominal" 
+         class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+         rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white 
+         focus:outline-none focus:ring-2 focus:ring-blue-500 format">
+
+  <!-- Transaction Type -->
+  <label for="formType" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Transaction Type</label>
+  <select id="formType" name="transaction_type" 
+          class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+          rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white 
+          focus:outline-none focus:ring-2 focus:ring-blue-500">
+    <option value="">Pilih tipe</option>
+    <option value="income">Income</option>
+    <option value="expense">Expense</option>
   </select>
 
-  <!-- PM (Project Manager) -->
-  <label for="formPM" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Project Manager</label>
-  <select id="formPM" name="project_manager_id" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 
-         text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-left">
-    <option value="">Loading...</option>
-  </select>
+  <!-- Category -->
+  <label for="formCategory" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Category</label>
+  <input id="formCategory" name="category" type="text" placeholder="Contoh: payment" 
+         class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+         rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white 
+         focus:outline-none focus:ring-2 focus:ring-blue-500">
 
-  <!-- Starting -->
-  <label for="formStartDate" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Starting</label>
-  <input id="formStartDate" name="start_date" type="date" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-  
-  <!-- Deadline -->
-  <label for="formDeadline" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Deadline</label>
-  <input id="formDeadline" name="deadline" type="date" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-  
+  <!-- Jenis Transaksi -->
+  <label for="formJenis" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Jenis Transaksi</label>
+  <input id="formJenis" name="jenis_transaksi" type="text" placeholder="Contoh: bank" 
+         class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+         rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white 
+         focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+  <!-- Tipe -->
+  <label for="formTipe" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Tipe</label>
+  <input id="formTipe" name="tipe" type="text" placeholder="Contoh: receipt" 
+         class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+         rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white 
+         focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+  <!-- Keterangan -->
+  <label for="formKeterangan" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Keterangan</label>
+  <textarea id="formKeterangan" name="keterangan" rows="2" placeholder="Tambahkan keterangan" 
+            class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+            rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white 
+            focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+
+  <!-- Akun -->
+  <label for="formAkun" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Akun</label>
+  <input id="formAkun" name="akun" type="text" placeholder="Contoh: Bank ABC" 
+         class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+         rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white 
+         focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+  <!-- Nomor Rekening -->
+  <label for="formRekening" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">No Rekening</label>
+  <input id="formRekening" name="no_rekening" type="text" placeholder="Contoh: 123456789" 
+         class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+         rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white 
+         focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+  <!-- Upload File -->
+  <label for="formFile" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Upload File</label>
+  <input id="formFile" name="file" type="file" 
+         class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+         rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white 
+         focus:outline-none focus:ring-2 focus:ring-blue-500">
 </form>
+`;
 
-  `;
 requiredFields = [
   { field: "formProject", message: "Project Name is required!" },
   { field: "formPM", message: "Project Manager is required!" },
@@ -261,3 +318,63 @@ async function confirmPayment(receipt_id, status_value) {
     });
   }
 }
+
+// Jangan invoiceId, tapi pesananId
+function openSalesReceiptModal(pesananId, pelangganId) {
+  const modal = document.getElementById("salesReceiptModal");
+  const content = document.getElementById("salesReceiptContent");
+
+  // Set hidden input
+  document.getElementById("sr_pesanan_id").value = pesananId; // harus pesanan_id
+  document.getElementById("sr_pelanggan_id").value = pelangganId;
+
+  modal.classList.remove("hidden");
+
+  setTimeout(() => {
+    content.classList.remove("scale-95", "opacity-0");
+    content.classList.add("scale-100", "opacity-100");
+  }, 10);
+}
+
+function closeSalesReceiptModal() {
+  const modal = document.getElementById("salesReceiptModal");
+  const content = document.getElementById("salesReceiptContent");
+
+  content.classList.remove("scale-100", "opacity-100");
+  content.classList.add("scale-95", "opacity-0");
+
+  setTimeout(() => {
+    modal.classList.add("hidden");
+  }, 300);
+}
+
+document
+  .getElementById("salesReceiptForm")
+  .addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    const form = e.target;
+    const formData = new FormData(form);
+
+    try {
+      const res = await fetch(`${baseUrl}/add/sales_receipt`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        Swal.fire("Berhasil!", "Sales Receipt berhasil ditambahkan", "success");
+        closeSalesReceiptModal();
+        loadModuleContent("quotation"); // refresh
+      } else {
+        throw new Error(data.message || "Gagal menambahkan sales receipt");
+      }
+    } catch (err) {
+      Swal.fire("Error!", err.message, "error");
+    }
+  });
