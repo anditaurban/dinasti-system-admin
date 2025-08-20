@@ -93,7 +93,6 @@ document.addEventListener("click", (e) => {
     }
   }
 });
-
 async function tambahItem() {
   const tbody = document.getElementById("tabelItem");
 
@@ -320,10 +319,7 @@ async function submitInvoice() {
       "project_name",
       document.getElementById("project_name")?.value || "-"
     );
-
-    const no_qtn = document.getElementById("no_qtn")?.value || "";
-    formData.append("no_qtn", no_qtn);
-
+    formData.append("no_qtn", document.getElementById("no_qtn")?.value || "-");
     formData.append("client", document.getElementById("client")?.value || "-");
     formData.append(
       "type_id",
@@ -403,8 +399,6 @@ async function submitInvoice() {
     Swal.fire("Error", err.message || "Terjadi kesalahan", "error");
   }
 }
-
-
 
 // Initialize automatic features when DOM is loaded
 document.addEventListener("DOMContentLoaded", function () {
@@ -491,14 +485,11 @@ async function updateInvoice() {
     const revisionNumber = window.revision_count || 1;
     const revision_status = `Revisi ${revisionNumber}`;
 
-    // Validasi format no_qtn sebelum dikirim
-    const no_qtn = document.getElementById("no_qtn")?.value || "";
-
     // Body untuk update sales (status_id & revision_status langsung dikirim di sini)
     const bodySales = {
       owner_id,
       user_id,
-      no_qtn: no_qtn,
+      no_qtn: document.getElementById("no_qtn")?.value || "",
       project_name: document.getElementById("project_name")?.value || "",
       client: document.getElementById("client")?.value || "",
       type_id: document.getElementById("type_id")?.value || 0,
@@ -549,6 +540,12 @@ async function updateInvoice() {
   }
 }
 
+document.getElementById("view_catatan").textContent = data.catatan || "-";
+document.getElementById("view_syarat_ketentuan").textContent =
+  data.syarat_ketentuan || "-";
+document.getElementById("view_term_pembayaran").textContent =
+  data.term_pembayaran || "-";
+
 function initializeForm(isEdit = false) {
   if (isEdit) {
     document.getElementById("statusContainer").classList.remove("hidden");
@@ -582,10 +579,10 @@ async function loadDetailSales(Id, Detail) {
     await loadStatusOptions();
 
     // 📝 Isi form utama
-    document.getElementById("formTitle").innerText = `Edit ${Detail}`;
+    document.getElementById("formTitle").innerText = `Data No ${Detail}`;
     document.getElementById("tanggal").value = data.tanggal_ymd || "";
     document.getElementById("type_id").value = data.type_id || "";
-    document.getElementById("no_qtn").value = data.no_qtn || "";
+    document.getElementById("no_qtn").value = data.inv_number || "";
     document.getElementById("project_name").value = data.project_name || "";
     document.getElementById("client").value = data.pelanggan_nama || "";
     document.getElementById("contract_amount").value =
@@ -628,6 +625,7 @@ async function loadDetailSales(Id, Detail) {
     }
     simpanBtn?.classList.add("hidden");
 
+    // 🔹 Ambil list sub category dari API
     // 🔹 Ambil list sub category dari API
     const subcategoryRes = await fetch(
       `${baseUrl}/list/sub_category/${owner_id}`,

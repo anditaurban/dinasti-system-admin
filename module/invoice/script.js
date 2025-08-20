@@ -163,10 +163,13 @@ window.rowTemplate = function (item, index, perPage = 10) {
       (item.status && item.status != 2) || !item.status
         ? `
       <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
+
+      <button onclick="event.stopPropagation(); loadModuleContent('invoice_detail', '${item.pesanan_id}', '${item.inv_number}'); showVersionHistory('${item.pesanan_id}', '${item.inv_number}');" 
+          class="block w-full text-left px-4 py-2 hover:bg-gray-100">👁️ View Order</button>
         <button 
           onclick="openSalesReceiptModal('${item.pesanan_id}', '${item.pelanggan_id}')"
           class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-          Receipt
+          📝 Add Receipt
         </button>
 
 
@@ -271,6 +274,44 @@ requiredFields = [
   { field: "formDeadline", message: "Deadline is required!" },
 ];
 
+function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF("landscape");
+
+  doc.text("Invoice List", 14, 15);
+  doc.autoTable({
+    html: "#invoiceTable",
+    startY: 20,
+    styles: { fontSize: 8 },
+    headStyles: { fillColor: [41, 128, 185] }, // biru untuk header
+  });
+
+  doc.save("Invoice_List.pdf");
+
+  Swal.fire({
+    icon: "success",
+    title: "Export Sukses",
+    text: "Data invoice berhasil diexport ke PDF!",
+    timer: 2000,
+    showConfirmButton: false,
+  });
+}
+
+// Export ke Excel pakai SheetJS
+function exportExcel() {
+  const table = document.getElementById("invoiceTable");
+  const wb = XLSX.utils.table_to_book(table, { sheet: "Invoice" });
+  XLSX.writeFile(wb, "Invoice_List.xlsx");
+
+  Swal.fire({
+    icon: "success",
+    title: "Export Sukses",
+    text: "Data invoice berhasil diexport ke Excel!",
+    timer: 2000,
+    showConfirmButton: false,
+  });
+}
+
 async function confirmPayment(receipt_id, status_value) {
   const { isConfirmed } = await Swal.fire({
     title: "Konfirmasi Pembayaran",
@@ -318,17 +359,19 @@ async function confirmPayment(receipt_id, status_value) {
     });
   }
 }
-
-// Jangan invoiceId, tapi pesananId
 function openSalesReceiptModal(pesananId, pelangganId) {
   const modal = document.getElementById("salesReceiptModal");
   const content = document.getElementById("salesReceiptContent");
 
   // Set hidden input
-  document.getElementById("sr_pesanan_id").value = pesananId; // harus pesanan_id
-  document.getElementById("sr_pelanggan_id").value = pelangganId;
+  document.getElementById("sr_pesanan_id").value = pesananId;
+  document.getElementById("sr_pelanggan_id").value = pelangganId || "";
+
+  // Debug biar kelihatan di console
+  console.log("📌 openSalesReceiptModal()", { pesananId, pelangganId });
 
   modal.classList.remove("hidden");
+  loadFinanceAccounts();
 
   setTimeout(() => {
     content.classList.remove("scale-95", "opacity-0");
@@ -356,25 +399,96 @@ document
     const form = e.target;
     const formData = new FormData(form);
 
+    // Kalau file kosong, hapus dari formData
+    const file = formData.get("file");
+    if (file && file.size === 0) {
+      formData.delete("file");
+    }
+
+    console.group("📌 FormData Payload to API");
+    for (let [key, value] of formData.entries()) {
+      console.log(key, value);
+    }
+    console.groupEnd();
+
     try {
       const res = await fetch(`${baseUrl}/add/sales_receipt`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${API_TOKEN}`,
+          Authorization: `Bearer ${API_TOKEN}`, // ❌ tanpa Content-Type manual
         },
-        body: formData,
+        body: formData, // ✅ kirim langsung FormData
       });
 
-      const data = await res.json();
+      const rawText = await res.text();
+      console.log("⬅️ Raw Response:", rawText);
+
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        data = { message: rawText };
+      }
 
       if (res.ok) {
         Swal.fire("Berhasil!", "Sales Receipt berhasil ditambahkan", "success");
         closeSalesReceiptModal();
-        loadModuleContent("quotation"); // refresh
+        loadModuleContent("quotation");
       } else {
         throw new Error(data.message || "Gagal menambahkan sales receipt");
       }
     } catch (err) {
+      console.error("❌ Error saat submit:", err);
       Swal.fire("Error!", err.message, "error");
     }
   });
+
+async function loadFinanceAccounts() {
+  // pastikan diganti sesuai baseUrl real
+  try {
+    const response = await fetch(`${baseUrl}/list/finance_accounts`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${API_TOKEN}`, // kalau butuh token
+      },
+    });
+    const result = await response.json();
+
+    console.log("📌 API result finance_accounts:", result); // cek isi di console
+
+    if (result.response === "200") {
+      const select = document.getElementById("akun");
+      if (!select) {
+        console.error("⚠️ Element select#akun tidak ditemukan di modal!");
+        return;
+      }
+
+      select.innerHTML = '<option value="">Pilih Akun</option>';
+
+      const groups = {};
+      result.listData.forEach((item) => {
+        const group = item.tipe || "Lainnya";
+        if (!groups[group]) groups[group] = [];
+        groups[group].push(item);
+      });
+
+      for (const [tipe, items] of Object.entries(groups)) {
+        const optgroup = document.createElement("optgroup");
+        optgroup.label = tipe;
+        items.forEach((item) => {
+          const option = document.createElement("option");
+          option.value = item.akun_id;
+          option.textContent = item.nama_akun;
+          optgroup.appendChild(option);
+        });
+        select.appendChild(optgroup);
+      }
+
+      console.log("✅ Akun berhasil di-load ke select");
+    } else {
+      console.error("⚠️ Gagal ambil data akun:", result.message);
+    }
+  } catch (error) {
+    console.error("❌ Error fetch akun:", error);
+  }
+}

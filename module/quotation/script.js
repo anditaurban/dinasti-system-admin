@@ -196,14 +196,6 @@ window.rowTemplate = function (item, index, perPage = 10) {
             : ""
         }
 
-        ${
-          item.status_id === 2
-            ? `<button onclick="openSalesReceiptModal('${item.pesanan_id}', '${item.pelanggan_id}')" 
-       class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-600">
-       ➕ Add Receipt
-     </button>`
-            : ""
-        }
 
         <!-- Delete Order -->
         ${
@@ -220,6 +212,44 @@ window.rowTemplate = function (item, index, perPage = 10) {
     </td>
   </tr>`;
 };
+
+function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF("landscape");
+
+  doc.text("Quotation List", 14, 15);
+  doc.autoTable({
+    html: "#quotationTable",
+    startY: 20,
+    styles: { fontSize: 8 },
+    headStyles: { fillColor: [41, 128, 185] },
+  });
+
+  doc.save("Quotation_List.pdf");
+
+  Swal.fire({
+    icon: "success",
+    title: "Export Sukses",
+    text: "Data berhasil diexport ke PDF!",
+    timer: 2000,
+    showConfirmButton: false,
+  });
+}
+
+// Export ke Excel pakai SheetJS
+function exportExcel() {
+  const table = document.getElementById("quotationTable");
+  const wb = XLSX.utils.table_to_book(table, { sheet: "Quotation" });
+  XLSX.writeFile(wb, "Quotation_List.xlsx");
+
+  Swal.fire({
+    icon: "success",
+    title: "Export Sukses",
+    text: "Data berhasil diexport ke Excel!",
+    timer: 2000,
+    showConfirmButton: false,
+  });
+}
 
 function openInvoiceModal(pesananId) {
   const modal = document.getElementById("invoiceModal");
@@ -575,87 +605,3 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.error("🔥 Error fetching project types:", error);
   }
 });
-
-function openSalesReceiptModal(pesananId, pelangganId) {
-  const modal = document.getElementById("salesReceiptModal");
-  const content = document.getElementById("salesReceiptContent");
-
-  // Set hidden input
-  document.getElementById("sr_pesanan_id").value = pesananId;
-  document.getElementById("sr_pelanggan_id").value = pelangganId || "";
-
-  // Debug biar kelihatan di console
-  console.log("📌 openSalesReceiptModal()", { pesananId, pelangganId });
-
-  modal.classList.remove("hidden");
-
-  setTimeout(() => {
-    content.classList.remove("scale-95", "opacity-0");
-    content.classList.add("scale-100", "opacity-100");
-  }, 10);
-}
-
-function closeSalesReceiptModal() {
-  const modal = document.getElementById("salesReceiptModal");
-  const content = document.getElementById("salesReceiptContent");
-
-  content.classList.remove("scale-100", "opacity-100");
-  content.classList.add("scale-95", "opacity-0");
-
-  setTimeout(() => {
-    modal.classList.add("hidden");
-  }, 300);
-}
-
-document
-  .getElementById("salesReceiptForm")
-  .addEventListener("submit", async function (e) {
-    e.preventDefault();
-
-    const form = e.target;
-    const formData = new FormData(form);
-
-    // Convert FormData → JSON object
-    const plainForm = Object.fromEntries(formData.entries());
-
-    // Kalau file ada, handle terpisah (misalnya server ga butuh multipart untuk file kosong)
-    if (plainForm.file && plainForm.file.size === 0) {
-      delete plainForm.file; // hapus file kosong
-    }
-
-    console.group("📌 JSON Payload to API");
-    console.log(plainForm);
-    console.groupEnd();
-
-    try {
-      const res = await fetch(`${baseUrl}/add/sales_receipt`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json", // ✅ penting
-          Authorization: `Bearer ${API_TOKEN}`,
-        },
-        body: JSON.stringify(plainForm), // ✅ kirim JSON
-      });
-
-      const rawText = await res.text();
-      console.log("⬅️ Raw Response:", rawText);
-
-      let data;
-      try {
-        data = JSON.parse(rawText);
-      } catch {
-        data = { message: rawText };
-      }
-
-      if (res.ok) {
-        Swal.fire("Berhasil!", "Sales Receipt berhasil ditambahkan", "success");
-        closeSalesReceiptModal();
-        loadModuleContent("quotation");
-      } else {
-        throw new Error(data.message || "Gagal menambahkan sales receipt");
-      }
-    } catch (err) {
-      console.error("❌ Error saat submit:", err);
-      Swal.fire("Error!", err.message, "error");
-    }
-  });

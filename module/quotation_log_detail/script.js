@@ -94,65 +94,130 @@ async function loadPesananData(pesananId, isDownload = false) {
 function renderInvoice(invoiceData, isDownload = false) {
   if (!invoiceData) return;
 
-  // Ensure items is an array
+  async function loadSubCategories() {
+    try {
+      const res = await fetch(
+        "https://devdinasti.katib.cloud/list/sub_category/1",
+        {
+          headers: {
+            Authorization: `Bearer e29c2e3db5f5299dc954eae580893689c35ecde79f40213365f56fb54850f9b1`,
+          },
+        }
+      );
+      const result = await res.json();
+      return result.listData || [];
+    } catch (err) {
+      console.error("Gagal memuat kategori", err);
+      return [];
+    }
+  }
+
+  // Format currency function
+  const formatCurrency = (val) => `Rp ${(+val).toLocaleString("id-ID")}`;
+
+  // Terbilang function
+  function terbilang(n) {
+    const satuan = [
+      "",
+      "Satu",
+      "Dua",
+      "Tiga",
+      "Empat",
+      "Lima",
+      "Enam",
+      "Tujuh",
+      "Delapan",
+      "Sembilan",
+      "Sepuluh",
+      "Sebelas",
+    ];
+    n = Math.floor(n);
+    if (n < 12) return satuan[n];
+    if (n < 20) return terbilang(n - 10) + " Belas";
+    if (n < 100)
+      return terbilang(Math.floor(n / 10)) + " Puluh " + terbilang(n % 10);
+    if (n < 200) return "Seratus " + terbilang(n - 100);
+    if (n < 1000)
+      return terbilang(Math.floor(n / 100)) + " Ratus " + terbilang(n % 100);
+    if (n < 2000) return "Seribu " + terbilang(n - 1000);
+    if (n < 1000000)
+      return terbilang(Math.floor(n / 1000)) + " Ribu " + terbilang(n % 1000);
+    if (n < 1000000000)
+      return (
+        terbilang(Math.floor(n / 1000000)) + " Juta " + terbilang(n % 1000000)
+      );
+    return "";
+  }
+
+  // Pastikan items adalah array
   const items = Array.isArray(invoiceData.items) ? invoiceData.items : [];
 
-  // Calculate values if not provided
+  // Hitung nilai jika tidak disediakan
   const subtotal =
     invoiceData.subtotal ||
     items.reduce((sum, item) => sum + (item.total || 0), 0);
   const disc = invoiceData.disc || 0;
   const ppn = invoiceData.ppn || Math.round(subtotal * 0.11); // Default PPN 11%
-  const total = invoiceData.total_order || subtotal - disc + ppn;
+  const total = invoiceData.total || subtotal - disc + ppn;
 
   const revisionInfo =
     invoiceData.revision_status && invoiceData.revision_number
       ? `${invoiceData.revision_status}`
       : "-";
 
-  const itemsHtml =
-    items
-      .map(
-        (item, idx) => `
-    <tr class="${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}">
-      <td class="p-3 text-center text-gray-700">${idx + 1}</td>
-      <td class="p-3 text-gray-800">
-        <p class="font-medium">${item.product || "-"}</p>
-        <p class="text-xs text-gray-500 mt-1">${item.description || ""}</p>
-      </td>
-      <td class="p-3 text-center text-gray-700">${item.qty || 0}</td>
-      <td class="p-3 text-center text-gray-700">${item.unit || "-"}</td>
-      <td class="p-3 text-right text-gray-800">${formatCurrency(
-        item.unit_price || 0
-      )}</td>
-      <td class="p-3 text-right text-gray-800 font-medium">${formatCurrency(
-        item.total || 0
-      )}</td>
-    </tr>
-  `
-      )
-      .join("") ||
-    '<tr><td colspan="6" class="text-center py-4">No items found</td></tr>';
+  // 🔹 Cek status: jika WON maka tampilkan Invoice
+  const isWon =
+    invoiceData.status_id == 2 || invoiceData.status_sales === "Won";
+  const headerTitle = isWon ? "INVOICE" : "QUOTATION";
+  const detailTitle = isWon ? "Detail Invoice" : "Detail Quotation";
+  const noLabel = isWon ? "No Invoice" : "No Qtn";
+  const noValue = isWon
+    ? invoiceData.inv_number || invoiceData.no_qtn
+    : invoiceData.no_qtn;
 
-  // Perbaikan bagian total - tambahkan pengecekan dan fallback calculation
-  const totalsHtml = `
-    <tr>
-      <td class="pr-4 py-2 text-right font-semibold text-gray-700">Sub Total</td>
-      <td class="py-2 text-right text-gray-800">${formatCurrency(subtotal)}</td>
-    </tr>
-    <tr>
-      <td class="pr-4 py-2 text-right font-semibold text-gray-700">Discount</td>
-      <td class="py-2 text-right text-gray-800">${formatCurrency(disc)}</td>
-    </tr>
-    <tr>
-      <td class="pr-4 py-2 text-right font-semibold text-gray-700">PPN 11%</td>
-      <td class="py-2 text-right text-gray-800">${formatCurrency(ppn)}</td>
-    </tr>
-    <tr class="font-bold border-t-2 border-gray-300 total-row">
-      <td class="pr-4 py-3 text-right text-gray-900">TOTAL</td>
-      <td class="py-3 text-right text-red-600">${formatCurrency(total)}</td>
-    </tr>
-  `;
+  // Group items by kategori (jika ada categoryName)
+  const groupedItems = items.reduce((acc, item) => {
+    const categoryName = item.categoryName || "Lainnya";
+    if (!acc[categoryName]) acc[categoryName] = [];
+    acc[categoryName].push(item);
+    return acc;
+  }, {});
+
+  // Buat tabel grouped
+  const tableRows = Object.entries(groupedItems)
+    .map(([category, categoryItems]) => {
+      return `
+      <tr class="bg-gray-200">
+        <td colspan="6" class="p-1 font-bold text-gray-800 text-xs">${category}</td>
+      </tr>
+      ${categoryItems
+        .map(
+          (item, index) => `
+        <tr class="${index % 2 === 0 ? "bg-white" : "bg-gray-50"}">
+          <td class="p-1 text-center text-gray-700">${index + 1}</td>
+          <td class="p-1 text-gray-800">
+            <p class="font-medium">${item.product || "-"}</p>
+            ${
+              item.description
+                ? `<p class="text-xs text-gray-500 mt-0">${item.description}</p>`
+                : ""
+            }
+          </td>
+          <td class="p-1 text-center text-gray-700">${item.qty || 0}</td>
+          <td class="p-1 text-center text-gray-700">${item.unit || "-"}</td>
+          <td class="p-1 text-right text-gray-800">${formatCurrency(
+            item.unit_price || 0
+          )}</td>
+          <td class="p-1 text-right text-gray-800 font-medium">${formatCurrency(
+            item.total || 0
+          )}</td>
+        </tr>
+      `
+        )
+        .join("")}
+    `;
+    })
+    .join("");
 
   const html = `
     <div class="invoice-container p-6 max-w-4xl mx-auto">
@@ -172,14 +237,19 @@ function renderInvoice(invoiceData, isDownload = false) {
             Telp.: 0823-7142-5300, Email: admin@dinasti.id
           </p>
         </div>
+
+        <!-- Judul di kanan -->
+        <div class="absolute right-0 top-0">
+          <h1 class="font-bold text-xl">${headerTitle}</h1>
+        </div>
       </div>
 
       <!-- Garis bawah -->
-      <hr class="border-t-4 border-black mb-4 w-full">
+      <hr class="border-t-2 border-black mb-4 w-full">
 
       <!-- Client and Invoice Info -->
-      <div class="flex justify-between mb-8 p-4 bg-gray-50 rounded-lg">
-        <div class="text-sm">
+      <div class="flex justify-between mb-8 p-4 bg-gray-50 rounded-lg text-xs">
+        <div>
           <h3 class="font-bold text-gray-700 mb-2">Kepada YTH:</h3>
           <p class="font-semibold text-gray-800">${
             invoiceData.pelanggan_nama || "-"
@@ -195,12 +265,10 @@ function renderInvoice(invoiceData, isDownload = false) {
               : ""
           }
         </div>
-        <div class="text-sm text-right">
-          <h3 class="font-bold text-gray-700 mb-2">Detail Invoice:</h3>
-          <p class="text-sm text-gray-600 mt-1"><strong>No:</strong> ${
-            invoiceData.no_qtn || "-"
-          }</p>
-          <p class="text-sm text-gray-600"><strong>Tanggal:</strong> ${
+        <div class="text-right">
+          <h3 class="font-bold text-gray-700 mb-2">${detailTitle}:</h3>
+          <p class="text-gray-600"><strong>${noLabel}:</strong> ${noValue}</p>
+          <p class="text-gray-600"><strong>Tanggal:</strong> ${
             invoiceData.tanggal_invoice === "00/00/0000"
               ? "-"
               : invoiceData.tanggal_invoice
@@ -210,90 +278,96 @@ function renderInvoice(invoiceData, isDownload = false) {
       </div>
 
       <!-- PRODUCT TABLE -->
-      <table class="w-full text-sm border-collapse mb-6">
+      <table class="w-full compact-table border-collapse bordered mb-6">
         <thead class="bg-gray-100">
           <tr class="text-gray-700">
-            <th class="p-3 text-center w-10">No</th>
-            <th class="p-3 text-left">Description</th>
-            <th class="p-3 text-center w-16">Qty</th>
-            <th class="p-3 text-center w-16">Satuan</th>
-            <th class="p-3 text-right w-24">Harga Satuan</th>
-            <th class="p-3 text-right w-28">Jumlah</th>
+            <th class="text-center w-8 p-1">No</th>
+            <th class="text-left p-1">Produk</th>
+            <th class="text-center w-12 p-1">Qty</th>
+            <th class="text-center w-12 p-1">Satuan</th>
+            <th class="text-right w-24 p-1">Harga Satuan</th>
+            <th class="text-right w-24 p-1">Jumlah</th>
           </tr>
         </thead>
         <tbody>
-          ${itemsHtml}
+          ${tableRows}
         </tbody>
       </table>
 
       <!-- Totals -->
       <div class="flex justify-end mb-6">
-        <table class="text-sm w-72">
-          ${totalsHtml}
+        <table class="text-xs w-64">
+          <tr>
+            <td class="pr-3 py-0.5 text-right font-semibold text-gray-700">Sub Total</td>
+            <td class="py-0.5 text-right text-gray-800">${formatCurrency(
+              subtotal
+            )}</td>
+          </tr>
+          <tr>
+            <td class="pr-3 py-0.5 text-right font-semibold text-gray-700">Discount</td>
+            <td class="py-0.5 text-right text-gray-800">${formatCurrency(
+              disc
+            )}</td>
+          </tr>
+          <tr>
+            <td class="pr-3 py-0.5 text-right font-semibold text-gray-700">PPN 11%</td>
+            <td class="py-0.5 text-right text-gray-800">${formatCurrency(
+              ppn
+            )}</td>
+          </tr>
+          <tr class="font-bold border-t border-gray-300 total-row">
+            <td class="pr-3 py-1 text-right text-gray-900">TOTAL</td>
+            <td class="py-1 text-right text-red-600">${formatCurrency(
+              total
+            )}</td>
+          </tr>
         </table>
       </div>
 
       <!-- Terbilang -->
-      <div class="text-sm mb-8 p-3 bg-gray-50 rounded">
-        <span class="font-semibold text-gray-700">Terbilang:</span> 
+      <div class="text-xs mb-6 p-3 bg-gray-50 rounded">
+        <span class="font-semibold text-gray-700">Terbilang:</span>
         <span class="italic text-gray-800">${terbilang(total)} Rupiah</span>
       </div>
 
-      <!-- Payment Info -->
-      <div class="text-sm mb-8 p-4 bg-blue-50 border-l-4 border-blue-500 rounded">
-        <p class="font-semibold text-blue-700 mb-2">Pembayaran dapat dilakukan melalui:</p>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <p class="text-gray-700"><span class="font-medium">Bank:</span> BCA (Bank Central Asia)</p>
-            <p class="text-gray-700"><span class="font-medium">Nama:</span> PT Dinasti Elektrik Indonesia</p>
-            <p class="text-gray-700"><span class="font-medium">No. Rekening:</span> 629-0798777</p>
-          </div>
-        </div>
-      </div>
-
       <!-- Notes and Signature -->
-      <div class="flex justify-between items-end mt-12">
-        <div class="text-sm w-1/2">
-          <p class="font-semibold text-gray-700 mb-2">Catatan:</p>
+      <div class="flex justify-between items-end mt-8 text-xs">
+        <div class="w-1/2">
+          <p class="font-semibold text-gray-700 mb-1">Catatan:</p>
           <ul class="list-disc list-inside text-gray-600">
             <li>Barang yang sudah dibeli tidak dapat dikembalikan</li>
             <li>Pembayaran dianggap lunas setelah dana diterima</li>
             <li>Invoice ini valid tanpa tanda tangan</li>
           </ul>
         </div>
-        <div class="text-center signature-area w-1/2">
-          <p class="text-sm text-gray-600">Jakarta, ${
-            invoiceData.tanggal_invoice === "00/00/0000"
-              ? "-"
-              : invoiceData.tanggal_invoice
-          }</p>
-          <p class="text-sm text-gray-600 mb-8">Hormat kami,</p>
-          <div class="flex justify-center space-x-8">
-            <div>
-              <img src="./assets/img/ttd.png" class="h-14 mx-auto mb-1" />
-            </div>
-            <div>
-              <img src="./assets/img/stempel.png" class="h-14 mx-auto mb-1" />
-            </div>
-          </div>
-          <p class="text-sm font-bold text-gray-800 mt-2">PT. DINASTI ELEKTRIK INDONESIA</p>
-        </div>
       </div>
       
       <!-- Footer -->
       <div class="mt-8 pt-4 border-t border-gray-200 text-xs text-center text-gray-500">
         <p>Terima kasih atas kepercayaan Anda kepada PT Dinasti Elektrik Indonesia</p>
-        <p class="mt-1">Invoice ini dikeluarkan secara elektronik dan tidak memerlukan tanda tangan</p>
       </div>
     </div>
   `;
 
-  invoiceContent.innerHTML = html;
+  // Ganti dengan elemen target yang sesuai
+  const invoiceContent = document.getElementById("invoiceContent");
+  if (invoiceContent) {
+    invoiceContent.innerHTML = html;
+  }
 
-  // Auto download if in download mode
+  // Auto download jika dalam mode download
   if (isDownload) {
     setTimeout(() => {
-      window.print();
+      html2pdf()
+        .set({
+          margin: 0,
+          filename: `${noValue || "invoice"}.pdf`,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        })
+        .from(invoiceContent || document.querySelector(".invoice-container"))
+        .save();
     }, 1000);
   }
 }

@@ -23,20 +23,31 @@
       </div>
 
       <!-- Action Buttons -->
-      <div class="flex flex-wrap justify-center md:justify-end items-center gap-2 w-full md:w-auto text-center">
-        <!-- Tampilkan Dropdown -->
-        <div class="relative">
-          <button id="addButton" onclick="loadStatusOptions(1)"
-            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm flex items-center justify-center gap-2">
-            <span>+ Buat Faktur</span>
+      <div class="flex flex-wrap items-center justify-center md:justify-end gap-3 w-full md:w-auto">
+        <!-- Button Buat Faktur -->
+        <button id="addButton" onclick="loadStatusOptions(1)"
+          class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm flex items-center gap-2">
+          <span>+ Buat Faktur</span>
+        </button>
+
+        <!-- Grup Export -->
+        <div class="flex gap-2">
+          <button onclick="exportPDF()"
+            class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm flex items-center gap-1">
+            📄 <span>Export PDF</span>
+          </button>
+          <button onclick="exportExcel()"
+            class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm flex items-center gap-1">
+            📊 <span>Export Excel</span>
           </button>
         </div>
       </div>
+
     </div>
 
     <!-- Table -->
     <div class="overflow-x-auto">
-      <table class="min-w-full text-sm border dark:border-gray-700">
+      <table id="quotationTable" class="min-w-full text-sm border dark:border-gray-700">
         <thead id="tableHeader"
           class="hidden md:table-header-group bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
           <tr>
@@ -99,9 +110,10 @@
     </div>
 
     <div id="salesReceiptModal"
-      class="fixed inset-0 hidden flex items-center justify-center bg-black bg-opacity-50 z-50 transition-opacity duration-300">
+      class="fixed inset-0 hidden items-center justify-center bg-black bg-opacity-50 z-50 transition-opacity duration-300">
       <div id="salesReceiptContent"
         class="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 relative transform transition-all duration-300 scale-95 opacity-0">
+
         <!-- Header -->
         <div class="flex justify-between items-center border-b pb-3 mb-4">
           <h2 class="text-lg font-semibold text-gray-700">Tambah Sales Receipt</h2>
@@ -124,6 +136,13 @@
               required>
           </div>
 
+          <!-- Akun -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Akun</label>
+            <input type="text" id="akun" name="akun" class="w-full border rounded px-3 py-2"
+              placeholder="Contoh: Bank ABC">
+          </div>
+
           <!-- Nominal -->
           <div>
             <label class="block text-sm font-medium text-gray-700">Nominal</label>
@@ -133,8 +152,8 @@
 
           <!-- Transaction Type -->
           <div>
-            <label class="block text-sm font-medium text-gray-700">Transaction Type</label>
-            <select id="transaction_type" name="transaction_type" class="w-full border rounded px-3 py-2">
+            <label class="hidden block text-sm font-medium text-gray-700">Transaction Type</label>
+            <select id="transaction_type" name="transaction_type" class="hidden w-full border rounded px-3 py-2">
               <option value="income">Income</option>
               <option value="expense">Expense</option>
             </select>
@@ -142,15 +161,15 @@
 
           <!-- Category -->
           <div>
-            <label class="block text-sm font-medium text-gray-700">Category</label>
-            <input type="text" id="category" name="category" value="payment" class="w-full border rounded px-3 py-2"
-              placeholder="Contoh: payment" required>
+            <label class="hidden block text-sm font-medium text-gray-700">Category</label>
+            <input type="text" id="category" name="category" value="payment"
+              class="hidden w-full border rounded px-3 py-2" placeholder="Contoh: payment" required>
           </div>
 
           <!-- Jenis Transaksi -->
           <div>
-            <label class="block text-sm font-medium text-gray-700">Jenis Transaksi</label>
-            <select id="jenis_transaksi" name="jenis_transaksi" class="w-full border rounded px-3 py-2">
+            <label class="hidden block text-sm font-medium text-gray-700">Jenis Transaksi</label>
+            <select id="jenis_transaksi" name="jenis_transaksi" class="hidden w-full border rounded px-3 py-2">
               <option value="bank">Bank</option>
               <option value="cash">Cash</option>
               <option value="ewallet">E-Wallet</option>
@@ -159,9 +178,9 @@
 
           <!-- Tipe -->
           <div>
-            <label class="block text-sm font-medium text-gray-700">Tipe</label>
+            <label class="hidden block text-sm font-medium text-gray-700">Tipe</label>
             <input type="text" id="tipe" name="tipe" value="receipt" readonly
-              class="w-full border rounded px-3 py-2 bg-gray-100">
+              class="hidden w-full border rounded px-3 py-2 bg-gray-100">
           </div>
 
           <!-- Keterangan -->
@@ -171,17 +190,12 @@
               placeholder="Masukkan keterangan"></textarea>
           </div>
 
-          <!-- Akun -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Akun</label>
-            <input type="text" id="akun" name="akun" class="w-full border rounded px-3 py-2"
-              placeholder="Contoh: Bank ABC">
-          </div>
+
 
           <!-- No Rekening -->
           <div>
-            <label class="block text-sm font-medium text-gray-700">No Rekening</label>
-            <input type="text" id="no_rekening" name="no_rekening" class="w-full border rounded px-3 py-2"
+            <label class="block text-sm font-medium text-gray-700 hidden">No Rekening</label>
+            <input type="text" id="no_rekening" name="no_rekening" class="w-full border rounded px-3 py-2 hidden"
               placeholder="Contoh: 123456789">
           </div>
 

@@ -2,17 +2,17 @@
   <!-- Header -->
   <div class="flex flex-wrap items-start justify-between mb-4 gap-4">
     <div>
-      <h1 id="formTitle" class="text-2xl font-bold mb-1">TAMBAH QUOTATION</h1>
+      <h1 id="formTitle" class="text-2xl font-bold mb-1">DATA INVOICE</h1>
       <nav class="text-gray-500 text-sm flex items-center flex-wrap gap-1">
         <span>Home</span>
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
-        <span>Quotation</span>
+        <span>Invoice</span>
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
-        <span class="font-medium">Faktur</span>
+        <span class="font-medium">Detail Invoice</span>
       </nav>
     </div>
 
@@ -25,7 +25,7 @@
       <button onclick="printInvoice(detail_id)"
         class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded text-sm">📄 Download PDF</button>
 
-      <button onclick="loadModuleContent('quotation')" class="bg-gray-300 text-sm px-4 py-2 rounded">⬅️ Back</button>
+      <button onclick="loadModuleContent('invoice')" class="bg-gray-300 text-sm px-4 py-2 rounded">⬅️ Back</button>
     </div>
   </div>
 
@@ -34,87 +34,29 @@
     <!-- Form 70% -->
     <div class="md:col-span-7 bg-white p-6 rounded shadow space-y-6">
       <div class="flex items-center justify-between border-b pb-4">
-        <div>
-          <h2 class="text-xl font-bold">🧾 Tambah Sales</h2>
-        </div>
-        <!-- Versi Saat Ini -->
-        <div class="bg-blue-50 border border-blue-200 rounded p-2 text-sm flex items-center justify-between">
-          <span>Versi Saat Ini: <strong id="currentVersion">3</strong></span>
-          <a href="#" onclick="showVersionHistory()" class="text-blue-600 hover:underline">Lihat versi lainnya di
-            sini</a>
-        </div>
+        
+
       </div>
-
-      <!-- Version History Popup -->
-      <div id="versionHistoryPopup"
-        class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white p-4 rounded shadow-lg w-full max-w-3xl max-h-[80vh] overflow-y-auto">
-          <!-- Header -->
-          <div class="flex justify-between items-center border-b pb-2 mb-4 sticky top-0 bg-white">
-            <h2 class="text-lg font-bold">Aktivitas <span id="documentNumber"></span></h2>
-            <button onclick="closeVersionHistory()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
-          </div>
-
-          <!-- Version Info -->
-          <div class="bg-blue-50 border border-blue-200 rounded p-2 text-sm flex items-center justify-between mb-4">
-            <span>Versi Saat Ini: <strong id="currentVersion">${item.version || '1'}</strong></span>
-          </div>
-
-          <!-- Loading State -->
-          <div id="versionLoading" class="text-center py-4">
-            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500 inline-block" xmlns="http://www.w3.org/2000/svg"
-              fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-              </path>
-            </svg>
-            <span>Memuat data...</span>
-          </div>
-
-          <!-- Table -->
-          <div id="versionTable" class="hidden">
-            <table class="w-full border border-gray-300 text-sm">
-              <thead class="bg-gray-100 sticky top-12">
-                <tr>
-                  <th class="border px-3 py-2 text-left">Waktu</th>
-                  <th class="border px-3 py-2 text-left">Aktivitas</th>
-                  <th class="border px-3 py-2 text-left">PIC</th>
-                  <th class="border px-3 py-2 text-left">Aksi</th>
-                </tr>
-              </thead>
-              <tbody id="versionTableBody">
-                <!-- Data will be inserted here dynamically -->
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Error State -->
-          <div id="versionError" class="hidden text-center py-4 text-red-500">
-            Gagal memuat data aktivitas. Silakan coba lagi.
-          </div>
-        </div>
-      </div>
-
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
         <div>
           <label class="block text-sm font-medium">Tanggal</label>
-          <input type="date" id="tanggal" name="tanggal" class="w-full border px-3 py-2 rounded" />
+          <input type="date" id="tanggal" name="tanggal" class="w-full border px-3 py-2 rounded" readonly />
         </div>
 
         <!-- Sales Type -->
         <div>
           <label class="block text-sm font-medium">Sales Type</label>
-          <select id="type_id" name="type_id" onclick="loadSalesType()" class="w-full border px-3 py-2 rounded">
+          <select id="type_id" name="type_id" onclick="loadSalesType()" class="w-full border px-3 py-2 rounded"
+            readonly>
             <option value="">Pilih Tipe</option>
           </select>
         </div>
 
         <!-- No Quotation -->
         <div>
-          <label class="block text-sm font-medium">No Quotation</label>
+          <label class="block text-sm font-medium">No Invoice</label>
           <input type="text" id="no_qtn" name="no_qtn" class="w-full border px-3 py-2 rounded bg-gray-100" readonly />
         </div>
         <div>
@@ -126,7 +68,7 @@
         <!-- Nama Project -->
         <div>
           <label class="block text-sm font-medium">Nama Project</label>
-          <input type="text" id="project_name" name="project_name" class="w-full border px-3 py-2 rounded" />
+          <input type="text" id="project_name" name="project_name" class="w-full border px-3 py-2 rounded" readonly />
         </div>
 
         <!-- Client -->
@@ -163,7 +105,7 @@
         <div>
           <label class="block text-sm font-medium">Status</label>
           <select id="status" name="status" onchange="updateRevisionNumber()" class="w-full border px-3 py-2 rounded"
-            value="On Going">
+            value="On Going" aria-readonly="true">
             <option value="">-- Pilih Status --</option>
           </select>
         </div>
@@ -171,7 +113,7 @@
         <div class="col-span-2">
           <label class="block text-sm font-medium">Client</label>
           <input type="text" id="client" name="client" class="w-full border px-3 py-2 rounded" autocomplete="off"
-            oninput="filterclientSuggestions()" />
+            oninput="filterclientSuggestions()" readonly />
           <input type="hidden" id="client_id" />
           <ul id="clientSuggestions"
             class="absolute z-10 w-full bg-white border rounded mt-1 text-sm shadow hidden max-h-48 overflow-y-auto">
@@ -217,15 +159,15 @@
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium">📝 Catatan</label>
-            <textarea id="catatan" rows="3" class="w-full border rounded px-3 py-2"></textarea>
+            <textarea id="catatan" rows="3" class="w-full border rounded px-3 py-2" readonly></textarea>
           </div>
           <div>
             <label class="block text-sm font-medium">📌 Syarat & Ketentuan</label>
-            <textarea id="syarat_ketentuan" rows="3" class="w-full border rounded px-3 py-2"></textarea>
+            <textarea id="syarat_ketentuan" rows="3" class="w-full border rounded px-3 py-2 " readonly></textarea>
           </div>
           <div class="mt-4">
             <label class="block text-sm font-medium">💰 Term of Payment</label>
-            <textarea id="term_pembayaran" rows="2" class="w-full border rounded px-3 py-2"></textarea>
+            <textarea id="term_pembayaran" rows="2" class="w-full border rounded px-3 py-2" readonly></textarea>
           </div>
         </div>
 
@@ -234,7 +176,7 @@
           <div>
             <label class="block text-sm font-medium">💸 Diskon (Rp)</label>
             <input type="text" id="discount" class="formatNumber w-full border px-3 py-2 rounded" value="0"
-              oninput="calculateInvoiceTotals()" />
+              oninput="calculateInvoiceTotals()" readonly />
           </div>
 
         </div>
@@ -265,7 +207,7 @@
         <hr />
         <div class="md:col-span-2">
           <label class="block text-sm font-medium">File Pendukung</label>
-          <input type="file" id="file" name="file" class="w-full border px-3 py-2 rounded" />
+          <input type="file" id="files" name="files" class="w-full border px-3 py-2 rounded" />
         </div>
 
       </div>

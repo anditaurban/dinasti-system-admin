@@ -22,24 +22,31 @@
           class="px-3 py-2 border rounded dark:bg-gray-800 dark:text-white dark:border-gray-600 w-full md:w-96">
       </div>
 
-      <!-- Action Buttons -->
-      <div class="flex flex-wrap justify-center md:justify-end items-center gap-2 w-full md:w-auto text-center">
-        <!-- Tampilkan Dropdown -->
-        <div class="flex flex-wrap justify-center md:justify-end items-center gap-2 w-full md:w-auto text-center">
-          <!-- Tampilkan Dropdown -->
-          <div class="relative">
-            <button id="addButton"
-              class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm flex items-center justify-center gap-2">
-              <span>+ Tambah Invoice</span>
-            </button>
-          </div>
+      <div class="flex flex-wrap items-center justify-center md:justify-end gap-3 w-full md:w-auto">
+        <!-- Button Buat Faktur -->
+        <!-- <button id="addButton" onclick="loadStatusOptions(1)"
+          class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm flex items-center gap-2">
+          <span>+ Buat Faktur</span>
+        </button> -->
+
+        <!-- Grup Export -->
+        <div class="flex gap-2">
+          <button onclick="exportPDF()"
+            class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm flex items-center gap-1">
+            📄 <span>Export PDF</span>
+          </button>
+          <button onclick="exportExcel()"
+            class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm flex items-center gap-1">
+            📊 <span>Export Excel</span>
+          </button>
         </div>
       </div>
+
     </div>
 
-    <!-- Modal -->
     <div id="salesReceiptModal"
-      class="fixed inset-0 hidden items-center justify-center bg-black bg-opacity-50 z-50 transition-opacity duration-300">
+      class="fixed inset-0 hidden flex items-center justify-center bg-black bg-opacity-50 z-50 transition-opacity duration-300">
+
       <div id="salesReceiptContent"
         class="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 relative transform transition-all duration-300 scale-95 opacity-0">
 
@@ -72,38 +79,6 @@
               placeholder="Masukkan nominal" required>
           </div>
 
-          <!-- Transaction Type -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Transaction Type</label>
-            <select id="transaction_type" name="transaction_type" class="w-full border rounded px-3 py-2">
-              <option value="income">Income</option>
-              <option value="expense">Expense</option>
-            </select>
-          </div>
-
-          <!-- Category -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Category</label>
-            <input type="text" id="category" name="category" value="payment" class="w-full border rounded px-3 py-2"
-              placeholder="Contoh: payment" required>
-          </div>
-
-          <!-- Jenis Transaksi -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Jenis Transaksi</label>
-            <select id="jenis_transaksi" name="jenis_transaksi" class="w-full border rounded px-3 py-2">
-              <option value="bank">Bank</option>
-              <option value="cash">Cash</option>
-              <option value="ewallet">E-Wallet</option>
-            </select>
-          </div>
-
-          <!-- Tipe -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Tipe</label>
-            <input type="text" id="tipe" name="tipe" value="receipt" readonly
-              class="w-full border rounded px-3 py-2 bg-gray-100">
-          </div>
 
           <!-- Keterangan -->
           <div>
@@ -115,16 +90,17 @@
           <!-- Akun -->
           <div>
             <label class="block text-sm font-medium text-gray-700">Akun</label>
-            <input type="text" id="akun" name="akun" class="w-full border rounded px-3 py-2"
-              placeholder="Contoh: Bank ABC">
+            <select id="akun" name="akun" class="w-full border rounded px-3 py-2">
+              <option value="">Pilih Akun</option>
+            </select>
           </div>
 
           <!-- No Rekening -->
-          <div>
+          <!-- <div>
             <label class="block text-sm font-medium text-gray-700">No Rekening</label>
             <input type="text" id="no_rekening" name="no_rekening" class="w-full border rounded px-3 py-2"
               placeholder="Contoh: 123456789">
-          </div>
+          </div> -->
 
           <!-- File -->
           <div>
@@ -145,7 +121,7 @@
 
     <!-- Table -->
     <div class="overflow-x-auto">
-      <table class="min-w-full text-sm border dark:border-gray-700">
+      <table id="invoiceTable" class="min-w-full text-sm border dark:border-gray-700">
         <thead id="tableHeader"
           class="hidden md:table-header-group bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
           <tr>

@@ -139,7 +139,7 @@ window.rowTemplate = function (item, index, perPage = 10) {
   
     <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
       <span class="font-medium sm:hidden">Akun</span>
-      ${item.akun} (${item.no_rekening})
+      ${item.nama_akun}
     </td>
   
     <td class="px-6 py-4 text-right text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
@@ -173,6 +173,11 @@ window.rowTemplate = function (item, index, perPage = 10) {
         </button>
         <button onclick="event.stopPropagation(); confirmPayment('${item.receipt_id}', 3);" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
           ❌ Tidak Valid
+        </button>
+        <button 
+          onclick="exportReceiptRow('${item.receipt_id}')"
+          class="px-3 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600 text-xs">
+          🧾 Kwitansi
         </button>
       </div>
     `
@@ -264,6 +269,54 @@ formHtml = `
          focus:outline-none focus:ring-2 focus:ring-blue-500">
 </form>
 `;
+
+function exportReceiptRow(button) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  // Ambil baris terkait dari tombol
+  const row = button.closest("tr");
+  const cells = row.querySelectorAll("td");
+
+  const data = {
+    tanggal: cells[0].innerText,
+    no_receipt: cells[1].innerText,
+    project: cells[2].innerText,
+    pelanggan: cells[3].innerText,
+    akun: cells[4].innerText,
+    jumlah: cells[5].innerText,
+    keterangan: cells[6].innerText,
+    pic: cells[7].innerText,
+    status: cells[8].innerText,
+  };
+
+  // Header Kwitansi
+  doc.setFontSize(16);
+  doc.text("KWITANSI / RECEIPT", 105, 20, { align: "center" });
+
+  doc.setFontSize(12);
+  doc.text(`No. Receipt: ${data.no_receipt}`, 14, 35);
+  doc.text(`Tanggal: ${data.tanggal}`, 14, 45);
+  doc.text(`Diterima dari: ${data.pelanggan}`, 14, 60);
+  doc.text(`Untuk Project: ${data.project}`, 14, 70);
+  doc.text(`Akun: ${data.akun}`, 14, 80);
+  doc.text(`Jumlah: Rp ${data.jumlah}`, 14, 95);
+  doc.text(`Keterangan: ${data.keterangan}`, 14, 105);
+
+  // Tanda tangan
+  doc.text("Penerima,", 160, 130);
+  doc.text(`${data.pic}`, 160, 160);
+
+  doc.save(`Kwitansi_${data.no_receipt}.pdf`);
+
+  Swal.fire({
+    icon: "success",
+    title: "Export Sukses",
+    text: `Kwitansi ${data.no_receipt} berhasil dibuat!`,
+    timer: 2000,
+    showConfirmButton: false,
+  });
+}
 
 requiredFields = [
   { field: "formProject", message: "Project Name is required!" },

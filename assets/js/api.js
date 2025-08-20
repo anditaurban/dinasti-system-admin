@@ -56,6 +56,7 @@ const endpoints = [
   "sales_receipt",
   "project",
   "invoice",
+  "invoice_detail",
   "package_slip",
   "sales_shipment",
   "shipment_slip",
