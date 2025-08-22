@@ -42,6 +42,7 @@ const state = {
   product: { ...defaultState },
   product_bundling: { ...defaultState },
   client: { ...defaultState },
+  project_detail: { ...defaultState },
   business_category: { ...defaultState },
 };
 
@@ -57,6 +58,7 @@ const endpoints = [
   "project",
   "invoice",
   "invoice_detail",
+  "project_detail",
   "package_slip",
   "sales_shipment",
   "shipment_slip",

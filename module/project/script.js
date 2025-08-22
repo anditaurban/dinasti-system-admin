@@ -11,6 +11,8 @@ document.getElementById("addButton").addEventListener("click", async () => {
   loadProjects();
 });
 
+
+
 window.rowTemplate = function (item, index, perPage = 10) {
   const { currentPage } = state[currentDataType];
   const globalIndex = (currentPage - 1) * perPage + index + 1;
@@ -84,20 +86,14 @@ window.rowTemplate = function (item, index, perPage = 10) {
     class="block w-full text-left px-4 py-2 hover:bg-gray-100">
     👁️ View Order
 </button>
-  <button onclick="event.stopPropagation(); loadModuleContent('sales_log_detail', '${
-    item.pesanan_id
-  }');" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-    🧾 Log
-  </button>
 
   <!-- Delete Order -->
-  ${
-    item.status_id !== 2
-      ? `<button onclick="(event) => { event.stopPropagation(); loadModuleContent('sales_log_detail', '${item.pesanan_id}'); }" class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">
-      🗑 Delete Order
-    </button>`
-      : ""
-  }
+   
+             <button onclick="handleDelete('${
+               item.project_id
+             }')" class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">🗑 Delete Order</button>
+          
+        
 
 </div>
     </td>

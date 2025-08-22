@@ -1,5 +1,11 @@
 pagemoduleparent = "project";
 
+if (window.detail_id && window.detail_desc) {
+  loadDetailProject(window.detail_id, window.detail_desc);
+  loadPaymentDetail(window.detail_id, 0);
+  formatNumberInputs();
+}
+
 // Item management
 async function tambahItem() {
   const tbody = document.getElementById("tabelItem");
@@ -19,7 +25,7 @@ async function tambahItem() {
       <input type="text" class="w-full border rounded px-2 itemUnit" placeholder="pcs/lusin">
     </td>
     <td class="border px-3 py-2">
-      <input type="number" class="w-full border rounded px-2 itemQty text-right" value="1">
+      <input type="number" class="w-full border rounded px-2 itemQty text-right">
     </td>
     <td class="border px-3 py-2">
       <input type="text" class="w-full border rounded px-2 itemHarga text-right" value="0">
@@ -39,7 +45,7 @@ async function tambahItem() {
   qtyInput.addEventListener("input", calculateRowTotal);
   hargaInput.addEventListener("input", function (e) {
     this.value = formatRupiah(this.value);
-    calculateRowTotal();
+    calculateRowTotal.call(this);
   });
 
   // Set initial calculation
@@ -57,11 +63,11 @@ function hapusItem(button) {
 
 function parseRupiah(value) {
   if (!value) return 0;
-  return parseFloat(value.toString().replace(/\D/g, "")) || 0;
+  return parseFloat(value.toString().replace(/\./g, "")) || 0;
 }
 
 function formatNumber(num) {
-  return num.toLocaleString("id-ID");
+  return num.toLocaleString("id-ID").replace(/,/g, ".");
 }
 
 function calculateRowTotal() {
@@ -90,14 +96,46 @@ function calculateProjectTotals() {
   document.getElementById("plan_costing").value = formatNumber(totalItem);
 }
 
-// Format number to Rupiah
+// Format number to Rupiah (using dots as thousand separators)
 function formatRupiah(angka) {
   if (!angka) return "0";
-  const numberString = angka.toString().replace(/\D/g, "");
+  const numberString = angka.toString().replace(/\./g, "");
   const number = parseInt(numberString);
-  return isNaN(number) ? "0" : number.toLocaleString("id-ID");
+  return isNaN(number)
+    ? "0"
+    : number.toLocaleString("id-ID").replace(/,/g, ".");
 }
 
+async function loadSubcategories(selectElement, selectedId = "") {
+  try {
+    const res = await fetch(`${baseUrl}/list/sub_category/${owner_id}`, {
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+    });
+    const data = await res.json();
+
+    if (!data.listData || !Array.isArray(data.listData)) {
+      selectElement.innerHTML = `<option value="">Tidak ada data</option>`;
+      return;
+    }
+
+    selectElement.innerHTML = `<option value="">-- Pilih Subcategory --</option>`;
+    data.listData.forEach((item) => {
+      const option = document.createElement("option");
+      option.value = item.sub_category_id;
+      option.textContent = item.nama;
+
+      // 🔹 auto-select kalau sama dengan yang di detail Project
+      if (selectedId && selectedId == item.sub_category_id) {
+        option.selected = true;
+      }
+
+      selectElement.appendChild(option);
+    });
+  } catch (err) {
+    console.error("Gagal load subcategory:", err);
+    selectElement.innerHTML = `<option value="">Gagal load</option>`;
+  }
+}
 // Load Project Managers
 async function loadProjectManagers() {
   try {
@@ -284,41 +322,68 @@ async function submitProject() {
   }
 }
 // Load project details for editing
-async function loadDetailProject(Id) {
-  window.project_id = Id;
+// Load project details for editing
+async function loadDetailProject(Id, Detail) {
+  console.log("Load detail project:", Id, Detail);
+  if (!Id) {
+    console.warn("Add mode - tidak load detail project");
+    return;
+  }
+  window.detail_id = Id;
+  window.detail_desc = Detail;
 
   try {
-    const res = await fetch(`${baseUrl}/project/detail/${Id}`, {
+    const res = await fetch(`${baseUrl}/detail/project/${Id}`, {
       headers: { Authorization: `Bearer ${API_TOKEN}` },
     });
     const response = await res.json();
     console.log("Response API:", response);
 
-    const data = response.listData || response.data || response.detail;
-    if (!data) {
-      throw new Error("Invalid API response structure - data not found");
+    if (!response || !response.detail) {
+      throw new Error("Invalid API response structure - missing detail");
     }
 
-    // 📝 Isi form utama
-    document.getElementById(
-      "formTitle"
-    ).innerText = `Edit Project ${data.project_number}`;
-    document.getElementById("project_number").value = data.project_number || "";
-    document.getElementById("project_name").value = data.project_name || "";
-    document.getElementById("type").value = data.type || "";
-    document.getElementById("customer").value = data.customer || "";
-    document.getElementById("project_value").value = formatNumber(
-      data.project_value || 0
-    );
-    document.getElementById("plan_costing_percent").value =
-      data.plan_costing_percent || "0.00";
-    document.getElementById("actual_cost_percent").value =
-      data.actual_cost_percent || "0.00";
-    document.getElementById("margin_percent").value =
-      data.margin_percent || "0.00";
-    document.getElementById("status").value = data.status_id || 1;
+    const data = response.detail;
+
+    // 📝 Title form - TAMPILKAN PROJECT NUMBER/NOMOR PROYEK
+    // Cek jika ada project_number, jika tidak gunakan ID sebagai fallback
+    const projectNumber = data.project_number || `PRJ-${Id}`;
+    document.getElementById("formTitle").innerText = `Edit (${projectNumber})`;
+
+    // --- Load Selects dulu ---
+    await loadProjectManagers(); // isi daftar project manager
+    await loadProjects(); // isi daftar project
+
+    // --- Isi form utama ---
+    // Jangan set plan_costing dari API, biarkan dihitung dari items
     document.getElementById("start_date").value = data.start_date || "";
     document.getElementById("finish_date").value = data.finish_date || "";
+
+    // --- Set Project Manager Select ---
+    const pmSelect = document.getElementById("project_manager");
+    if (pmSelect) {
+      pmSelect.value = data.project_manager_id || "";
+    }
+
+    // --- Set Project Select ---
+    const projectSelect = document.getElementById("deskripsi");
+    if (projectSelect) {
+      projectSelect.value = data.pesanan_id || "";
+      // auto isi nilai kontrak kalau ada
+      const opt = projectSelect.querySelector(
+        `option[value="${data.pesanan_id}"]`
+      );
+      if (opt && opt.dataset.total) {
+        document.getElementById("nilai_kontrak").value = formatRupiah(
+          opt.dataset.total
+        );
+      } else {
+        // fallback isi dari API
+        document.getElementById("nilai_kontrak").value = formatNumber(
+          data.nilai_kontrak || 0
+        );
+      }
+    }
 
     const simpanBtn = document.querySelector(
       'button[onclick="submitProject()"]'
@@ -343,18 +408,59 @@ async function loadDetailProject(Id) {
     }
     simpanBtn?.classList.add("hidden");
 
-    calculateProjectValues();
+    // --- Render Item Rows ---
+    const tbody = document.getElementById("tabelItem");
+    tbody.innerHTML = "";
+
+    for (const item of data.items || []) {
+      tambahItem();
+      const row = tbody.lastElementChild;
+
+      // load subcategory → isi option dulu, lalu pilih
+      const subcatSelect = row.querySelector(".itemSubcategory");
+      if (subcatSelect) {
+        await loadSubcategories(subcatSelect, item.sub_category_id);
+      }
+
+      row.querySelector(".itemProduct").value = item.product || "";
+      row.querySelector(".itemDesc").value = item.description || "";
+      row.querySelector(".itemUnit").value = item.unit || "";
+      row.querySelector(".itemQty").value = item.qty || 1;
+      row.querySelector(".itemHarga").value = formatNumber(
+        item.unit_price || 0
+      );
+      row.querySelector(".itemTotal").innerText = formatNumber(
+        item.total || item.qty * item.unit_price
+      );
+    }
+
+    // Hitung ulang total project setelah semua item dimuat
+    calculateProjectTotals();
+
+    console.log("Items rendered:", data.items || []);
   } catch (err) {
-    console.error("Gagal load detail project:", err);
+    console.error("Gagal load detail:", err);
     Swal.fire("Error", err.message || "Gagal memuat detail project", "error");
   }
+}
+
+// Helper format angka
+function formatNumber(num) {
+  if (!num) return "0";
+  return new Intl.NumberFormat("id-ID", {
+    useGrouping: true,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })
+    .format(num)
+    .replace(/,/g, ".");
 }
 
 // Helper function to calculate project values
 function calculateProjectValues() {
   const projectValue =
     parseFloat(
-      document.getElementById("project_value").value.replace(/,/g, "")
+      document.getElementById("project_value").value.replace(/\./g, "")
     ) || 0;
   const planCostingPercent =
     parseFloat(document.getElementById("plan_costing_percent").value) || 0;
@@ -379,140 +485,91 @@ function calculateProjectValues() {
   );
 }
 
-// Format number with commas (original function from your code)
-function formatNumber(num) {
-  return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
-}
-
 // Update project
-async function updateProject(projectId) {
+async function updateProject() {
   try {
-    // Similar validation as submit
-    const requiredFields = [
-      "project_manager",
-      "deskripsi",
-      "start_date",
-      "finish_date",
-    ];
-    for (const fieldId of requiredFields) {
-      if (!document.getElementById(fieldId).value) {
-        throw new Error(`Field ${fieldId} harus diisi`);
-      }
-    }
-
-    // Prepare items data
-    const items = [];
-    document.querySelectorAll("#tabelItem tr").forEach((row, index) => {
-      const product = row.querySelector(".itemProduct").value.trim();
-      const subcategory = row.querySelector(".itemSubcategory").value;
-      const description = row.querySelector(".itemDesc").value.trim();
-      const unit = row.querySelector(".itemUnit").value.trim();
-      const qty = parseInt(row.querySelector(".itemQty").value || 0);
-      const harga = parseRupiah(row.querySelector(".itemHarga").value || 0);
-
-      if (!product || !subcategory || !unit || qty <= 0 || harga <= 0) {
-        throw new Error(`Data item baris ${index + 1} tidak valid`);
-      }
-
-      items.push({
-        product,
-        sub_category_id: subcategory,
-        description,
-        unit,
-        quantity: qty,
-        unit_price: harga,
-      });
+    // Konfirmasi sebelum simpan
+    const konfirmasi = await Swal.fire({
+      title: "Update Data?",
+      text: "Apakah kamu yakin ingin menyimpan perubahan?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "✅ Ya, simpan",
+      cancelButtonText: "❌ Batal",
     });
 
-    if (items.length === 0) {
-      throw new Error("Minimal harus ada satu item");
-    }
+    if (!konfirmasi.isConfirmed) return;
 
-    // Prepare project data
-    const projectData = {
-      project_manager_id: document.getElementById("project_manager").value,
-      project_id: document.getElementById("deskripsi").value,
-      contract_value: parseRupiah(
-        document.getElementById("nilai_kontrak").value
+    // Ambil data item dari tabel
+    const rows = document.querySelectorAll("#tabelItem tr");
+    const items = Array.from(rows).map((row, i) => {
+      const product = row.querySelector(".itemProduct")?.value.trim() || "";
+      const description = row.querySelector(".itemDesc")?.value.trim() || "";
+      const unit = row.querySelector(".itemUnit")?.value.trim() || "pcs";
+      const qty = parseInt(row.querySelector(".itemQty")?.value || 0);
+      const unit_price = parseRupiah(
+        row.querySelector(".itemHarga")?.value || 0
+      );
+      const sub_category_id = parseInt(
+        row.querySelector(".itemSubcategory")?.value || 0
+      );
+
+      if (!product || !unit || qty <= 0 || isNaN(unit_price)) {
+        throw new Error(`Invalid item data in row ${i + 1}`);
+      }
+
+      return {
+        product,
+        sub_category: sub_category_id,
+        description,
+        unit,
+        qty,
+        unit_price,
+        total: "", // sesuai struktur endpoint
+      };
+    });
+
+    // Hitung contract value (total nilai kontrak)
+    const contractValue = items.reduce(
+      (acc, item) => acc + item.qty * item.unit_price,
+      0
+    );
+
+    // Body untuk update sesuai endpoint
+    const bodyInvoice = {
+      pesanan_id: window.detail_id, // id pesanan yang sedang diupdate
+      project_manager_id: parseInt(
+        document.getElementById("project_manager")?.value || 0
       ),
-      estimated_cost: parseRupiah(
-        document.getElementById("perkiraan_biaya").value
+      contract_value: contractValue,
+      plan_costing: parseRupiah(
+        document.getElementById("plan_costing")?.value || 0
       ),
-      start_date: document.getElementById("start_date").value,
-      finish_date: document.getElementById("finish_date").value,
+      start_date: document.getElementById("start_date")?.value || "",
+      finish_date: document.getElementById("finish_date")?.value || "",
       items: items,
     };
 
-    // Show loading
-    Swal.fire({
-      title: "Memperbarui data...",
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      },
-    });
-
-    // Submit to API
-    const res = await fetch(`${baseUrl}/update/project/${projectId}`, {
+    // Update data ke API
+    const res = await fetch(`${baseUrl}/update/project/${window.detail_id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${API_TOKEN}`,
       },
-      body: JSON.stringify(projectData),
+      body: JSON.stringify(bodyInvoice),
     });
 
-    const response = await res.json();
-
+    const json = await res.json();
     if (!res.ok) {
-      throw new Error(response.message || "Gagal memperbarui proyek");
-    }
-
-    // Success handling
-    Swal.fire({
-      title: "Berhasil!",
-      text: "Project berhasil diperbarui",
-      icon: "success",
-      confirmButtonText: "OK",
-    }).then(() => {
-      window.location.href = "projects.html";
-    });
-  } catch (err) {
-    console.error("Update error:", err);
-    Swal.fire({
-      title: "Error!",
-      text: err.message,
-      icon: "error",
-      confirmButtonText: "OK",
-    });
-  }
-}
-async function loadSubcategories(selectElement, selectedValue = null) {
-  try {
-    const res = await fetch(`${baseUrl}/list/sub_category/${owner_id}`, {
-      headers: { Authorization: `Bearer ${API_TOKEN}` },
-    });
-    const data = await res.json();
-
-    if (!data.listData || !Array.isArray(data.listData)) {
-      selectElement.innerHTML = "";
+      Swal.fire("Gagal", json.message || "❌ Gagal update data", "error");
       return;
     }
 
-    // Kosongkan dulu dropdown
-    selectElement.innerHTML = "";
-
-    // Isi dengan data aktual
-    data.listData.forEach((item) => {
-      const option = new Option(item.nama, item.sub_category_id);
-      if (selectedValue && item.sub_category_id == selectedValue) {
-        option.selected = true;
-      }
-      selectElement.add(option);
-    });
-  } catch (err) {
-    console.error("Gagal load subcategory:", err);
-    selectElement.innerHTML = "";
+    Swal.fire("Berhasil", "✅ Data berhasil diupdate", "success");
+    loadModuleContent("project");
+  } catch (error) {
+    Swal.fire("Error", error.message || "❌ Terjadi kesalahan", "error");
   }
 }
 

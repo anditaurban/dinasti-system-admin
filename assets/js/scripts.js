@@ -195,10 +195,16 @@ async function loadModuleContent(module, Id, Detail) {
       currentScript.onload = () => {
         console.log(`Script ${module} loaded successfully.`);
 
-        // ✅ Auto load log sales history kalau modulnya sales_log_detail
+        if (module === "project_detail") {
+          if (typeof loadDetailProject === "function") {
+            loadDetailProject(Id, Detail);
+          } else {
+            console.warn("loadDetailProject belum terdefinisi.");
+          }
+        }
         if (module === "quotation_log_detail") {
           if (typeof loadPesananData === "function") {
-            loadPesananData(Id); // ✅ pakai Id, bukan pesananId
+            loadPesananData(Id);
           } else {
             console.warn("loadPesananData belum terdefinisi.");
           }
@@ -219,7 +225,6 @@ async function loadModuleContent(module, Id, Detail) {
     ).innerHTML = `<p class="text-red-600">Terjadi kesalahan saat memuat modul: ${module}</p>`;
   } finally {
     hideLoading();
-    // ❌ Jangan panggil loadPesananData lagi di sini
   }
 }
 

@@ -404,8 +404,6 @@ async function submitInvoice() {
   }
 }
 
-
-
 // Initialize automatic features when DOM is loaded
 document.addEventListener("DOMContentLoaded", function () {
   // Setup Rupiah formatting
@@ -674,146 +672,6 @@ async function loadDetailSales(Id, Detail) {
       );
 
       console.log(item.sub_category);
-    }
-
-    // --- Render Daftar Pembayaran ---
-    const pembayaranSection = document.getElementById("pembayaranSection");
-    pembayaranSection.innerHTML = "";
-
-    if (data.payments && data.payments.length > 0) {
-      // Add header row
-      const header = document.createElement("div");
-      header.className =
-        "grid grid-cols-3 gap-2 font-semibold text-gray-700 border-b pb-2";
-      header.innerHTML = `
-    <span>Tanggal</span>
-    <span>Sumber</span>
-    <span class="text-right">Jumlah</span>
-  `;
-      pembayaranSection.appendChild(header);
-
-      // Add payment rows
-      data.payments.forEach((pay) => {
-        const div = document.createElement("div");
-        div.className = "grid grid-cols-3 gap-2 border-b pb-2 last:border-0";
-        div.innerHTML = `
-      <span class="text-sm">${pay.date || "-"}</span>
-      <span class="text-sm">${pay.source || "-"}</span>
-      <span class="text-right font-medium text-green-600">Rp ${formatNumber(
-        pay.amount || 0
-      )}</span>
-    `;
-        pembayaranSection.appendChild(div);
-      });
-
-      // Add total row
-      const total = data.payments.reduce(
-        (sum, pay) => sum + (pay.amount || 0),
-        0
-      );
-      const totalRow = document.createElement("div");
-      totalRow.className = "grid grid-cols-3 gap-2 font-semibold pt-2";
-      totalRow.innerHTML = `
-    <span colspan="2">Total Pembayaran</span>
-    <span class="text-right text-green-700">Rp ${formatNumber(total)}</span>
-  `;
-      pembayaranSection.appendChild(totalRow);
-    } else {
-      pembayaranSection.innerHTML = `<div class="text-gray-500 italic text-center py-4">Belum ada pembayaran</div>`;
-    }
-
-    // --- Render File Pendukung ---
-    const fileSection = document.getElementById("fileSection");
-    fileSection.innerHTML = "";
-
-    if (data.supporting_files && data.supporting_files.length > 0) {
-      data.supporting_files.forEach((file) => {
-        const div = document.createElement("div");
-        div.className =
-          "flex items-center justify-between p-2 hover:bg-gray-50 rounded";
-        div.innerHTML = `
-      <div class="flex items-center space-x-2">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        <span class="truncate max-w-xs">${file.name || "File"}</span>
-      </div>
-      <div class="flex space-x-2">
-        <span class="text-xs text-gray-500">${formatFileSize(file.size)}</span>
-        <a href="${
-          file.url || "#"
-        }" target="_blank" class="text-blue-600 hover:underline flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-          <span class="ml-1">Download</span>
-        </a>
-      </div>
-    `;
-        fileSection.appendChild(div);
-      });
-    } else {
-      fileSection.innerHTML = `
-    <div class="text-center py-4">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-      </svg>
-      <p class="text-gray-500 mt-2">Tidak ada file pendukung</p>
-    </div>
-  `;
-    }
-
-    // --- Render Invoice Uang Muka ---
-    const uangMukaSection = document.getElementById("uangMukaSection");
-    uangMukaSection.innerHTML = "";
-
-    if (data.down_payments && data.down_payments.length > 0) {
-      // Add header row
-      const header = document.createElement("div");
-      header.className =
-        "grid grid-cols-3 gap-2 font-semibold text-gray-700 border-b pb-2";
-      header.innerHTML = `
-    <span>No. Invoice</span>
-    <span>Tanggal</span>
-    <span class="text-right">Jumlah</span>
-  `;
-      uangMukaSection.appendChild(header);
-
-      // Add down payment rows
-      data.down_payments.forEach((dp) => {
-        const div = document.createElement("div");
-        div.className = "grid grid-cols-3 gap-2 border-b pb-2 last:border-0";
-        div.innerHTML = `
-      <span class="text-sm">${dp.invoice_no || "-"}</span>
-      <span class="text-sm">${dp.date || "-"}</span>
-      <span class="text-right font-medium text-green-600">Rp ${formatNumber(
-        dp.amount || 0
-      )}</span>
-    `;
-        uangMukaSection.appendChild(div);
-      });
-
-      // Add total row
-      const total = data.down_payments.reduce(
-        (sum, dp) => sum + (dp.amount || 0),
-        0
-      );
-      const totalRow = document.createElement("div");
-      totalRow.className = "grid grid-cols-3 gap-2 font-semibold pt-2";
-      totalRow.innerHTML = `
-    <span colspan="2">Total Uang Muka</span>
-    <span class="text-right text-green-700">Rp ${formatNumber(total)}</span>
-  `;
-      uangMukaSection.appendChild(totalRow);
-    } else {
-      uangMukaSection.innerHTML = `
-    <div class="text-center py-4">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-      <p class="text-gray-500 mt-2">Belum ada invoice uang muka</p>
-    </div>
-  `;
     }
 
     // Helper function to format file size
@@ -1188,32 +1046,32 @@ function initModule() {
     deleteButton.addEventListener("click", handleDelete);
   }
 }
-async function handleHapus(pesanan_id) {
-  const confirm = await Swal.fire({
-    title: "Yakin ingin menghapus?",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonText: "Ya, hapus",
-  });
+// async function handleHapus(pesanan_id) {
+//   const confirm = await Swal.fire({
+//     title: "Yakin ingin menghapus?",
+//     icon: "warning",
+//     showCancelButton: true,
+//     confirmButtonText: "Ya, hapus",
+//   });
 
-  if (!confirm.isConfirmed) return;
+//   if (!confirm.isConfirmed) return;
 
-  try {
-    const response = await fetch(`${baseUrl}/delete/sales/${pesanan_id}`, {
-      method: "PUT",
-      headers: {
-        Authorization: API_TOKEN,
-        "Content-Type": "application/json",
-      },
-    });
+//   try {
+//     const response = await fetch(`${baseUrl}/delete/sales/${pesanan_id}`, {
+//       method: "PUT",
+//       headers: {
+//         Authorization: API_TOKEN,
+//         "Content-Type": "application/json",
+//       },
+//     });
 
-    if (!response.ok) throw new Error(`Gagal hapus: ${response.status}`);
+//     if (!response.ok) throw new Error(`Gagal hapus: ${response.status}`);
 
-    Swal.fire("Berhasil", "Data berhasil dihapus", "success");
-  } catch (err) {
-    Swal.fire("Gagal", "Terjadi kesalahan", "error");
-  }
-}
+//     Swal.fire("Berhasil", "Data berhasil dihapus", "success");
+//   } catch (err) {
+//     Swal.fire("Gagal", "Terjadi kesalahan", "error");
+//   }
+// }
 
 document.addEventListener("DOMContentLoaded", function () {
   const lihatVersiBtn = document.getElementById("lihatVersiBtn");

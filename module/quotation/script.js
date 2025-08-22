@@ -14,52 +14,6 @@ function validateFormData(formData, requiredFields = []) {
   return true;
 }
 
-async function fillFormData(data) {
-  // Helper untuk menunggu sampai <option> tersedia
-  async function waitForOption(selectId, expectedValue, timeout = 3000) {
-    return new Promise((resolve) => {
-      const interval = 100;
-      let waited = 0;
-
-      const check = () => {
-        const select = document.getElementById(selectId);
-        const exists = Array.from(select.options).some(
-          (opt) => opt.value === expectedValue?.toString()
-        );
-        if (exists || waited >= timeout) {
-          resolve();
-        } else {
-          waited += interval;
-          setTimeout(check, interval);
-        }
-      };
-
-      check();
-    });
-  }
-
-  // Pastikan value bertipe string
-  const projectValue = data.pesanan_id?.toString() || "";
-  const pmValue = data.project_manager_id?.toString() || "";
-
-  // Tunggu sampai option-nya ada
-  await waitForOption("formProject", projectValue);
-  await waitForOption("formPM", pmValue);
-
-  // Set nilai ke form
-  const formProject = document.getElementById("formProject");
-  const formPM = document.getElementById("formPM");
-  formProject.value = projectValue;
-  formPM.value = pmValue;
-
-  document.getElementById("formStartDate").value = data.start_date || "";
-  document.getElementById("formDeadline").value = data.deadline || "";
-
-  // Debug log
-  console.log("[fillFormData] formProject set to:", formProject.value);
-  console.log("[fillFormData] formPM set to:", formPM.value);
-}
-
 async function loadDropdown(selectId, apiUrl, valueField, labelField) {
   const select = document.getElementById(selectId);
   select.innerHTML = `<option value="">Loading...</option>`;
@@ -334,6 +288,51 @@ function getStatusClass(status) {
       return "bg-gray-100 text-gray-800 border border-gray-300";
   }
 }
+async function applyFilter() {
+  const status = document.getElementById("filterStatus").value;
+  const project = document.getElementById("filterProject").value.trim();
+  const pelanggan = document.getElementById("filterPelanggan").value.trim();
+
+  // Gabungkan jadi 1 query string (bisa pakai spasi biar fleksibel)
+  let searchQuery = [status, project, pelanggan]
+    .filter((v) => v !== "")
+    .join(" ");
+
+  const url = `${baseUrl}/table/sales/${owner_id}/1?search=${encodeURIComponent(
+    searchQuery
+  )}`;
+  console.log("Filter URL:", url);
+
+  try {
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+    });
+    const data = await res.json();
+    console.log("Filtered Data:", data);
+
+    // TODO: render ulang table dengan data.tableData
+    renderSalesTable(data.tableData);
+  } catch (err) {
+    console.error("Gagal filter data:", err);
+  }
+}
+
+function renderSalesTable(tableData) {
+  // contoh sederhana, nanti sesuaikan sama struktur table kamu
+  const tbody = document.getElementById("salesTableBody");
+  tbody.innerHTML = tableData
+    .map(
+      (row) => `
+      <tr>
+        <td>${row.no_qtn}</td>
+        <td>${row.project_name}</td>
+        <td>${row.pelanggan_nama}</td>
+        <td>${row.status}</td>
+      </tr>
+    `
+    )
+    .join("");
+}
 
 document.getElementById("addButton").addEventListener("click", async () => {
   statusLoaded = false;
@@ -349,259 +348,3 @@ requiredFields = [
   { field: "formStartDate", message: "Starting Date is required!" },
   { field: "formDeadline", message: "Deadline is required!" },
 ];
-
-async function addPayment(sales_id, nominal) {
-  try {
-    const res = await fetch(`${baseUrl}/list/payment_method/${owner_id}`, {
-      headers: { Authorization: `Bearer ${API_TOKEN}` },
-    });
-
-    const { listData } = await res.json();
-
-    if (!listData || listData.length === 0) {
-      Swal.fire("Gagal", "Tidak ada metode pembayaran tersedia.", "error");
-      return;
-    }
-
-    const optionsHtml = listData
-      .map(
-        (acc) => `
-      <option value="${acc.account_id}">
-        ${acc.account} - ${acc.owner_account} (${acc.number_account})
-      </option>
-    `
-      )
-      .join("");
-
-    const { value: result } = await Swal.fire({
-      title: "Add Payment",
-      html: `<form id="dataform" class="space-y-2" autocomplete="off">
-<strong>Total Tagihan:</strong> ${formatRupiah(nominal)}
-
-  <label for="swal-date" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Date</label>
-  <input id="swal-date" name="date" type="date" value="${
-    new Date().toISOString().split("T")[0]
-  }" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-
-  <!-- Informasi Total Tagihan -->
-  <div class="text-sm text-left text-gray-600 dark:text-gray-300">
-    
-  </div>
-
-  <div class="flex items-center gap-2">
-    <div class="w-full">
-      <label for="swal-nominal" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Amount</label>
-      <input id="swal-nominal" name="amount" type="text" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-    </div>
-    <div class="mt-6">
-      <label class="text-xs whitespace-nowrap">
-        <input type="checkbox" id="swal-fullpay" class="mr-1">
-        Full Payment
-      </label>
-    </div>
-  </div>
-
-  <label for="swal-account" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Account</label>
-  <select id="swal-account" name="account" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 
-         text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-left">
-    <option value="">--- Pilih Akun Pembayaran ---</option>
-    ${optionsHtml}
-  </select>
-
-  <label for="swal-notes" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Notes</label>
-  <input id="swal-notes" name="notes" type="text" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-</form>`,
-      focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonText: "Simpan",
-      didOpen: () => {
-        const inputNominal = document.getElementById("swal-nominal");
-        const checkboxFullpay = document.getElementById("swal-fullpay");
-
-        function formatRupiah(value) {
-          const clean = value.replace(/\D/g, "");
-          return clean.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-        }
-
-        inputNominal.addEventListener("input", function () {
-          this.value = formatRupiah(this.value);
-        });
-
-        checkboxFullpay.addEventListener("change", function () {
-          if (this.checked) {
-            inputNominal.value = formatRupiah(nominal.toString());
-          } else {
-            inputNominal.value = "";
-          }
-        });
-      },
-      preConfirm: () => {
-        const date = document.getElementById("swal-date").value;
-        const nominalRaw = document.getElementById("swal-nominal").value;
-        const account_id = document.getElementById("swal-account").value;
-        const notes = document.getElementById("swal-notes").value;
-
-        const numericNominal = parseInt(nominalRaw.replace(/\./g, "")) || 0;
-
-        if (!date || !numericNominal || !account_id) {
-          Swal.showValidationMessage(
-            `Tanggal, nominal, dan akun pembayaran wajib diisi.`
-          );
-          return false;
-        }
-
-        if (numericNominal > nominal) {
-          Swal.showValidationMessage(
-            `Nominal tidak boleh lebih dari Rp ${nominal.toLocaleString(
-              "id-ID"
-            )}`
-          );
-          return false;
-        }
-
-        return {
-          date,
-          nominal: numericNominal,
-          account_id: parseInt(account_id),
-          notes: notes || "-",
-        };
-      },
-    });
-
-    if (!result) return;
-
-    const payload = {
-      owner_id,
-      sales_id,
-      account_id: result.account_id,
-      date: result.date,
-      nominal: result.nominal,
-      notes: result.notes,
-    };
-
-    const resPost = await fetch(`${baseUrl}/add/sales_detail`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${API_TOKEN}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await resPost.json();
-
-    if (resPost.ok) {
-      Swal.fire("Sukses", "Pembayaran berhasil ditambahkan.", "success");
-      fetchAndUpdateData();
-      // loadSalesBadge();
-    } else {
-      Swal.fire(
-        "Gagal",
-        data.message || "Terjadi kesalahan saat menyimpan pembayaran.",
-        "error"
-      );
-    }
-  } catch (err) {
-    console.error(err);
-    Swal.fire("Error", "Terjadi kesalahan saat memproses.", "error");
-  }
-}
-
-async function addPackage(sales_id) {
-  try {
-    const { value: result } = await Swal.fire({
-      title: "Tambah Paket Penjualan",
-      html: `
-        <form id="packageForm" class="space-y-3 text-left">
-          <label for="swal-date" class="block text-sm font-medium text-gray-700">Tanggal</label>
-          <input id="swal-date" name="date" type="date" 
-            value="${new Date().toISOString().split("T")[0]}"
-            class="form-control w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-
-          <label for="swal-notes" class="block text-sm font-medium text-gray-700">Catatan</label>
-          <textarea id="swal-notes" name="notes"
-            class="form-control w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            rows="3">Di packing ya</textarea>
-        </form>
-      `,
-      focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonText: "Simpan",
-      preConfirm: () => {
-        const date = document.getElementById("swal-date").value;
-        const notes = document.getElementById("swal-notes").value.trim();
-
-        if (!date) {
-          Swal.showValidationMessage("Tanggal wajib diisi.");
-          return false;
-        }
-
-        return { date, notes };
-      },
-    });
-
-    if (!result) return;
-
-    const payload = {
-      owner_id,
-      sales_id,
-      date: result.date,
-      notes: result.notes || "-",
-    };
-
-    const res = await fetch(`${baseUrl}/add/sales_package`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${API_TOKEN}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-      Swal.fire("Sukses", "Paket berhasil ditambahkan.", "success");
-      fetchAndUpdateData(); // refresh tampilan jika perlu
-    } else {
-      Swal.fire(
-        "Gagal",
-        data.message || "Terjadi kesalahan saat menambahkan paket.",
-        "error"
-      );
-    }
-  } catch (error) {
-    console.error(error);
-    Swal.fire("Error", "Terjadi kesalahan saat memproses.", "error");
-  }
-}
-
-document.addEventListener("DOMContentLoaded", async () => {
-  const select = document.getElementById("project_type");
-  console.log("🔍 Select element found:", select);
-
-  try {
-    const response = await fetch("https://devdinasti.katib.cloud/type/sales");
-    const result = await response.json();
-
-    console.log("📦 Fetched result:", result);
-
-    if (result.status_response === "200" && Array.isArray(result.data)) {
-      result.data.forEach((type) => {
-        console.log("🧩 Adding type:", type);
-
-        const option = document.createElement("option");
-        option.value = type.kode_type.trim();
-        option.textContent = type.nama_type.trim();
-        select.appendChild(option);
-      });
-    } else {
-      console.error(
-        "❌ Failed to load project types:",
-        result.message || result
-      );
-    }
-  } catch (error) {
-    console.error("🔥 Error fetching project types:", error);
-  }
-});
