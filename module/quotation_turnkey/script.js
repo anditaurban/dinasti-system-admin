@@ -20,7 +20,7 @@ if (!window.detail_id) {
 }
 
 if (window.detail_id && window.detail_desc) {
-  loadDetailSales(window.detail_id, window.detail_desc);
+  loadDetailSalesTurnKey(window.detail_id, window.detail_desc);
   loadPaymentDetail(window.detail_id, 0);
   formatNumberInputs();
 }
@@ -104,6 +104,12 @@ async function tambahItem() {
     </td>
     <td class="border px-3 py-2">
         <select class="w-full border rounded px-2 itemSubcategory"></select>
+    </td>
+     <td class="border px-3 py-2">
+        <input type="text" class="w-full border rounded px-2 itemMaterial" placeholder="Material">
+    </td>
+     <td class="border px-3 py-2">
+        <input type="text" class="w-full border rounded px-2 itemSpec" placeholder="Spesifikasi">
     </td>
     <td class="border px-3 py-2">
         <input type="text" class="w-full border rounded px-2 itemDesc" placeholder="Deskripsi">
@@ -257,50 +263,66 @@ function formatNumberInputs() {
   });
 }
 
-async function submitInvoice() {
+async function submitInvoiceTurnKey() {
   try {
     calculateInvoiceTotals();
 
     const rows = document.querySelectorAll("#tabelItem tr");
-    const items = Array.from(rows).map((row, i) => {
-      const product = row.querySelector(".itemProduct")?.value.trim() || "";
+
+    // Group items by sub_category_id + product
+    const groupedItems = {};
+
+    Array.from(rows).forEach((row, i) => {
       const sub_category_id = parseInt(
         row.querySelector(".itemSubcategory")?.value || 0
       );
-      const description = row.querySelector(".itemDesc")?.value.trim() || "-";
+      const product = row.querySelector(".itemProduct")?.value.trim() || "";
+      const description = row.querySelector(".itemDesc")?.value.trim() || "";
+
+      const name = row.querySelector(".itemMaterial")?.value.trim() || "";
+      const specification = row.querySelector(".itemSpec")?.value.trim() || "";
       const unit = row.querySelector(".itemUnit")?.value.trim() || "pcs";
       const qty = parseInt(row.querySelector(".itemQty")?.value || 0);
       const unit_price = parseRupiah(
         row.querySelector(".itemHarga")?.value || 0
       );
 
-      if (
-        !product ||
-        qty <= 0 ||
-        !unit ||
-        isNaN(unit_price) ||
-        unit_price <= 0
-      ) {
-        throw new Error(
-          `Invalid item data in row ${
-            i + 1
-          }: product, qty, unit, and price are required`
-        );
-      }
       if (!sub_category_id) {
         throw new Error(`❌ Subcategory belum dipilih di row ${i + 1}`);
       }
+      if (!product) {
+        throw new Error(`❌ Product belum diisi di row ${i + 1}`);
+      }
+      if (!name || qty <= 0 || !unit || isNaN(unit_price) || unit_price <= 0) {
+        throw new Error(
+          `Invalid material data in row ${
+            i + 1
+          }: name, qty, unit, and price are required`
+        );
+      }
 
-      return {
-        product,
-        sub_category: sub_category_id,
-        description,
+      const key = `${sub_category_id}-${product}`;
+
+      if (!groupedItems[key]) {
+        groupedItems[key] = {
+          sub_category_id,
+          product,
+          description,
+          materials: [],
+        };
+      }
+
+      groupedItems[key].materials.push({
+        name,
+        specification,
         qty,
         unit,
         unit_price,
         total: qty * unit_price,
-      };
+      });
     });
+
+    const items = Object.values(groupedItems);
 
     const owner_id = user.owner_id;
     const user_id = user.user_id;
@@ -340,7 +362,7 @@ async function submitInvoice() {
     formData.append("status_id", 1);
     formData.append("revision_number", 0);
 
-    // Hitung revision status
+    // Revision status
     let revisionText = "R0";
     if (window.detail_id && typeof window.lastRevision === "number") {
       revisionText = `R${window.lastRevision + 1}`;
@@ -348,18 +370,15 @@ async function submitInvoice() {
     document.getElementById("revision_number").value = revisionText;
     formData.append("revision_status", revisionText);
 
-    // Append items JSON
+    // Append items JSON sesuai format Turn Key
     formData.append("items", JSON.stringify(items));
 
-    // Ambil file dari input yang pasti ada di DOM saat submit
+    // File
     const fileInput = document.querySelector("input[type='file']#file");
     if (fileInput && fileInput.files && fileInput.files[0]) {
       formData.append("file", fileInput.files[0]);
-    } else {
-      console.warn("⚠ Tidak ada file yang dipilih");
     }
 
-    // Append field lainnya
     formData.append(
       "catatan",
       document.getElementById("catatan")?.value || "-"
@@ -373,8 +392,7 @@ async function submitInvoice() {
       document.getElementById("term_pembayaran")?.value || "-"
     );
 
-    // DEBUG: Cek semua formData sebelum dikirim
-    console.group("FormData yang akan dikirim:");
+    console.group("FormData Turn Key yang akan dikirim:");
     for (let [key, value] of formData.entries()) {
       if (value instanceof File) {
         console.log(key, `File: ${value.name}, size: ${value.size} bytes`);
@@ -384,7 +402,7 @@ async function submitInvoice() {
     }
     console.groupEnd();
 
-    const res = await fetch(`${baseUrl}/add/sales`, {
+    const res = await fetch(`${baseUrl}/add/sales_turnkey`, {
       method: "POST",
       headers: { Authorization: `Bearer ${API_TOKEN}` },
       body: formData,
@@ -393,7 +411,7 @@ async function submitInvoice() {
     const json = await res.json();
 
     if (res.ok) {
-      Swal.fire("Sukses", "Quotation berhasil dibuat", "success");
+      Swal.fire("Sukses", "Quotation Turn Key berhasil dibuat", "success");
       loadModuleContent("quotation");
     } else {
       Swal.fire("Gagal", json.message || "Gagal menyimpan data", "error");
@@ -430,7 +448,7 @@ document.addEventListener("DOMContentLoaded", function () {
   calculateInvoiceTotals();
 });
 
-async function updateInvoice() {
+async function updateInvoiceTurnKey() {
   try {
     calculateInvoiceTotals();
 
@@ -446,78 +464,103 @@ async function updateInvoice() {
 
     if (!konfirmasi.isConfirmed) return;
 
-    // Ambil data item dari tabel
+    // Ambil data item dari tabel, group jadi format Turn Key
     const rows = document.querySelectorAll("#tabelItem tr");
-    const items = Array.from(rows).map((row, i) => {
+    const groupedItems = {};
+
+    Array.from(rows).forEach((row, i) => {
+      const sub_category_id = parseInt(
+        row.querySelector(".itemSubcategory")?.value || 0
+      );
       const product = row.querySelector(".itemProduct")?.value.trim() || "";
       const description = row.querySelector(".itemDesc")?.value.trim() || "";
+
+      const name = row.querySelector(".itemMaterial")?.value.trim() || "";
+      const specification = row.querySelector(".itemSpec")?.value.trim() || "";
       const unit = row.querySelector(".itemUnit")?.value.trim() || "pcs";
       const qty = parseInt(row.querySelector(".itemQty")?.value || 0);
       const unit_price = parseRupiah(
         row.querySelector(".itemHarga")?.value || 0
       );
-      const sub_category_id = parseInt(
-        row.querySelector(".itemSubcategory")?.value || 0
-      );
 
-      if (!product || !unit || qty <= 0 || isNaN(unit_price)) {
-        throw new Error(`Invalid item data in row ${i + 1}`);
+      if (!sub_category_id)
+        throw new Error(`❌ Subcategory belum dipilih di row ${i + 1}`);
+      if (!product) throw new Error(`❌ Product belum diisi di row ${i + 1}`);
+      if (!name || qty <= 0 || !unit || isNaN(unit_price) || unit_price <= 0) {
+        throw new Error(
+          `Invalid material data in row ${
+            i + 1
+          }: name, qty, unit, and price are required`
+        );
       }
 
-      return {
-        product,
-        description,
-        unit,
+      const key = `${sub_category_id}-${product}`;
+      if (!groupedItems[key]) {
+        groupedItems[key] = {
+          sub_category_id,
+          product,
+          description,
+          materials: [],
+        };
+      }
+
+      groupedItems[key].materials.push({
+        name,
+        specification,
         qty,
+        unit,
         unit_price,
-        sub_category: sub_category_id,
-      };
+        total: qty * unit_price,
+      });
     });
 
-    // Hitung nominal kontrak, diskon, DPP, PPN, dan total
-    const nominalKontrak = items.reduce(
-      (acc, item) => acc + item.qty * item.unit_price,
-      0
-    );
-    // const disc = parseRupiah(document.getElementById("discount")?.value || 0);
-    // const dpp = nominalKontrak - disc;
-    // const ppn = Math.round(dpp * 0.11);
-    // const total = dpp + ppn;
+    const items = Object.values(groupedItems);
+
+    // Hitung nominal kontrak, diskon, PPN
+    const nominalKontrak = items.reduce((acc, item) => {
+      return (
+        acc + item.materials.reduce((sum, m) => sum + m.qty * m.unit_price, 0)
+      );
+    }, 0);
+
+    const disc = parseRupiah(document.getElementById("discount")?.value || 0);
+    const dpp = nominalKontrak - disc;
+    const ppn = Math.round(dpp * 0.11);
 
     // Ambil data status
     const status_id = parseInt(document.getElementById("status")?.value || 1);
     const revisionNumber = window.revision_count || 1;
-    const revision_status = `Revisi ${revisionNumber}`;
+    const status_revision = `Revisi ${revisionNumber}`;
 
-    // Validasi format no_qtn sebelum dikirim
     const no_qtn = document.getElementById("no_qtn")?.value || "";
 
-    // Body untuk update sales (status_id & revision_status langsung dikirim di sini)
+    // Body JSON sesuai endpoint
     const bodySales = {
       owner_id,
       user_id,
-      no_qtn: no_qtn,
+      no_qtn,
       project_name: document.getElementById("project_name")?.value || "",
       client: document.getElementById("client")?.value || "",
-      type_id: document.getElementById("type_id")?.value || 0,
-      order_date: document.getElementById("tanggal")?.value || "",
       contract_amount: nominalKontrak,
-      discount,
-      ppn: ppn,
-      total: total,
-      status_id: status_id,
-      revision_status: revision_status, // langsung dikirim
-      items: items,
+      disc, // ✅ konsisten dengan endpoint
+      ppn, // ✅ wajib ada
+      status_id,
+      status_revision, // ✅ konsisten dengan endpoint
+      files: [], // ✅ bisa diisi kalau ada file baru
+      items,
       catatan: document.getElementById("catatan")?.value || "-",
       syarat_ketentuan:
         document.getElementById("syarat_ketentuan")?.value || "-",
       term_pembayaran: document.getElementById("term_pembayaran")?.value || "-",
     };
 
-    console.log(JSON.stringify(bodySales, null, 2));
-    // Update Sales
-    const resSales = await fetch(
-      `${baseUrl}/update/sales/${window.detail_id}`,
+    console.log(
+      "Body untuk update Turn Key:",
+      JSON.stringify(bodySales, null, 2)
+    );
+
+    const res = await fetch(
+      `${baseUrl}/update/sales_turnkey/${window.detail_id}`,
       {
         method: "PUT",
         headers: {
@@ -528,23 +571,18 @@ async function updateInvoice() {
       }
     );
 
-    const jsonSales = await resSales.json();
-    if (!resSales.ok) {
-      Swal.fire(
-        "Gagal",
-        jsonSales.message || "❌ Gagal update data utama",
-        "error"
-      );
+    const json = await res.json();
+    if (!res.ok) {
+      Swal.fire("Gagal", json.message || "❌ Gagal update data utama", "error");
       return;
     }
 
-    // Set nilai revisi di form
-    document.getElementById("revision_number").value = revision_status;
+    document.getElementById("revision_number").value = status_revision;
 
-    Swal.fire("Berhasil", "✅ Data berhasil diupdate", "success");
+    Swal.fire("Berhasil", "✅ Data Turn Key berhasil diupdate", "success");
     loadModuleContent("quotation");
-  } catch (error) {
-    Swal.fire("Error", error.message || "❌ Terjadi kesalahan", "error");
+  } catch (err) {
+    Swal.fire("Error", err.message || "❌ Terjadi kesalahan", "error");
   }
 }
 
@@ -558,16 +596,15 @@ function initializeForm(isEdit = false) {
   }
 }
 
-async function loadDetailSales(Id, Detail) {
+async function loadDetailSalesTurnKey(Id, Detail) {
   window.detail_id = Id;
   window.detail_desc = Detail;
 
   try {
-    const res = await fetch(`${baseUrl}/detail/sales/${Id}`, {
+    const res = await fetch(`${baseUrl}/detail/sales_turnkey/${Id}`, {
       headers: { Authorization: `Bearer ${API_TOKEN}` },
     });
     const response = await res.json();
-    console.log("Response API:", response);
 
     if (!response || !response.detail) {
       throw new Error("Invalid API response structure - missing detail");
@@ -589,10 +626,9 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("client").value = data.pelanggan_nama || "";
     document.getElementById("contract_amount").value =
       data.contract_amount || 0;
+
     const discountEl = document.getElementById("discount");
-    if (discountEl) {
-      discountEl.value = formatNumber(data.disc || 0);
-    }
+    if (discountEl) discountEl.value = formatNumber(data.disc || 0);
 
     document.getElementById("ppn").value = data.ppn || 0;
     document.getElementById("total").value = data.total || 0;
@@ -606,10 +642,10 @@ async function loadDetailSales(Id, Detail) {
       data.term_pembayaran || "";
 
     const simpanBtn = document.querySelector(
-      'button[onclick="submitInvoice()"]'
+      'button[onclick="submitInvoiceTurnKey()"]'
     );
     const updateBtn = document.querySelector(
-      'button[onclick="updateInvoice()"]'
+      'button[onclick="updateInvoiceTurnKey()"]'
     );
     const logBtn = document.getElementById("logBtn");
 
@@ -627,7 +663,6 @@ async function loadDetailSales(Id, Detail) {
     }
     simpanBtn?.classList.add("hidden");
 
-    // 🔹 Ambil list sub category dari API
     const subcategoryRes = await fetch(
       `${baseUrl}/list/sub_category/${owner_id}`,
       {
@@ -654,25 +689,29 @@ async function loadDetailSales(Id, Detail) {
     tbody.innerHTML = "";
 
     for (const item of data.items || []) {
-      tambahItem();
-      const row = tbody.lastElementChild;
+      for (const material of item.materials || []) {
+        tambahItem();
+        const row = tbody.lastElementChild;
 
-      const subcatSelect = row.querySelector(".itemSubcategory");
-      // 🔹 panggil dengan sub_category_id biar auto select
-      await loadSubcategories(subcatSelect, item.sub_category_id);
+        const subcatSelect = row.querySelector(".itemSubcategory");
+        // 🔹 panggil dengan sub_category_id biar auto select
+        await loadSubcategories(subcatSelect, item.sub_category_id);
 
-      row.querySelector(".itemProduct").value = item.product || "";
-      row.querySelector(".itemDesc").value = item.description || "";
-      row.querySelector(".itemUnit").value = item.unit || "";
-      row.querySelector(".itemQty").value = item.qty || 1;
-      row.querySelector(".itemHarga").value = formatNumber(
-        item.unit_price || 0
-      );
-      row.querySelector(".itemTotal").innerText = formatNumber(
-        item.total || item.qty * item.unit_price
-      );
+        row.querySelector(".itemProduct").value = item.product || "";
+        row.querySelector(".itemDesc").value = item.description || "";
 
-      console.log(item.sub_category);
+        row.querySelector(".itemMaterial").value = material.name || "";
+        row.querySelector(".itemSpec").value = material.specification || "";
+        row.querySelector(".itemUnit").value = material.unit || "";
+        row.querySelector(".itemQty").value = material.qty || 1;
+        row.querySelector(".itemHarga").value = formatNumber(
+          material.unit_price || 0
+        );
+        row.querySelector(".itemTotal").innerText = formatNumber(
+          material.total || material.qty * material.unit_price
+        );
+        console.log(item.sub_category);
+      }
     }
 
     // Helper function to format file size

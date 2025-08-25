@@ -130,34 +130,55 @@ window.rowTemplate = function (item, index, perPage = 10) {
         ${item.status}
       </span>
       <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
-        <!-- View Order -->
-        <button onclick="event.stopPropagation(); loadModuleContent('quotation_detail', '${
-          item.pesanan_id
-        }', '${item.no_qtn}'); showVersionHistory('${item.pesanan_id}', '${
+
+  <!-- View Order -->
+  <button 
+    onclick="event.stopPropagation(); 
+      if ('${item.project_type}' === 'Turn Key') {
+        loadModuleContent('quotation_turnkey', '${item.pesanan_id}', '${
     item.no_qtn
-  }');" 
-          class="block w-full text-left px-4 py-2 hover:bg-gray-100">👁️ View Order</button>
+  }');
+      } else {
+        loadModuleContent('quotation_detail', '${item.pesanan_id}', '${
+    item.no_qtn
+  }');
+      }
+      showVersionHistory('${item.pesanan_id}', '${item.no_qtn}');"
+    class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+    👁️ View Order
+  </button>
 
-        <button onclick="event.stopPropagation(); loadModuleContent('quotation_log_detail', '${
-          item.pesanan_id
-        }');" 
-          class="block w-full text-left px-4 py-2 hover:bg-gray-100">🧾 Log</button>
+  <!-- Log -->
+  <button 
+    onclick="event.stopPropagation(); loadModuleContent('quotation_log_detail', '${
+      item.pesanan_id
+    }');" 
+    class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+    🧾 Log
+  </button>
 
-        <!-- Add Invoice (hanya jika WON) -->
-        ${
-          item.status_id === 2
-            ? `<button onclick="openInvoiceModal('${item.pesanan_id}')" class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-600">➕ Add Invoice</button>`
-            : ""
-        }
+  <!-- Add Invoice (hanya jika WON) -->
+  ${
+    item.status_id === 2
+      ? `<button onclick="openInvoiceModal('${item.pesanan_id}')" 
+          class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-600">
+          ➕ Add Invoice
+        </button>`
+      : ""
+  }
 
+  <!-- Delete Order -->
+  ${
+    item.status_id !== 2
+      ? `<button onclick="handleDelete('${item.pesanan_id}')" 
+          class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">
+          🗑 Delete Order
+        </button>`
+      : ""
+  }
 
-        <!-- Delete Order -->
-        ${
-          item.status_id !== 2
-            ? `<button onclick="handleDelete('${item.pesanan_id}')" class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">🗑 Delete Order</button>`
-            : ""
-        }
-      </div>
+</div>
+
     </td>
 
     <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
@@ -335,10 +356,30 @@ function renderSalesTable(tableData) {
 }
 
 document.getElementById("addButton").addEventListener("click", async () => {
-  statusLoaded = false;
-  await loadModuleContent("quotation_detail");
-  loadStatusOptions(); // sekarang dijamin status select-nya udah ada & function-nya udah terdefinisi
-  loadDetailSales(id, detail);
+  const result = await Swal.fire({
+    title: "Pilih Jenis Faktur",
+    text: "Silakan pilih jenis faktur yang ingin dibuat",
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: "📦 Add Material",
+    denyButtonText: "🔑 Add Turn Key",
+    showDenyButton: true,
+    cancelButtonText: "❌ Batal",
+  });
+
+  if (result.isConfirmed) {
+    // === ADD MATERIAL ===
+    statusLoaded = false;
+    await loadModuleContent("quotation_detail");
+    loadStatusOptions(); // status select sudah ready
+    loadDetailSales(id, detail);
+  } else if (result.isDenied) {
+    // === ADD TURN KEY ===
+    statusLoaded = false;
+    await loadModuleContent("quotation_turnkey");
+    loadStatusOptions();
+    loadDetailSales(id, detail);
+  }
 });
 
 formHtml = ``;

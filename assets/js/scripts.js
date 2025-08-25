@@ -32,16 +32,24 @@ const formattedDate = `${year}-${month}-${day}`;
 let cashier_id = 0;
 let current_date = formattedDate;
 
+// Function to load JavaScript files dynamically
+function loadScript(src, callback) {
+  const script = document.createElement("script");
+  script.src = src;
+  script.onload = callback;
+  script.onerror = () => console.error(`Error loading script: ${src}`);
+  document.body.appendChild(script);
+}
+
 const scriptsToLoad = [
-  `./assets/js/utils.js`,
-  `./assets/js/api.js`,
-  `./assets/js/table.js`,
+  `./assets/js/utils.js?v=${new Date().getTime()}`,
+  `./assets/js/api.js?v=${new Date().getTime()}`,
+  `./assets/js/table.js?v=${new Date().getTime()}`,
 ];
 
-// if (!owner_id || !user_id || !level || !nama) {
-//   if (!owner_id || !user_id || !level|| !username) {
-//     window.location.href = 'login';
-// }
+if (!owner_id || !user_id) {
+  window.location.href = "login.html";
+}
 
 function formatRupiah(value) {
   return new Intl.NumberFormat("id-ID", {
@@ -57,37 +65,37 @@ function finance(value) {
   }).format(value);
 }
 
-// function openLink(baseURL) {
-//     // Retrieve all localStorage data from the current tab
-//     const data = {
-//         owner_id: localStorage.getItem('owner_id'),
-//         user_id: localStorage.getItem('user_id'),
-//         status_active: localStorage.getItem('status_active'),
-//         level: localStorage.getItem('level'),
-//         nama: localStorage.getItem('nama'),
-//         logo: localStorage.getItem('logo'),
-//         business_place: localStorage.getItem('business_place'),
-//         address: localStorage.getItem('address'),
-//         company_phone: localStorage.getItem('company_phone'),
-//         printer_setting: localStorage.getItem('printer_setting') // Keep as a string
-//     };
+function openLink(baseURL) {
+  // Retrieve all localStorage data from the current tab
+  const data = {
+    owner_id: localStorage.getItem("owner_id"),
+    user_id: localStorage.getItem("user_id"),
+    status_active: localStorage.getItem("status_active"),
+    level: localStorage.getItem("level"),
+    nama: localStorage.getItem("nama"),
+    logo: localStorage.getItem("logo"),
+    business_place: localStorage.getItem("business_place"),
+    address: localStorage.getItem("address"),
+    company_phone: localStorage.getItem("company_phone"),
+    printer_setting: localStorage.getItem("printer_setting"), // Keep as a string
+  };
 
-//     // Open the new tab
-//     const newWindow = window.open(baseURL, '_blank');
+  // Open the new tab
+  const newWindow = window.open(baseURL, "_blank");
 
-//     // Wait until the new tab is fully loaded
-//     newWindow.onload = function () {
-//         // Once the new tab is loaded, set the localStorage data
-//         Object.keys(data).forEach(key => {
-//             if (data[key] !== null) {
-//                 newWindow.localStorage.setItem(key, data[key]);
-//             }
-//         });
+  // Wait until the new tab is fully loaded
+  newWindow.onload = function () {
+    // Once the new tab is loaded, set the localStorage data
+    Object.keys(data).forEach((key) => {
+      if (data[key] !== null) {
+        newWindow.localStorage.setItem(key, data[key]);
+      }
+    });
 
-//         // Optional: Log to verify that data is being set
-//         console.log("Session data set in new tab:", data);
-//     };
-// }
+    // Optional: Log to verify that data is being set
+    console.log("Session data set in new tab:", data);
+  };
+}
 
 async function loadSection(sectionPath) {
   try {
