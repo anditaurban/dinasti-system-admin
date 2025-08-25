@@ -174,11 +174,7 @@ window.rowTemplate = function (item, index, perPage = 10) {
         <button onclick="event.stopPropagation(); confirmPayment('${item.receipt_id}', 3);" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
           ❌ Tidak Valid
         </button>
-        <button 
-          onclick="exportReceiptRow('${item.receipt_id}')"
-          class="px-3 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600 text-xs">
-          🧾 Kwitansi
-        </button>
+       
       </div>
     `
         : ""
