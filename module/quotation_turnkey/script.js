@@ -858,45 +858,20 @@ async function loadSalesType() {
     const typeSelect = document.getElementById("type_id");
     typeSelect.innerHTML = '<option value="">Pilih Tipe</option>';
 
-    salesTypes.forEach((item) => {
+    // 🔹 Filter hanya kode_type = "TK"
+    const turnkey = salesTypes.find((item) => item.kode_type === "TK");
+
+    if (turnkey) {
       const option = document.createElement("option");
-      option.value = item.type_id;
-      option.textContent = `${item.nama_type} (${item.kode_type})`;
+      option.value = turnkey.type_id;
+      option.textContent = `${turnkey.nama_type} (${turnkey.kode_type})`;
       typeSelect.appendChild(option);
-    });
+    }
   } catch (error) {
     console.error("Gagal load sales type:", error);
   }
 }
-async function loadSalesType() {
-  if (typeLoaded) return;
-  typeLoaded = true;
 
-  try {
-    const response = await fetch(`${baseUrl}/type/sales`, {
-      headers: {
-        Authorization: `Bearer ${API_TOKEN}`,
-      },
-    });
-
-    if (!response.ok) throw new Error("Gagal mengambil data sales type");
-
-    const result = await response.json();
-    const salesTypes = result.data;
-
-    const typeSelect = document.getElementById("type_id");
-    typeSelect.innerHTML = '<option value="">Pilih Tipe</option>';
-
-    salesTypes.forEach((item) => {
-      const option = document.createElement("option");
-      option.value = item.type_id;
-      option.textContent = `${item.nama_type} (${item.kode_type})`;
-      typeSelect.appendChild(option);
-    });
-  } catch (error) {
-    console.error("Gagal load sales type:", error);
-  }
-}
 async function loadStatusOptions(defaultSelectedId = 1) {
   if (statusLoaded) return;
 

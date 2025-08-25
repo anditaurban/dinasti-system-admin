@@ -467,54 +467,54 @@ async function updateInvoice() {
       return {
         product,
         description,
-        unit,
         qty,
+        unit,
         unit_price,
         sub_category: sub_category_id,
       };
     });
 
-    // Hitung nominal kontrak, diskon, DPP, PPN, dan total
-    const nominalKontrak = items.reduce(
+    // Hitung nominal kontrak, diskon, DPP, PPN
+    const contract_amount = items.reduce(
       (acc, item) => acc + item.qty * item.unit_price,
       0
     );
-    // const disc = parseRupiah(document.getElementById("discount")?.value || 0);
-    // const dpp = nominalKontrak - disc;
-    // const ppn = Math.round(dpp * 0.11);
-    // const total = dpp + ppn;
+
+    const disc = parseRupiah(document.getElementById("discount")?.value || 0);
+    const dpp = contract_amount - disc;
+    const ppn = Math.round(dpp * 0.11);
 
     // Ambil data status
     const status_id = parseInt(document.getElementById("status")?.value || 1);
     const revisionNumber = window.revision_count || 1;
-    const revision_status = `Revisi ${revisionNumber}`;
+    const status_revision = `Revisi ${revisionNumber}`;
 
-    // Validasi format no_qtn sebelum dikirim
     const no_qtn = document.getElementById("no_qtn")?.value || "";
 
-    // Body untuk update sales (status_id & revision_status langsung dikirim di sini)
+    // Body sesuai format endpoint
     const bodySales = {
       owner_id,
       user_id,
-      no_qtn: no_qtn,
+      no_qtn,
       project_name: document.getElementById("project_name")?.value || "",
       client: document.getElementById("client")?.value || "",
       type_id: document.getElementById("type_id")?.value || 0,
       order_date: document.getElementById("tanggal")?.value || "",
-      contract_amount: nominalKontrak,
-      discount,
-      ppn: ppn,
-      total: total,
-      status_id: status_id,
-      revision_status: revision_status, // langsung dikirim
-      items: items,
+      contract_amount,
+      disc, // ✅ bukan discount
+      ppn, // ✅ dihitung
+      status_id,
+      status_revision, // ✅ bukan revision_status
+      files: [], // ✅ bisa diisi jika ada upload file
+      items,
       catatan: document.getElementById("catatan")?.value || "-",
       syarat_ketentuan:
         document.getElementById("syarat_ketentuan")?.value || "-",
       term_pembayaran: document.getElementById("term_pembayaran")?.value || "-",
     };
 
-    console.log(JSON.stringify(bodySales, null, 2));
+    console.log("Body Update Sales:", JSON.stringify(bodySales, null, 2));
+
     // Update Sales
     const resSales = await fetch(
       `${baseUrl}/update/sales/${window.detail_id}`,
@@ -539,7 +539,7 @@ async function updateInvoice() {
     }
 
     // Set nilai revisi di form
-    document.getElementById("revision_number").value = revision_status;
+    document.getElementById("revision_number").value = status_revision;
 
     Swal.fire("Berhasil", "✅ Data berhasil diupdate", "success");
     loadModuleContent("quotation");
@@ -800,35 +800,6 @@ async function tryGenerateNoQtn() {
   }
 }
 
-async function loadSalesType() {
-  if (typeLoaded) return;
-  typeLoaded = true;
-
-  try {
-    const response = await fetch(`${baseUrl}/type/sales`, {
-      headers: {
-        Authorization: `Bearer ${API_TOKEN}`,
-      },
-    });
-
-    if (!response.ok) throw new Error("Gagal mengambil data sales type");
-
-    const result = await response.json();
-    const salesTypes = result.data;
-
-    const typeSelect = document.getElementById("type_id");
-    typeSelect.innerHTML = '<option value="">Pilih Tipe</option>';
-
-    salesTypes.forEach((item) => {
-      const option = document.createElement("option");
-      option.value = item.type_id;
-      option.textContent = `${item.nama_type} (${item.kode_type})`;
-      typeSelect.appendChild(option);
-    });
-  } catch (error) {
-    console.error("Gagal load sales type:", error);
-  }
-}
 async function loadSalesType() {
   if (typeLoaded) return;
   typeLoaded = true;
