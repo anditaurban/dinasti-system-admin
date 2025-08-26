@@ -1,7 +1,7 @@
 pagemoduleparent = "sales";
 
 setTodayDate();
-loadCustomerList();
+loadCustomerList(owner_id);
 // Harus di atas, sebelum loadSalesType dipanggil
 typeLoaded = false;
 statusLoaded = false;
@@ -9,7 +9,6 @@ oldStatusText = "R0"; // misalnya status sebelum diedit
 lastRevision = 0;
 revision_count = 0;
 
-loadProdukList();
 formatNumberInputs();
 document.getElementById("tanggal").addEventListener("change", tryGenerateNoQtn);
 document.getElementById("type_id").addEventListener("change", tryGenerateNoQtn);
@@ -25,23 +24,23 @@ if (window.detail_id && window.detail_desc) {
   formatNumberInputs();
 }
 
-async function loadCustomerList() {
-  const response = await fetch(`${baseUrl}/all/client/`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${API_TOKEN}`, // sesuaikan dengan token kamu
-    },
-  });
-  const result = await response.json();
-  customerList = result.data || [];
-}
+async function loadCustomerList(owner_id) {
+  try {
+    const response = await fetch(`${baseUrl}/client/sales/${owner_id}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+    });
 
-async function loadProdukList() {
-  const res = await fetch(`${baseUrl}/list/product/${owner_id}`, {
-    headers: { Authorization: `Bearer ${API_TOKEN}` },
-  });
-  const json = await res.json();
-  produkList = json.listData || [];
+    if (!response.ok) throw new Error("Gagal mengambil data client");
+
+    const result = await response.json();
+
+    customerList = result.data || [];
+  } catch (error) {
+    customerList = [];
+  }
 }
 
 function filterclientSuggestions() {
@@ -55,7 +54,7 @@ function filterclientSuggestions() {
   }
 
   const filtered = customerList.filter(
-    (c) => c.nama && c.nama.toLowerCase().includes(inputVal)
+    (c) => c.nama_client && c.nama_client.toLowerCase().includes(inputVal)
   );
 
   if (filtered.length === 0) {
@@ -64,12 +63,17 @@ function filterclientSuggestions() {
 
   filtered.forEach((item) => {
     const li = document.createElement("li");
-    li.textContent = `${item.nama} (${item.whatsapp || "No WA"})`;
+    li.textContent = item.nama_client;
     li.className = "px-3 py-2 hover:bg-gray-200 cursor-pointer";
 
-    // Saat item diklik, isi input dan sembunyikan list
     li.addEventListener("click", () => {
-      document.getElementById("client").value = item.nama;
+      document.getElementById("client").value = item.nama_client;
+      document.getElementById("client_id").value = item.client_id;
+
+      console.log("✅ Client selected:", {
+        id: item.client_id,
+        nama: item.nama_client,
+      });
 
       suggestionBox.classList.add("hidden");
     });
@@ -769,7 +773,7 @@ async function printInvoice(pesanan_id) {
     });
 
     if (isConfirmed) {
-      const url = `faktur_print.html?id=${pesanan_id}`;
+      const url = `faktur_print_TK.html?id=${pesanan_id}`;
       Swal.fire({
         title: "Menyiapkan PDF...",
         html: "File akan diunduh otomatis.",
@@ -796,7 +800,7 @@ async function printInvoice(pesanan_id) {
         },
       });
     } else if (dismiss === Swal.DismissReason.cancel) {
-      window.open(`faktur_print.html?id=${pesanan_id}`, "_blank");
+      window.open(`faktur_print_TK.html?id=${pesanan_id}`, "_blank");
     }
   } catch (error) {
     Swal.fire({
@@ -844,7 +848,7 @@ async function loadSalesType() {
   typeLoaded = true;
 
   try {
-    const response = await fetch(`${baseUrl}/type/sales`, {
+    const response = await fetch(`${baseUrl}/list/type_sales_turnkey`, {
       headers: {
         Authorization: `Bearer ${API_TOKEN}`,
       },
@@ -853,20 +857,17 @@ async function loadSalesType() {
     if (!response.ok) throw new Error("Gagal mengambil data sales type");
 
     const result = await response.json();
-    const salesTypes = result.data;
+    const salesTypes = result.listData;
 
     const typeSelect = document.getElementById("type_id");
     typeSelect.innerHTML = '<option value="">Pilih Tipe</option>';
 
-    // 🔹 Filter hanya kode_type = "TK"
-    const turnkey = salesTypes.find((item) => item.kode_type === "TK");
-
-    if (turnkey) {
+    salesTypes.forEach((item) => {
       const option = document.createElement("option");
-      option.value = turnkey.type_id;
-      option.textContent = `${turnkey.nama_type} (${turnkey.kode_type})`;
+      option.value = item.type_id;
+      option.textContent = `${item.nama_type} (${item.kode_type})`;
       typeSelect.appendChild(option);
-    }
+    });
   } catch (error) {
     console.error("Gagal load sales type:", error);
   }

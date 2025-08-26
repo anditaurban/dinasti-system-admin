@@ -1,7 +1,6 @@
 pagemoduleparent = "sales";
 
 setTodayDate();
-loadCustomerList();
 // Harus di atas, sebelum loadSalesType dipanggil
 typeLoaded = false;
 statusLoaded = false;
@@ -9,7 +8,6 @@ oldStatusText = "R0"; // misalnya status sebelum diedit
 lastRevision = 0;
 revision_count = 0;
 
-loadProdukList();
 formatNumberInputs();
 document.getElementById("tanggal").addEventListener("change", tryGenerateNoQtn);
 document.getElementById("type_id").addEventListener("change", tryGenerateNoQtn);
@@ -25,23 +23,23 @@ if (window.detail_id && window.detail_desc) {
   formatNumberInputs();
 }
 
-async function loadCustomerList() {
-  const response = await fetch(`${baseUrl}/all/client/`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${API_TOKEN}`, // sesuaikan dengan token kamu
-    },
-  });
-  const result = await response.json();
-  customerList = result.data || [];
-}
+async function loadCustomerList(owner_id) {
+  try {
+    const response = await fetch(`${baseUrl}/client/sales/${owner_id}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+    });
 
-async function loadProdukList() {
-  const res = await fetch(`${baseUrl}/list/product/${owner_id}`, {
-    headers: { Authorization: `Bearer ${API_TOKEN}` },
-  });
-  const json = await res.json();
-  produkList = json.listData || [];
+    if (!response.ok) throw new Error("Gagal mengambil data client");
+
+    const result = await response.json();
+
+    customerList = result.data || [];
+  } catch (error) {
+    customerList = [];
+  }
 }
 
 function filterclientSuggestions() {
@@ -55,7 +53,7 @@ function filterclientSuggestions() {
   }
 
   const filtered = customerList.filter(
-    (c) => c.nama && c.nama.toLowerCase().includes(inputVal)
+    (c) => c.nama_client && c.nama_client.toLowerCase().includes(inputVal)
   );
 
   if (filtered.length === 0) {
@@ -64,12 +62,17 @@ function filterclientSuggestions() {
 
   filtered.forEach((item) => {
     const li = document.createElement("li");
-    li.textContent = `${item.nama} (${item.whatsapp || "No WA"})`;
+    li.textContent = item.nama_client;
     li.className = "px-3 py-2 hover:bg-gray-200 cursor-pointer";
 
-    // Saat item diklik, isi input dan sembunyikan list
     li.addEventListener("click", () => {
-      document.getElementById("client").value = item.nama;
+      document.getElementById("client").value = item.nama_client;
+      document.getElementById("client_id").value = item.client_id;
+
+      console.log("✅ Client selected:", {
+        id: item.client_id,
+        nama: item.nama_client,
+      });
 
       suggestionBox.classList.add("hidden");
     });
@@ -187,38 +190,6 @@ function hapusItem(button) {
   const row = button.closest("tr");
   row.remove();
   calculateProjectTotals();
-}
-
-function filterProdukDropdownCustom(inputEl) {
-  const value = inputEl.value.toLowerCase();
-  const dropdown = inputEl.nextElementSibling;
-  const select = inputEl.parentElement.querySelector(".itemNama");
-  dropdown.innerHTML = "";
-
-  const filtered = produkList.filter((p) =>
-    p.product.toLowerCase().includes(value)
-  );
-  if (filtered.length === 0) return dropdown.classList.add("hidden");
-
-  filtered.forEach((p) => {
-    const div = document.createElement("div");
-    div.className = "px-3 py-2 hover:bg-gray-200 cursor-pointer text-sm";
-    div.textContent = p.product;
-    div.onclick = () => {
-      inputEl.value = p.product;
-      inputEl.closest("tr").querySelector(".itemHarga").value =
-        p.sale_price.toLocaleString("id-ID");
-      const opt = Array.from(select.options).find(
-        (o) => o.value == p.product_id
-      );
-      if (opt) select.value = opt.value;
-      dropdown.classList.add("hidden");
-      calculateInvoiceTotals();
-    };
-    dropdown.appendChild(div);
-  });
-
-  dropdown.classList.remove("hidden");
 }
 
 function recalculateTotal() {
@@ -805,7 +776,7 @@ async function loadSalesType() {
   typeLoaded = true;
 
   try {
-    const response = await fetch(`${baseUrl}/type/sales`, {
+    const response = await fetch(`${baseUrl}/list/type_sales`, {
       headers: {
         Authorization: `Bearer ${API_TOKEN}`,
       },
@@ -814,7 +785,7 @@ async function loadSalesType() {
     if (!response.ok) throw new Error("Gagal mengambil data sales type");
 
     const result = await response.json();
-    const salesTypes = result.data;
+    const salesTypes = result.listData || []; // <- ambil dari listData
 
     const typeSelect = document.getElementById("type_id");
     typeSelect.innerHTML = '<option value="">Pilih Tipe</option>';
@@ -829,6 +800,7 @@ async function loadSalesType() {
     console.error("Gagal load sales type:", error);
   }
 }
+
 async function loadStatusOptions(defaultSelectedId = 1) {
   if (statusLoaded) return;
 

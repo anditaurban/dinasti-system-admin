@@ -217,6 +217,13 @@ async function loadModuleContent(module, Id, Detail) {
             console.warn("loadPesananData belum terdefinisi.");
           }
         }
+        if (module === "quotation_log_turnkey") {
+          if (typeof loadPesananData === "function") {
+            loadPesananData(Id);
+          } else {
+            console.warn("loadPesananData belum terdefinisi.");
+          }
+        }
 
         resolve();
       };

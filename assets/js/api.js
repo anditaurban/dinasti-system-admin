@@ -33,7 +33,7 @@ const state = {
   sales_package: { ...defaultState },
   sales_detail: { ...defaultState },
   sales_log_detail: { ...defaultState },
-  sales_log_detail: { ...defaultState },
+  quotation_log_turnkey: { ...defaultState },
   receipt: { ...defaultState },
   package_slip: { ...defaultState },
   project: { ...defaultState },

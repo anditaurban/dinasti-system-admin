@@ -149,13 +149,20 @@ window.rowTemplate = function (item, index, perPage = 10) {
   </button>
 
   <!-- Log -->
-  <button 
-    onclick="event.stopPropagation(); loadModuleContent('quotation_log_detail', '${
-      item.pesanan_id
-    }');" 
-    class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-    🧾 Log
-  </button>
+  <!-- Log -->
+<button 
+  onclick="event.stopPropagation(); 
+    if ('${item.project_type}' === 'Turn Key') {
+      loadModuleContent('quotation_log_turnkey', '${item.pesanan_id}', '${
+    item.no_qtn
+  }');
+    } else {
+      loadModuleContent('quotation_log_detail', '${item.pesanan_id}');
+    }"
+  class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+  🧾 Log
+</button>
+
 
   <!-- Add Invoice (hanya jika WON) -->
   ${
@@ -371,12 +378,14 @@ document.getElementById("addButton").addEventListener("click", async () => {
     // === ADD MATERIAL ===
     statusLoaded = false;
     await loadModuleContent("quotation_detail");
+    loadCustomerList(owner_id);
     loadStatusOptions(); // status select sudah ready
     loadDetailSales(id, detail);
   } else if (result.isDenied) {
     // === ADD TURN KEY ===
     statusLoaded = false;
     await loadModuleContent("quotation_turnkey");
+    loadCustomerList(owner_id);
     loadStatusOptions();
     loadDetailSales(id, detail);
   }

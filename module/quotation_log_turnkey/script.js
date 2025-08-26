@@ -26,7 +26,7 @@ function formatRp(angka) {
 }
 
 // Global variable to store versions
-let globalVersions = [];
+globalVersions = [];
 
 function terbilang(n) {
   const satuan = [
@@ -65,9 +65,12 @@ async function loadPesananData(pesananId, isDownload = false) {
   showLoading();
 
   try {
-    const response = await fetch(`${baseUrl}/detail/sales_log/${pesananId}`, {
-      headers: { Authorization: `Bearer ${API_TOKEN}` },
-    });
+    const response = await fetch(
+      `${baseUrl}/detail/sales_log_turnkey/${pesananId}`,
+      {
+        headers: { Authorization: `Bearer ${API_TOKEN}` },
+      }
+    );
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -99,38 +102,26 @@ async function loadPesananData(pesananId, isDownload = false) {
   }
 }
 
-function renderInvoice(invoiceData, isDownload = false) {
+async function fetchSubCategories() {
+  try {
+    const res = await fetch(`${baseUrl}/list/sub_category/1`, {
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+    });
+    const result = await res.json();
+    return result.listData || [];
+  } catch (err) {
+    console.error("Gagal memuat kategori", err);
+    return [];
+  }
+}
+
+async function renderInvoice(invoiceData, isDownload = false) {
   if (!invoiceData) return;
 
-  async function loadSubCategories() {
-    try {
-      const res = await fetch(`${baseUrl}/list/sub_category/1`, {
-        headers: {
-          Authorization: `Bearer ${API_TOKEN}`,
-        },
-      });
-      // Ambil list sub kategori dulu
-      const subCategories = await loadSubCategories();
-      const subCategoryMap = subCategories.reduce((map, sc) => {
-        map[sc.sub_category_id] = sc.sub_category;
-        return map;
-      }, {});
-
-      // Group items pakai nama sub_category
-      const groupedItems = items.reduce((acc, item) => {
-        const categoryName = subCategoryMap[item.sub_category_id] || "Lainnya";
-        if (!acc[categoryName]) acc[categoryName] = [];
-        acc[categoryName].push(item);
-        return acc;
-      }, {});
-
-      const result = await res.json();
-      return result.listData || [];
-    } catch (err) {
-      console.error("Gagal memuat kategori", err);
-      return [];
-    }
-  }
+  // Ambil list sub kategori
+  const subCategories = await fetchSubCategories();
 
   // Format currency function
   const formatCurrency = (val) => `Rp ${(+val).toLocaleString("id-ID")}`;
@@ -195,147 +186,163 @@ function renderInvoice(invoiceData, isDownload = false) {
     ? invoiceData.inv_number || invoiceData.no_qtn
     : invoiceData.no_qtn;
 
-  // Group items by kategori (jika ada categoryName)
-  const groupedItems = items.reduce((acc, item) => {
-    const categoryName = item.sub_category || "Lainnya";
-    if (!acc[categoryName]) acc[categoryName] = [];
-    acc[categoryName].push(item);
+  // Tambahkan kategori ke setiap item
+  const itemsWithCategory = items.map((item) => {
+    const category = subCategories.find(
+      (c) => c.sub_category_id == item.sub_category_id
+    );
+    return {
+      ...item,
+      categoryName: category ? category.sub_category : "Lainnya",
+    };
+  });
+
+  // Grouping by sub_category
+  const groupedItems = itemsWithCategory.reduce((acc, item) => {
+    if (!acc[item.categoryName]) acc[item.categoryName] = [];
+    acc[item.categoryName].push(item);
     return acc;
   }, {});
 
   // Buat tabel grouped
+  let rowNumber = 1;
   const tableRows = Object.entries(groupedItems)
     .map(([category, items]) => {
       return `
-          <tr class="bg-gray-200">
-            <td colspan="6" class="p-1 font-bold text-gray-800 text-xs">${category}</td>
+        <tr class="bg-gray-200">
+          <td colspan="7" class="p-1 font-bold text-gray-800 text-xs">${category}</td>
+        </tr>
+        ${items
+          .map(
+            (item) => `
+          <tr class="bg-gray-100 italic">
+            <td colspan="7" class="p-1 text-gray-700">
+              ${item.product || "-"}
+              ${
+                item.description
+                  ? `<div class="text-xs text-gray-500">${item.description}</div>`
+                  : ""
+              }
+            </td>
           </tr>
-          ${items
+          ${item.materials
             .map(
-              (item, index) => `
+              (mat) => `
             <tr>
-              <td class="text-center text-gray-700">${index + 1}</td>
-              <td class="text-gray-800">
-                <p class="font-medium">${item.product || "-"}</p>
-                ${
-                  item.description
-                    ? `<p class="text-xs text-gray-500 mt-0">${item.description}</p>`
-                    : ""
-                }
-              </td>
-              <td class="text-center text-gray-700">${item.qty || 0}</td>
-              <td class="text-center text-gray-700">${item.unit || "-"}</td>
-              <td class="text-right text-gray-800">${formatRp(
-                item.unit_price || 0
-              )}</td>
-              <td class="text-right text-gray-800 font-medium">${formatRp(
-                item.total || 0
+              <td class="text-center">${rowNumber++}</td>
+              <td>${mat.name}</td>
+              <td>${mat.specification || "-"}</td>
+              <td class="text-center">${mat.unit}</td>
+              <td class="text-center">${mat.qty}</td>
+              <td class="text-right">${formatCurrency(mat.unit_price)}</td>
+              <td class="text-right font-medium">${formatCurrency(
+                mat.total
               )}</td>
             </tr>
           `
             )
             .join("")}
-        `;
+        `
+          )
+          .join("")}
+      `;
     })
     .join("");
 
   const html = `
-        <!-- Header -->
-        <div class="relative mb-2">
-          <div class="absolute left-0 top-0">
-            <img src="./assets/img/cropped-logo.png" class="h-12" />
-          </div>
-          <div class="text-center">
-            <h1 class="font-bold text-red-700 text-base">PT. DINASTI ELEKTRIK INDONESIA</h1>
-            <p class="text-xs font-semibold">ELEKTRIKAL ENGINEERING & MAINTENANCE</p>
-            <p class="text-[10px]">
-              Jl. Krisa Ayu 4 RT/RW 002/008 Blok A3 No. 19, Cipondoh, Tangerang<br>
-              Telp.: 0823-7142-5300, Email: admin@dinasti.id
-            </p>
-          </div>
+      <!-- Header -->
+      <div class="relative mb-2">
+        <div class="absolute left-0 top-0">
+          <img src="./assets/img/cropped-logo.png" class="h-12" />
         </div>
-        <hr class="border-t-2 border-black mb-2 w-full">
-
-        <!-- Client and Invoice Info -->
-        <div class="flex justify-between mb-4 p-2 bg-gray-50 rounded text-xs">
-          <div>
-            <h3 class="font-bold text-gray-700 mb-1">Kepada YTH:</h3>
-            <p class="font-semibold text-gray-800">${
-              invoiceData.pelanggan_nama
-            }</p>
-            ${
-              invoiceData.project_name
-                ? `<p class="text-gray-600">${invoiceData.project_name}</p>`
-                : ""
-            }
-          </div>
-          <div class="text-right">
-            <h3 class="font-bold text-gray-700 mb-1">${detailTitle}:</h3>
-            <p class="text-gray-600"><strong>${noLabel}:</strong> ${noValue}</p>
-            <p class="text-gray-600"><strong>Tanggal:</strong> ${
-              invoiceData.tanggal_invoice
-            }</p>
-            <p class="text-gray-600"><span class="font-medium">No. Revisi:</span> ${revisionInfo}</p>
-          </div>
+        <div class="text-center">
+          <h1 class="font-bold text-red-700 text-base">PT. DINASTI ELEKTRIK INDONESIA</h1>
+          <p class="text-xs font-semibold">ELEKTRIKAL ENGINEERING & MAINTENANCE</p>
+          <p class="text-[10px]">
+            Jl. Krisa Ayu 4 RT/RW 002/008 Blok A3 No. 19, Cipondoh, Tangerang<br>
+            Telp.: 0823-7142-5300, Email: admin@dinasti.id
+          </p>
         </div>
+      </div>
+      <hr class="border-t-2 border-black mb-2 w-full">
 
-        <!-- Table Items -->
-        <table class="w-full compact-table border-collapse bordered mb-3">
-          <thead class="bg-gray-100">
-            <tr class="text-gray-700">
-              <th class="text-center w-8">No</th>
-              <th class="text-left">Produk</th>
-              <th class="text-center w-12">Qty</th>
-              <th class="text-center w-12">Satuan</th>
-              <th class="text-right w-24">Harga Satuan</th>
-              <th class="text-right w-24">Jumlah</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${tableRows}
-          </tbody>
+      <!-- Client and Invoice Info -->
+      <div class="flex justify-between mb-4 p-2 bg-gray-50 rounded text-xs">
+        <div>
+          <h3 class="font-bold text-gray-700 mb-1">Kepada YTH:</h3>
+          <p class="font-semibold text-gray-800">${
+            invoiceData.pelanggan_nama
+          }</p>
+          ${
+            invoiceData.project_name
+              ? `<p class="text-gray-600">${invoiceData.project_name}</p>`
+              : ""
+          }
+        </div>
+        <div class="text-right">
+          <h3 class="font-bold text-gray-700 mb-1">${detailTitle}:</h3>
+          <p class="text-gray-600"><strong>${noLabel}:</strong> ${noValue}</p>
+          <p class="text-gray-600"><strong>Tanggal:</strong> ${
+            invoiceData.tanggal_invoice
+          }</p>
+          <p class="text-gray-600"><span class="font-medium">No. Revisi:</span> ${revisionInfo}</p>
+        </div>
+      </div>
+
+      <!-- Table Items -->
+      <table class="w-full compact-table border-collapse bordered mb-3">
+        <thead class="bg-gray-100">
+          <tr class="text-gray-700">
+            <th class="text-center w-8">No</th>
+            <th class="text-left">Deskripsi</th>
+            <th class="text-left">Spesifikasi</th>
+            <th class="text-center w-12">Unit</th>
+            <th class="text-center w-12">Qty</th>
+            <th class="text-right w-24">Harga Satuan</th>
+            <th class="text-right w-24">Jumlah</th>
+          </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+
+      <!-- Totals -->
+      <div class="flex justify-end mb-3">
+        <table class="text-xs w-64">
+          <tr>
+            <td class="pr-3 py-0.5 text-right font-semibold text-gray-700">Sub Total</td>
+            <td class="py-0.5 text-right text-gray-800">${formatCurrency(
+              invoiceData.subtotal
+            )}</td>
+          </tr>
+          <tr>
+            <td class="pr-3 py-0.5 text-right font-semibold text-gray-700">Discount</td>
+            <td class="py-0.5 text-right text-gray-800">${formatCurrency(
+              invoiceData.disc
+            )}</td>
+          </tr>
+          <tr>
+            <td class="pr-3 py-0.5 text-right font-semibold text-gray-700">PPN 11%</td>
+            <td class="py-0.5 text-right text-gray-800">${formatCurrency(
+              invoiceData.ppn
+            )}</td>
+          </tr>
+          <tr class="font-bold border-t border-gray-300 total-row">
+            <td class="pr-3 py-1 text-right text-gray-900">TOTAL</td>
+            <td class="py-1 text-right text-red-600">${formatCurrency(
+              invoiceData.total
+            )}</td>
+          </tr>
         </table>
+      </div>
 
-        <!-- Totals -->
-        <div class="flex justify-end mb-3">
-          <table class="text-xs w-64">
-            <tr>
-              <td class="pr-3 py-0.5 text-right font-semibold text-gray-700">Sub Total</td>
-              <td class="py-0.5 text-right text-gray-800">${formatRp(
-                invoiceData.subtotal
-              )}</td>
-            </tr>
-            <tr>
-              <td class="pr-3 py-0.5 text-right font-semibold text-gray-700">Discount</td>
-              <td class="py-0.5 text-right text-gray-800">${formatRp(
-                invoiceData.disc
-              )}</td>
-            </tr>
-            <tr>
-              <td class="pr-3 py-0.5 text-right font-semibold text-gray-700">PPN 11%</td>
-              <td class="py-0.5 text-right text-gray-800">${formatRp(
-                invoiceData.ppn
-              )}</td>
-            </tr>
-            <tr class="font-bold border-t border-gray-300 total-row">
-              <td class="pr-3 py-1 text-right text-gray-900">TOTAL</td>
-              <td class="py-1 text-right text-red-600">${formatRp(
-                invoiceData.total
-              )}</td>
-            </tr>
-          </table>
-        </div>
-
-        <!-- Terbilang -->
-        <div class="text-xs mb-3">
-          <span class="font-semibold text-gray-700">Terbilang:</span>
-          <span class="italic text-gray-800">${terbilang(
-            invoiceData.total
-          )} Rupiah</span>
-        </div>
-
-        <!-- Notes -->
-        <div class="flex justify-between items-start mt-6 text-xs">
+      <!-- Terbilang -->
+      <div class="text-xs mb-3">
+        <span class="font-semibold text-gray-700">Terbilang:</span>
+        <span class="italic text-gray-800">${terbilang(
+          invoiceData.total
+        )} Rupiah</span>
+      </div>
+      <div class="flex justify-between items-start mt-6 text-xs">
           <!-- Catatan -->
           <div class="w-1/2">
             <p class="font-semibold text-gray-700 mb-1">Catatan:</p>
