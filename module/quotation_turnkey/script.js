@@ -26,7 +26,7 @@ if (window.detail_id && window.detail_desc) {
 
 async function loadCustomerList(owner_id) {
   try {
-    const response = await fetch(`${baseUrl}/client/sales/${owner_id}`, {
+    const response = await fetch(`${baseUrl}/client/sales/`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${API_TOKEN}`,
@@ -83,7 +83,6 @@ function filterclientSuggestions() {
 
   suggestionBox.classList.remove("hidden");
 }
-
 // Sembunyikan suggestion jika klik di luar input dan list
 document.addEventListener("click", (e) => {
   const input = document.getElementById("client");
