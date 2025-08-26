@@ -473,6 +473,7 @@ async function updateInvoice() {
       no_qtn,
       project_name: document.getElementById("project_name")?.value || "",
       client: document.getElementById("client")?.value || "",
+      pic_name: document.getElementById("pic_name")?.value || "",
       type_id: document.getElementById("type_id")?.value || 0,
       order_date: document.getElementById("tanggal")?.value || "",
       contract_amount,
@@ -482,7 +483,6 @@ async function updateInvoice() {
       status_revision, // ✅ bukan revision_status
       files: [], // ✅ bisa diisi jika ada upload file
       items,
-      pic_name,
       catatan: document.getElementById("catatan")?.value || "-",
       syarat_ketentuan:
         document.getElementById("syarat_ketentuan")?.value || "-",

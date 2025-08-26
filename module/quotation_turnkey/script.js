@@ -351,6 +351,10 @@ async function submitInvoiceTurnKey() {
 
     formData.append("client", document.getElementById("client")?.value || "-");
     formData.append(
+      "pic_name",
+      document.getElementById("pic_name")?.value || "-"
+    );
+    formData.append(
       "type_id",
       parseInt(document.getElementById("type_id")?.value || 0)
     );
@@ -544,6 +548,7 @@ async function updateInvoiceTurnKey() {
       no_qtn,
       project_name: document.getElementById("project_name")?.value || "",
       client: document.getElementById("client")?.value || "",
+      pic_name: document.getElementById("pic_name")?.value || "",
       contract_amount: nominalKontrak,
       disc, // ✅ konsisten dengan endpoint
       ppn, // ✅ wajib ada
@@ -627,6 +632,7 @@ async function loadDetailSalesTurnKey(Id, Detail) {
     document.getElementById("no_qtn").value = data.no_qtn || "";
     document.getElementById("project_name").value = data.project_name || "";
     document.getElementById("client").value = data.pelanggan_nama || "";
+    document.getElementById("pic_name").value = data.pic_name || "";
     document.getElementById("contract_amount").value =
       data.contract_amount || 0;
 

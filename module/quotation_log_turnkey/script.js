@@ -270,9 +270,11 @@ async function renderInvoice(invoiceData, isDownload = false) {
       <div class="flex justify-between mb-4 p-2 bg-gray-50 rounded text-xs">
         <div>
           <h3 class="font-bold text-gray-700 mb-1">Kepada YTH:</h3>
+          <p class="font-semibold text-gray-800">${data.pic_name}</p>
           <p class="font-semibold text-gray-800">${
             invoiceData.pelanggan_nama
           }</p>
+          <p class="text-gray-800">${data.alamat}</p>
           ${
             invoiceData.project_name
               ? `<p class="text-gray-600">${invoiceData.project_name}</p>`
