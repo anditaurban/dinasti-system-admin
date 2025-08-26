@@ -297,6 +297,10 @@ async function submitInvoice() {
 
     formData.append("client", document.getElementById("client")?.value || "-");
     formData.append(
+      "pic_name",
+      document.getElementById("pic_name")?.value || "-"
+    );
+    formData.append(
       "type_id",
       parseInt(document.getElementById("type_id")?.value || 0)
     );
@@ -478,6 +482,7 @@ async function updateInvoice() {
       status_revision, // ✅ bukan revision_status
       files: [], // ✅ bisa diisi jika ada upload file
       items,
+      pic_name,
       catatan: document.getElementById("catatan")?.value || "-",
       syarat_ketentuan:
         document.getElementById("syarat_ketentuan")?.value || "-",
@@ -558,6 +563,7 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("no_qtn").value = data.no_qtn || "";
     document.getElementById("project_name").value = data.project_name || "";
     document.getElementById("client").value = data.pelanggan_nama || "";
+    document.getElementById("pic_name").value = data.pic_name || "";
     document.getElementById("contract_amount").value =
       data.contract_amount || 0;
     const discountEl = document.getElementById("discount");
