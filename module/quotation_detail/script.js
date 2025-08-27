@@ -16,6 +16,20 @@ document.getElementById("type_id").addEventListener("change", tryGenerateNoQtn);
 if (!window.detail_id) {
   document.getElementById("status").value = 1; // Assuming 1 is "On Going"
 }
+// Misal saat load invoice selesai
+document.getElementById("btnVersionHistory").addEventListener("click", (e) => {
+  e.stopPropagation();
+  loadModuleContent("quotation_log_detail", pesanan_id, no_qtn);
+});
+// Event listener
+document
+  .getElementById("btnVersionHistory")
+  .addEventListener("click", function (event) {
+    event.stopPropagation();
+    const pesanan_id = this.dataset.pesananId;
+    const no_qtn = this.dataset.noQtn;
+    loadModuleContent("quotation_log_detail", pesanan_id, no_qtn);
+  });
 
 if (window.detail_id && window.detail_desc) {
   loadDetailSales(window.detail_id, window.detail_desc);
@@ -611,6 +625,13 @@ async function loadDetailSales(Id, Detail) {
       updateBtn?.classList.remove("hidden");
     }
     simpanBtn?.classList.add("hidden");
+    const versionDiv = document.getElementById("versionInfo");
+    if (versionDiv) {
+      versionDiv.classList.remove("hidden");
+      document.getElementById(
+        "currentVersion"
+      ).innerText = `R${window.revision_count}`;
+    }
 
     // 🔹 Ambil list sub category dari API
     const subcategoryRes = await fetch(

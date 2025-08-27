@@ -24,10 +24,10 @@ document.getElementById("logout").addEventListener("click", function () {
   });
 });
 
-// if (owner_id || user_id || level || username) {
-//     const welcomeMessageSpan = document.getElementById('nameUser');
-//     welcomeMessageSpan.textContent = `Hi, ${username} 👋`;
-// }
+if (owner_id || user_id || level || username) {
+    const welcomeMessageSpan = document.getElementById('nameUser');
+    welcomeMessageSpan.textContent = `Hi, ${username} 👋`;
+}
 
 expandSidebar();
 
@@ -117,51 +117,4 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// Mobile menu dropdown
-const mobileMenuToggle = document.getElementById("mobileMenuToggle");
-const mobileMenuDropdown = document.getElementById("mobileMenuDropdown");
 
-mobileMenuToggle?.addEventListener("click", () => {
-  mobileMenuDropdown?.classList.toggle("hidden");
-});
-
-document.addEventListener("click", (e) => {
-  if (
-    !mobileMenuToggle?.contains(e.target) &&
-    !mobileMenuDropdown?.contains(e.target)
-  ) {
-    mobileMenuDropdown?.classList.add("hidden");
-  }
-});
-
-// async function loadBadge() {
-//   const badgeConfigs = [
-//     { id: 'salesQtyBadge', endpoint: 'counting/sales_pending' },
-//     { id: 'receiptQtyBadge', endpoint: 'counting/sales_receipt_unvalid' },
-//     { id: 'packedQtyBadge', endpoint: 'counting/sales_package_unpack' },
-//     { id: 'shipmentQtyBadge', endpoint: 'counting/sales_package_unshipped' },
-//   ];
-
-//   for (const config of badgeConfigs) {
-//     try {
-//       const response = await fetch(`${baseUrl}/${config.endpoint}/100`, {
-//         headers: {
-//           'Authorization': `Bearer ${API_TOKEN}`
-//         }
-//       });
-
-//       const data = await response.json();
-//       const total = data?.countData?.total || 0;
-
-//       const badge = document.getElementById(config.id);
-//       if (badge) {
-//         badge.textContent = total;
-//         badge.style.display = total > 0 ? 'inline-block' : 'none';
-//       }
-//     } catch (error) {
-//       console.error(`Gagal memuat data untuk ${config.id}:`, error);
-//     }
-//   }
-// }
-
-// setInterval(loadBadge, 1000);

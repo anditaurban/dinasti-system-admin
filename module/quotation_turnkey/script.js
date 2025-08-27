@@ -18,6 +18,11 @@ if (!window.detail_id) {
   document.getElementById("status").value = 1; // Assuming 1 is "On Going"
 }
 
+document.getElementById("btnVersionHistory").addEventListener("click", (e) => {
+  e.stopPropagation();
+  loadModuleContent("quotation_log_detail", pesanan_id, no_qtn);
+});
+
 if (window.detail_id && window.detail_desc) {
   loadDetailSalesTurnKey(window.detail_id, window.detail_desc);
   loadPaymentDetail(window.detail_id, 0);
@@ -699,6 +704,13 @@ async function loadDetailSalesTurnKey(Id, Detail) {
       updateBtn?.classList.remove("hidden");
     }
     simpanBtn?.classList.add("hidden");
+    const versionDiv = document.getElementById("versionInfo");
+    if (versionDiv) {
+      versionDiv.classList.remove("hidden");
+      document.getElementById(
+        "currentVersion"
+      ).innerText = `R${window.revision_count}`;
+    }
 
     const subcategoryRes = await fetch(
       `${baseUrl}/list/sub_category/${owner_id}`,
@@ -759,9 +771,6 @@ async function loadDetailSalesTurnKey(Id, Detail) {
     Swal.fire("Error", err.message || "Gagal memuat detail penjualan", "error");
   }
 }
-
-
-
 
 function getSubCategoryName(id) {
   const sub = subCategoryList.find((s) => s.id === id);

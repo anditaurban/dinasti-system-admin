@@ -39,10 +39,12 @@
           <h2 class="text-xl font-bold">🧾 Tambah Sales</h2>
         </div>
         <!-- Versi Saat Ini -->
-        <div class="bg-blue-50 border border-blue-200 rounded p-2 text-sm flex items-center justify-between">
-          <span>Versi Saat Ini: <strong id="currentVersion">3</strong></span>
-          <a href="#" onclick="showVersionHistory()" class="text-blue-600 hover:underline">Lihat versi lainnya di
-            sini</a>
+        <div id="versionInfo"
+          class="hidden bg-blue-50 border border-blue-200 rounded p-2 text-sm flex items-center justify-between">
+          <span>Versi Saat Ini: <strong id="currentVersion"></strong></span>
+          <button class="text-blue-600 hover:underline" id="btnVersionHistory">
+            Lihat versi lainnya di sini
+          </button>
         </div>
       </div>
 
