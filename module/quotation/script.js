@@ -133,13 +133,20 @@ window.rowTemplate = function (item, index, perPage = 10) {
 
   <!-- View Order -->
   <button 
-  onclick="event.stopPropagation(); openQuotationDetail('${
-    item.project_type
-  }', '${item.pesanan_id}', '${item.no_qtn}')"
-  class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-  👁️ View Detail
-</button>
-
+    onclick="event.stopPropagation(); 
+      if ('${item.project_type}' === 'Turn Key') {
+        loadModuleContent('quotation_turnkey', '${item.pesanan_id}', '${
+    item.no_qtn
+  }');
+      } else {
+        loadModuleContent('quotation_detail', '${item.pesanan_id}', '${
+    item.no_qtn
+  }');
+      }
+      showVersionHistory('${item.pesanan_id}', '${item.no_qtn}');"
+    class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+    👁️ View Detail
+  </button>
 
   <!-- Log -->
   <!-- Log -->

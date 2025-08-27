@@ -564,6 +564,7 @@ async function updateInvoiceTurnKey() {
       "pelanggan_id",
       parseInt(document.getElementById("client_id")?.value || 0)
     );
+
     formData.append("contract_amount", nominalKontrak);
     formData.append("disc", disc);
     formData.append("ppn", ppn);
@@ -628,7 +629,7 @@ async function updateInvoiceTurnKey() {
         body: formData,
       }
     );
-
+    console.log("formData=", formData);
     const json = await res.json();
     if (!res.ok) {
       Swal.fire("Gagal", json.message || "❌ Gagal update data utama", "error");
@@ -733,7 +734,7 @@ async function loadDetailSalesTurnKey(Id, Detail) {
         btnHistory.onclick = (event) => {
           event.preventDefault();
           console.log("➡️ Klik versi lainnya untuk detail_id:", Id);
-          loadModuleContent("quotation_log_detail", Id); // atau "quotation_log_detail" sesuai modulmu
+          loadModuleContent("quotation_log_turnkey", Id); // atau "quotation_log_detail" sesuai modulmu
         };
       }
     }

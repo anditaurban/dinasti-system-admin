@@ -424,7 +424,6 @@ async function updateInvoice() {
       confirmButtonText: "✅ Ya, simpan",
       cancelButtonText: "❌ Batal",
     });
-
     if (!konfirmasi.isConfirmed) return;
 
     // --- Ambil data items dari tabel
@@ -434,15 +433,20 @@ async function updateInvoice() {
       const description = row.querySelector(".itemDesc")?.value.trim() || "";
       const unit = row.querySelector(".itemUnit")?.value.trim() || "pcs";
       const qty = parseInt(row.querySelector(".itemQty")?.value || 0);
-      const unit_price = parseRupiah(
-        row.querySelector(".itemHarga")?.value || 0
-      );
+      const unit_price =
+        parseInt(parseRupiah(row.querySelector(".itemHarga")?.value || 0)) || 0;
       const sub_category_id = parseInt(
         row.querySelector(".itemSubcategory")?.value || 0
       );
 
-      if (!product || !unit || qty <= 0 || isNaN(unit_price)) {
-        throw new Error(`Invalid item data in row ${i + 1}`);
+      if (
+        !product ||
+        !unit ||
+        qty <= 0 ||
+        isNaN(unit_price) ||
+        unit_price <= 0
+      ) {
+        throw new Error(`❌ Data tidak valid di row ${i + 1}`);
       }
 
       return {
@@ -460,7 +464,9 @@ async function updateInvoice() {
       (acc, item) => acc + item.qty * item.unit_price,
       0
     );
-    const disc = parseRupiah(document.getElementById("discount")?.value || 0);
+    const disc =
+      parseInt(parseRupiah(document.getElementById("discount")?.value || 0)) ||
+      0;
     const dpp = contract_amount - disc;
     const ppn = Math.round(dpp * 0.11);
 
@@ -468,61 +474,79 @@ async function updateInvoice() {
     const status_id = parseInt(document.getElementById("status")?.value || 1);
     const revisionNumber = window.revision_count || 1;
     const status_revision = `Revisi ${revisionNumber}`;
+    const no_qtn = document.getElementById("no_qtn")?.value || "";
 
-    // --- Body Sales (tanpa files langsung)
-    const bodySales = {
-      owner_id,
-      user_id,
-      no_qtn: document.getElementById("no_qtn")?.value || "",
-      project_name: document.getElementById("project_name")?.value || "",
-      client: document.getElementById("client")?.value || "",
-      pic_name: document.getElementById("pic_name")?.value || "",
-      type_id: document.getElementById("type_id")?.value || 0,
-      order_date: document.getElementById("tanggal")?.value || "",
-      pelanggan_id: parseInt(document.getElementById("client_id")?.value || 0),
-      contract_amount,
-      disc,
-      ppn,
-      status_id,
-      status_revision,
-      catatan: document.getElementById("catatan")?.value || "-",
-      syarat_ketentuan:
-        document.getElementById("syarat_ketentuan")?.value || "-",
-      term_pembayaran: document.getElementById("term_pembayaran")?.value || "-",
-      items,
-    };
-
-    // --- Buat FormData
+    // === Buat FormData ===
     const formData = new FormData();
-    formData.append("data", JSON.stringify(bodySales)); // semua data utama
-    const fileInput = document.getElementById("files");
-    if (fileInput?.files?.length) {
-      Array.from(fileInput.files).forEach((file) => {
-        formData.append("files[]", file); // multiple upload
+    formData.append("owner_id", String(owner_id || 0));
+    formData.append("user_id", String(user_id || 0));
+    formData.append("no_qtn", no_qtn);
+    formData.append(
+      "project_name",
+      document.getElementById("project_name")?.value || ""
+    );
+    formData.append("client", document.getElementById("client")?.value || "");
+    formData.append(
+      "pic_name",
+      document.getElementById("pic_name")?.value || ""
+    );
+    formData.append(
+      "pelanggan_id",
+      String(parseInt(document.getElementById("client_id")?.value || 0))
+    );
+
+    formData.append("contract_amount", String(contract_amount));
+    formData.append("type_id", document.getElementById("type_id").value);
+    formData.append("order_date", document.getElementById("tanggal").value);
+
+    formData.append("disc", String(disc));
+    formData.append("ppn", String(ppn));
+    formData.append("status_id", String(status_id));
+    formData.append("status_revision", status_revision);
+    formData.append(
+      "catatan",
+      document.getElementById("catatan")?.value || "-"
+    );
+    formData.append(
+      "syarat_ketentuan",
+      document.getElementById("syarat_ketentuan")?.value || "-"
+    );
+    formData.append(
+      "term_pembayaran",
+      document.getElementById("term_pembayaran")?.value || "-"
+    );
+
+    // --- Items → kirim JSON string
+    formData.append("items", JSON.stringify(items));
+
+    // --- File upload
+    const fileInput = document.getElementById("file");
+    if (fileInput && fileInput.files.length > 0) {
+      Array.from(fileInput.files).forEach((f) => {
+        formData.append("files", f); // ⚡ harus "files"
       });
     }
 
-    console.log("FormData update:", bodySales, fileInput?.files);
-
-    // --- Request ke server
-    const resSales = await fetch(
-      `${baseUrl}/update/sales/${window.detail_id}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${API_TOKEN}`,
-        },
-        body: formData,
+    // Debug: tampilkan semua data yang dikirim
+    console.log("🔍 Data yang akan dikirim:");
+    for (let [k, v] of formData.entries()) {
+      if (v instanceof File) {
+        console.log(`${k}: [File] ${v.name} (${v.size} bytes)`);
+      } else {
+        console.log(`${k}:`, v);
       }
-    );
+    }
 
-    const jsonSales = await resSales.json();
-    if (!resSales.ok) {
-      Swal.fire(
-        "Gagal",
-        jsonSales.message || "❌ Gagal update data utama",
-        "error"
-      );
+    // === Request ===
+    const res = await fetch(`${baseUrl}/update/sales/${window.detail_id}`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+      body: formData,
+    });
+
+    const json = await res.json();
+    if (!res.ok) {
+      Swal.fire("Gagal", json.message || "❌ Gagal update data utama", "error");
       return;
     }
 
@@ -563,6 +587,7 @@ async function loadDetailSales(Id, Detail) {
     window.revision_count = data.revision_number || 0;
     window.lastRevision = window.revision_count;
 
+    await loadCustomerList();
     await loadSalesType();
     await loadStatusOptions();
 
@@ -574,6 +599,7 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("project_name").value = data.project_name || "";
     document.getElementById("client").value = data.pelanggan_nama || "";
     document.getElementById("pic_name").value = data.pic_name || "";
+    document.getElementById("client_id").value = data.pelanggan_id || 0;
     document.getElementById("contract_amount").value =
       data.contract_amount || 0;
     const discountEl = document.getElementById("discount");
