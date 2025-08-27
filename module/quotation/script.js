@@ -133,20 +133,13 @@ window.rowTemplate = function (item, index, perPage = 10) {
 
   <!-- View Order -->
   <button 
-    onclick="event.stopPropagation(); 
-      if ('${item.project_type}' === 'Turn Key') {
-        loadModuleContent('quotation_turnkey', '${item.pesanan_id}', '${
-    item.no_qtn
-  }');
-      } else {
-        loadModuleContent('quotation_detail', '${item.pesanan_id}', '${
-    item.no_qtn
-  }');
-      }
-      showVersionHistory('${item.pesanan_id}', '${item.no_qtn}');"
-    class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-    👁️ View Order
-  </button>
+  onclick="event.stopPropagation(); openQuotationDetail('${
+    item.project_type
+  }', '${item.pesanan_id}', '${item.no_qtn}')"
+  class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+  👁️ View Detail
+</button>
+
 
   <!-- Log -->
   <!-- Log -->
@@ -195,6 +188,18 @@ window.rowTemplate = function (item, index, perPage = 10) {
   </tr>`;
 };
 
+function openQuotationDetail(type, pesanan_id, no_qtn) {
+  currentPesananId = pesanan_id;
+  currentNoQtn = no_qtn;
+
+  if (type === "Turn Key") {
+    loadModuleContent("quotation_turnkey", pesanan_id, no_qtn);
+  } else {
+    loadModuleContent("quotation_detail", pesanan_id, no_qtn);
+  }
+
+  showVersionHistory(pesanan_id, no_qtn);
+}
 function exportPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF("landscape");

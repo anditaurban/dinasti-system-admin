@@ -1,13 +1,13 @@
 const user = JSON.parse(localStorage.getItem("user") || "{}");
-const user_detail = JSON.parse(localStorage.getItem("user_detail") || "{}");
+// const user_detail = JSON.parse(localStorage.getItem("user_detail") || "{}");
 const company = JSON.parse(localStorage.getItem("company") || "{}");
 
 const owner_id = user.owner_id;
 const user_id = user.user_id;
 const status_active = user.status_active;
 const level = user.level;
-const username = user.username;
-const nama = user_detail.nama;
+const username = user.username || user.phone;
+const nama = user.name || user.full_name || "";
 const logo = company.logo;
 const business_place = company.business_place;
 const address = company.address;
@@ -20,7 +20,6 @@ let currentScript = null;
 let formHtml = null;
 let h1Element = null;
 let campaignTitle = null;
-
 let responseData = "";
 let loadingStart = 0;
 let pagemoduleparent = "";
@@ -124,6 +123,21 @@ scriptsToLoad.forEach((script) =>
   loadScript(`${script}?v=${new Date().getTime()}`, () => {})
 );
 
+function showUserName() {
+  const welcomeMessageSpan = document.getElementById("nameUser");
+  const mobileNameSpan = document.getElementById("mobileNameUser");
+
+  const displayName = nama || username || "User";
+
+  if (welcomeMessageSpan) {
+    welcomeMessageSpan.textContent = `Hi, ${displayName} 👋`;
+  }
+
+  if (mobileNameSpan) {
+    mobileNameSpan.textContent = displayName.charAt(0).toUpperCase();
+  }
+}
+
 async function loadAppSections() {
   const sectionDataDiv = document.getElementById("section-data");
 
@@ -141,6 +155,7 @@ async function loadAppSections() {
   addSideNavListeners();
 
   loadScript(`./assets/js/section.js?v=${new Date().getTime()}`, () => {});
+  showUserName();
   loadModuleContent(default_module);
 }
 

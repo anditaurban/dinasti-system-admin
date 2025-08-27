@@ -24,10 +24,12 @@ document.getElementById("logout").addEventListener("click", function () {
   });
 });
 
-if (owner_id || user_id || level || username) {
-    const welcomeMessageSpan = document.getElementById('nameUser');
-    welcomeMessageSpan.textContent = `Hi, ${username} 👋`;
-}
+// if (owner_id || user_id || level || username) {
+//     const welcomeMessageSpan = document.getElementById('nameUser');
+//     welcomeMessageSpan.textContent = `Hi, ${username} 👋`;
+// }
+
+
 
 expandSidebar();
 
@@ -117,4 +119,19 @@ document.addEventListener("click", (e) => {
   }
 });
 
+// Mobile menu dropdown
+const mobileMenuToggle = document.getElementById("mobileMenuToggle");
+const mobileMenuDropdown = document.getElementById("mobileMenuDropdown");
 
+mobileMenuToggle?.addEventListener("click", () => {
+  mobileMenuDropdown?.classList.toggle("hidden");
+});
+
+document.addEventListener("click", (e) => {
+  if (
+    !mobileMenuToggle?.contains(e.target) &&
+    !mobileMenuDropdown?.contains(e.target)
+  ) {
+    mobileMenuDropdown?.classList.add("hidden");
+  }
+});

@@ -151,24 +151,6 @@ function handleOtpInput() {
   });
 }
 
-// === Check jika OTP lengkap ===
-function checkOtpCompletion() {
-  const otp = Array.from(otpDigits)
-    .map((d) => d.value)
-    .join("");
-
-  if (otp.length === otpDigits.length) {
-    verificationStatus.classList.remove("hidden");
-
-    if (autoVerifyTimeout) clearTimeout(autoVerifyTimeout);
-
-    autoVerifyTimeout = setTimeout(() => {
-      verifyOtp();
-    }, 500); // lebih responsif
-  } else {
-    verificationStatus.classList.add("hidden");
-  }
-}
 
 // === Handle paste OTP ===
 function handlePasteOtp(pastedData) {

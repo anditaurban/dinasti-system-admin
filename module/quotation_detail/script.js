@@ -16,20 +16,30 @@ document.getElementById("type_id").addEventListener("change", tryGenerateNoQtn);
 if (!window.detail_id) {
   document.getElementById("status").value = 1; // Assuming 1 is "On Going"
 }
-// Misal saat load invoice selesai
-document.getElementById("btnVersionHistory").addEventListener("click", (e) => {
-  e.stopPropagation();
-  loadModuleContent("quotation_log_detail", pesanan_id, no_qtn);
+currentPesananId = null;
+currentNoQtn = null;
+
+document.addEventListener("DOMContentLoaded", function () {
+  document
+    .getElementById("btnVersionHistory")
+    .addEventListener("click", function () {
+      console.log("🖱️ Tombol 'Lihat versi lainnya' diklik");
+      if (currentPesananId) {
+        console.log("➡️ Redirect ke quotation_log_detail dengan:");
+        console.log(" - Pesanan ID:", currentPesananId);
+        console.log(" - No QTN:", currentNoQtn);
+
+        loadModuleContent(
+          "quotation_log_detail",
+          currentPesananId,
+          currentNoQtn
+        );
+      } else {
+        console.warn("⚠️ Pesanan belum dipilih, tidak bisa buka log versi.");
+        alert("Pesanan belum dipilih.");
+      }
+    });
 });
-// Event listener
-document
-  .getElementById("btnVersionHistory")
-  .addEventListener("click", function (event) {
-    event.stopPropagation();
-    const pesanan_id = this.dataset.pesananId;
-    const no_qtn = this.dataset.noQtn;
-    loadModuleContent("quotation_log_detail", pesanan_id, no_qtn);
-  });
 
 if (window.detail_id && window.detail_desc) {
   loadDetailSales(window.detail_id, window.detail_desc);
