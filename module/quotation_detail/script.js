@@ -16,30 +16,6 @@ document.getElementById("type_id").addEventListener("change", tryGenerateNoQtn);
 if (!window.detail_id) {
   document.getElementById("status").value = 1; // Assuming 1 is "On Going"
 }
-currentPesananId = null;
-currentNoQtn = null;
-
-document.addEventListener("DOMContentLoaded", function () {
-  document
-    .getElementById("btnVersionHistory")
-    .addEventListener("click", function () {
-      console.log("🖱️ Tombol 'Lihat versi lainnya' diklik");
-      if (currentPesananId) {
-        console.log("➡️ Redirect ke quotation_log_detail dengan:");
-        console.log(" - Pesanan ID:", currentPesananId);
-        console.log(" - No QTN:", currentNoQtn);
-
-        loadModuleContent(
-          "quotation_log_detail",
-          currentPesananId,
-          currentNoQtn
-        );
-      } else {
-        console.warn("⚠️ Pesanan belum dipilih, tidak bisa buka log versi.");
-        alert("Pesanan belum dipilih.");
-      }
-    });
-});
 
 if (window.detail_id && window.detail_desc) {
   loadDetailSales(window.detail_id, window.detail_desc);
@@ -357,14 +333,6 @@ async function submitInvoice() {
     // Append items JSON
     formData.append("items", JSON.stringify(items));
 
-    // Ambil file dari input yang pasti ada di DOM saat submit
-    const fileInput = document.querySelector("input[type='file']#file");
-    if (fileInput && fileInput.files && fileInput.files[0]) {
-      formData.append("file", fileInput.files[0]);
-    } else {
-      console.warn("⚠ Tidak ada file yang dipilih");
-    }
-
     // Append field lainnya
     formData.append(
       "catatan",
@@ -378,6 +346,14 @@ async function submitInvoice() {
       "term_pembayaran",
       document.getElementById("term_pembayaran")?.value || "-"
     );
+
+    // === Tambahan: Append file pendukung ===
+    const fileInput = document.getElementById("file");
+    if (fileInput && fileInput.files.length > 0) {
+      for (let i = 0; i < fileInput.files.length; i++) {
+        formData.append("files", fileInput.files[i]); // <== pakai "files"
+      }
+    }
 
     // DEBUG: Cek semua formData sebelum dikirim
     console.group("FormData yang akan dikirim:");
@@ -440,7 +416,6 @@ async function updateInvoice() {
   try {
     calculateInvoiceTotals();
 
-    // Konfirmasi sebelum simpan
     const konfirmasi = await Swal.fire({
       title: "Update Data?",
       text: "Apakah kamu yakin ingin menyimpan perubahan?",
@@ -452,7 +427,7 @@ async function updateInvoice() {
 
     if (!konfirmasi.isConfirmed) return;
 
-    // Ambil data item dari tabel
+    // --- Ambil data items dari tabel
     const rows = document.querySelectorAll("#tabelItem tr");
     const items = Array.from(rows).map((row, i) => {
       const product = row.querySelector(".itemProduct")?.value.trim() || "";
@@ -480,28 +455,25 @@ async function updateInvoice() {
       };
     });
 
-    // Hitung nominal kontrak, diskon, DPP, PPN
+    // --- Hitung total
     const contract_amount = items.reduce(
       (acc, item) => acc + item.qty * item.unit_price,
       0
     );
-
     const disc = parseRupiah(document.getElementById("discount")?.value || 0);
     const dpp = contract_amount - disc;
     const ppn = Math.round(dpp * 0.11);
 
-    // Ambil data status
+    // --- Status
     const status_id = parseInt(document.getElementById("status")?.value || 1);
     const revisionNumber = window.revision_count || 1;
     const status_revision = `Revisi ${revisionNumber}`;
 
-    const no_qtn = document.getElementById("no_qtn")?.value || "";
-
-    // Body sesuai format endpoint
+    // --- Body Sales (tanpa files langsung)
     const bodySales = {
       owner_id,
       user_id,
-      no_qtn,
+      no_qtn: document.getElementById("no_qtn")?.value || "",
       project_name: document.getElementById("project_name")?.value || "",
       client: document.getElementById("client")?.value || "",
       pic_name: document.getElementById("pic_name")?.value || "",
@@ -509,30 +481,38 @@ async function updateInvoice() {
       order_date: document.getElementById("tanggal")?.value || "",
       pelanggan_id: parseInt(document.getElementById("client_id")?.value || 0),
       contract_amount,
-      disc, // ✅ bukan discount
-      ppn, // ✅ dihitung
+      disc,
+      ppn,
       status_id,
-      status_revision, // ✅ bukan revision_status
-      files: [], // ✅ bisa diisi jika ada upload file
-      items,
+      status_revision,
       catatan: document.getElementById("catatan")?.value || "-",
       syarat_ketentuan:
         document.getElementById("syarat_ketentuan")?.value || "-",
       term_pembayaran: document.getElementById("term_pembayaran")?.value || "-",
+      items,
     };
 
-    console.log("Body Update Sales:", JSON.stringify(bodySales, null, 2));
+    // --- Buat FormData
+    const formData = new FormData();
+    formData.append("data", JSON.stringify(bodySales)); // semua data utama
+    const fileInput = document.getElementById("files");
+    if (fileInput?.files?.length) {
+      Array.from(fileInput.files).forEach((file) => {
+        formData.append("files[]", file); // multiple upload
+      });
+    }
 
-    // Update Sales
+    console.log("FormData update:", bodySales, fileInput?.files);
+
+    // --- Request ke server
     const resSales = await fetch(
       `${baseUrl}/update/sales/${window.detail_id}`,
       {
         method: "PUT",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${API_TOKEN}`,
         },
-        body: JSON.stringify(bodySales),
+        body: formData,
       }
     );
 
@@ -546,9 +526,7 @@ async function updateInvoice() {
       return;
     }
 
-    // Set nilai revisi di form
     document.getElementById("revision_number").value = status_revision;
-
     Swal.fire("Berhasil", "✅ Data berhasil diupdate", "success");
     loadModuleContent("quotation");
   } catch (error) {
@@ -641,6 +619,70 @@ async function loadDetailSales(Id, Detail) {
       document.getElementById(
         "currentVersion"
       ).innerText = `R${window.revision_count}`;
+
+      // === Tambahkan binding tombol versi lainnya langsung di sini ===
+      const btnHistory = document.getElementById("btnVersionHistory");
+      if (btnHistory) {
+        btnHistory.onclick = (event) => {
+          event.preventDefault();
+          console.log("➡️ Klik versi lainnya untuk detail_id:", Id);
+          loadModuleContent("quotation_log_detail", Id); // atau "quotation_log_detail" sesuai modulmu
+        };
+      }
+    }
+
+    const pembayaranSection = document.getElementById("pembayaranSection");
+    pembayaranSection.innerHTML = "";
+    if (data.payments && data.payments.length > 0) {
+      data.payments.forEach((p) => {
+        const div = document.createElement("div");
+        div.className = "flex justify-between border p-2 rounded bg-gray-50";
+        div.innerHTML = `
+      <span>💳 ${p.payment_desc || "Pembayaran"}</span>
+      <span>${formatNumber(p.amount || 0)}</span>
+    `;
+        pembayaranSection.appendChild(div);
+      });
+    } else {
+      pembayaranSection.innerHTML = `<div class="text-gray-500 italic">-</div>`;
+    }
+
+    // 🔹 Render file pendukung
+    const fileSection = document.getElementById("fileSection");
+    fileSection.innerHTML = "";
+    if (data.supporting_files && data.supporting_files.length > 0) {
+      data.supporting_files.forEach((f) => {
+        const div = document.createElement("div");
+        div.className =
+          "flex items-center justify-between border p-2 rounded bg-gray-50";
+        div.innerHTML = `
+      <a href="${baseUrl.replace("/api", "")}/${f.file_path}" 
+         target="_blank" class="text-blue-600 hover:underline">
+        📄 ${f.file_name}
+      </a>
+      <span class="text-xs text-gray-500">${f.uploaded_at}</span>
+    `;
+        fileSection.appendChild(div);
+      });
+    } else {
+      fileSection.innerHTML = `<div class="text-gray-500 italic">-</div>`;
+    }
+
+    // 🔹 Render invoice uang muka
+    const uangMukaSection = document.getElementById("uangMukaSection");
+    uangMukaSection.innerHTML = "";
+    if (data.down_payments && data.down_payments.length > 0) {
+      data.down_payments.forEach((dp) => {
+        const div = document.createElement("div");
+        div.className = "flex justify-between border p-2 rounded bg-gray-50";
+        div.innerHTML = `
+      <span>💰 ${dp.invoice_number || "DP"}</span>
+      <span>${formatNumber(dp.amount || 0)}</span>
+    `;
+        uangMukaSection.appendChild(div);
+      });
+    } else {
+      uangMukaSection.innerHTML = `<div class="text-gray-500 italic">-</div>`;
     }
 
     // 🔹 Ambil list sub category dari API

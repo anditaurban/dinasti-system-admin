@@ -392,12 +392,6 @@ async function submitInvoiceTurnKey() {
     // Append items JSON sesuai format Turn Key
     formData.append("items", JSON.stringify(items));
 
-    // File
-    const fileInput = document.querySelector("input[type='file']#file");
-    if (fileInput && fileInput.files && fileInput.files[0]) {
-      formData.append("file", fileInput.files[0]);
-    }
-
     formData.append(
       "catatan",
       document.getElementById("catatan")?.value || "-"
@@ -411,7 +405,16 @@ async function submitInvoiceTurnKey() {
       document.getElementById("term_pembayaran")?.value || "-"
     );
 
-    console.group("FormData Turn Key yang akan dikirim:");
+    // === Tambahan: Append file pendukung ===
+    const fileInput = document.getElementById("file");
+    if (fileInput && fileInput.files.length > 0) {
+      for (let i = 0; i < fileInput.files.length; i++) {
+        formData.append("files", fileInput.files[i]); // <== pakai "files"
+      }
+    }
+
+    // DEBUG: Cek semua formData sebelum dikirim
+    console.group("FormData yang akan dikirim:");
     for (let [key, value] of formData.entries()) {
       if (value instanceof File) {
         console.log(key, `File: ${value.name}, size: ${value.size} bytes`);
@@ -503,11 +506,7 @@ async function updateInvoiceTurnKey() {
         throw new Error(`❌ Subcategory belum dipilih di row ${i + 1}`);
       if (!product) throw new Error(`❌ Product belum diisi di row ${i + 1}`);
       if (!name || qty <= 0 || !unit || isNaN(unit_price) || unit_price <= 0) {
-        throw new Error(
-          `Invalid material data in row ${
-            i + 1
-          }: name, qty, unit, and price are required`
-        );
+        throw new Error(`❌ Data tidak valid di row ${i + 1}`);
       }
 
       const key = `${sub_category_id}-${product}`;
@@ -532,6 +531,7 @@ async function updateInvoiceTurnKey() {
 
     const items = Object.values(groupedItems);
 
+    // Hitung nominal + ppn
     const nominalKontrak = items.reduce(
       (acc, item) =>
         acc + item.materials.reduce((sum, m) => sum + m.qty * m.unit_price, 0),
@@ -540,12 +540,13 @@ async function updateInvoiceTurnKey() {
     const disc = parseRupiah(document.getElementById("discount")?.value || 0);
     const dpp = nominalKontrak - disc;
     const ppn = Math.round(dpp * 0.11);
+
     const status_id = parseInt(document.getElementById("status")?.value || 1);
     const revisionNumber = window.revision_count || 1;
     const status_revision = `Revisi ${revisionNumber}`;
     const no_qtn = document.getElementById("no_qtn")?.value || "";
 
-    // Buat FormData
+    // === Buat FormData ===
     const formData = new FormData();
     formData.append("owner_id", owner_id);
     formData.append("user_id", user_id);
@@ -581,11 +582,12 @@ async function updateInvoiceTurnKey() {
       document.getElementById("term_pembayaran")?.value || "-"
     );
 
-    // Append items, format sesuai FormData yang diterima backend
+    // Append items
     items.forEach((item, i) => {
       formData.append(`items[${i}][sub_category_id]`, item.sub_category_id);
       formData.append(`items[${i}][product]`, item.product);
       formData.append(`items[${i}][description]`, item.description);
+
       item.materials.forEach((m, j) => {
         formData.append(`items[${i}][materials][${j}][name]`, m.name);
         formData.append(
@@ -602,10 +604,24 @@ async function updateInvoiceTurnKey() {
       });
     });
 
+    // Append files (multiple)
+    const fileInput = document.getElementById("file");
+    if (fileInput && fileInput.files.length > 0) {
+      Array.from(fileInput.files).forEach((f) => {
+        formData.append("files", f); // ⚡ harus "files"
+      });
+    }
+
+    console.log("🔍 Data yang akan dikirim:");
+    for (let [k, v] of formData.entries()) {
+      console.log(`${k}:`, v);
+    }
+
+    // === Request ===
     const res = await fetch(
       `${baseUrl}/update/sales_turnkey/${window.detail_id}`,
       {
-        method: "PUT", // biasany POST untuk form-data
+        method: "PUT", // pakai POST karena multipart/form-data
         headers: {
           Authorization: `Bearer ${API_TOKEN}`,
         },
@@ -710,6 +726,70 @@ async function loadDetailSalesTurnKey(Id, Detail) {
       document.getElementById(
         "currentVersion"
       ).innerText = `R${window.revision_count}`;
+
+      // === Tambahkan binding tombol versi lainnya langsung di sini ===
+      const btnHistory = document.getElementById("btnVersionHistory");
+      if (btnHistory) {
+        btnHistory.onclick = (event) => {
+          event.preventDefault();
+          console.log("➡️ Klik versi lainnya untuk detail_id:", Id);
+          loadModuleContent("quotation_log_detail", Id); // atau "quotation_log_detail" sesuai modulmu
+        };
+      }
+    }
+
+    const pembayaranSection = document.getElementById("pembayaranSection");
+    pembayaranSection.innerHTML = "";
+    if (data.payments && data.payments.length > 0) {
+      data.payments.forEach((p) => {
+        const div = document.createElement("div");
+        div.className = "flex justify-between border p-2 rounded bg-gray-50";
+        div.innerHTML = `
+      <span>💳 ${p.payment_desc || "Pembayaran"}</span>
+      <span>${formatNumber(p.amount || 0)}</span>
+    `;
+        pembayaranSection.appendChild(div);
+      });
+    } else {
+      pembayaranSection.innerHTML = `<div class="text-gray-500 italic">-</div>`;
+    }
+
+    // 🔹 Render file pendukung
+    const fileSection = document.getElementById("fileSection");
+    fileSection.innerHTML = "";
+    if (data.supporting_files && data.supporting_files.length > 0) {
+      data.supporting_files.forEach((f) => {
+        const div = document.createElement("div");
+        div.className =
+          "flex items-center justify-between border p-2 rounded bg-gray-50";
+        div.innerHTML = `
+      <a href="${baseUrl.replace("/api", "")}/${f.file_path}" 
+         target="_blank" class="text-blue-600 hover:underline">
+        📄 ${f.file_name}
+      </a>
+      <span class="text-xs text-gray-500">${f.uploaded_at}</span>
+    `;
+        fileSection.appendChild(div);
+      });
+    } else {
+      fileSection.innerHTML = `<div class="text-gray-500 italic">-</div>`;
+    }
+
+    // 🔹 Render invoice uang muka
+    const uangMukaSection = document.getElementById("uangMukaSection");
+    uangMukaSection.innerHTML = "";
+    if (data.down_payments && data.down_payments.length > 0) {
+      data.down_payments.forEach((dp) => {
+        const div = document.createElement("div");
+        div.className = "flex justify-between border p-2 rounded bg-gray-50";
+        div.innerHTML = `
+      <span>💰 ${dp.invoice_number || "DP"}</span>
+      <span>${formatNumber(dp.amount || 0)}</span>
+    `;
+        uangMukaSection.appendChild(div);
+      });
+    } else {
+      uangMukaSection.innerHTML = `<div class="text-gray-500 italic">-</div>`;
     }
 
     const subcategoryRes = await fetch(
