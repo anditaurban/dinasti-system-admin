@@ -20,6 +20,7 @@ let currentScript = null;
 let formHtml = null;
 let h1Element = null;
 let campaignTitle = null;
+
 let responseData = "";
 let loadingStart = 0;
 let pagemoduleparent = "";

@@ -6,16 +6,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
   if (pesananId) {
     loadPesananData(pesananId, isDownload);
-  } else {
+  } else if (window.invoiceContent) {
     invoiceContent.innerHTML =
       '<div class="text-red-500 p-4">Error: No pesanan_id provided in URL</div>';
   }
 
   // Print button event
-  printBtn.addEventListener("click", function () {
-    window.print();
-  });
+  if (window.printBtn) {
+    printBtn.addEventListener("click", function () {
+      window.print();
+    });
+  }
 });
+
+// Format rupiah
 function formatRp(angka) {
   if (angka == null) return "Rp 0";
   return new Intl.NumberFormat("id-ID", {
@@ -25,9 +29,10 @@ function formatRp(angka) {
   }).format(angka);
 }
 
-// Global variable to store versions
-let globalVersions = [];
+// Global variable aman
+window.globalVersions = window.globalVersions || [];
 
+// Fungsi terbilang (cukup 1x aja)
 function terbilang(n) {
   const satuan = [
     "",
@@ -61,6 +66,22 @@ function terbilang(n) {
   return "";
 }
 
+// Ambil list sub kategori
+async function loadSubCategories() {
+  try {
+    const res = await fetch(`${baseUrl}/list/sub_category/1`, {
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+    });
+    const result = await res.json();
+    return result.listData || [];
+  } catch (err) {
+    console.error("Gagal memuat kategori", err);
+    return [];
+  }
+}
+
 async function loadPesananData(pesananId, isDownload = false) {
   showLoading();
 
@@ -80,7 +101,7 @@ async function loadPesananData(pesananId, isDownload = false) {
     }
 
     // Filter and sort versions
-    globalVersions = data.detail
+    window.globalVersions = data.detail
       .filter((version) => version.revision_number !== null)
       .sort((a, b) => b.revision_number - a.revision_number);
 
@@ -101,73 +122,6 @@ async function loadPesananData(pesananId, isDownload = false) {
 
 function renderInvoice(invoiceData, isDownload = false) {
   if (!invoiceData) return;
-
-  async function loadSubCategories() {
-    try {
-      const res = await fetch(`${baseUrl}/list/sub_category/1`, {
-        headers: {
-          Authorization: `Bearer ${API_TOKEN}`,
-        },
-      });
-      // Ambil list sub kategori dulu
-      const subCategories = await loadSubCategories();
-      const subCategoryMap = subCategories.reduce((map, sc) => {
-        map[sc.sub_category_id] = sc.sub_category;
-        return map;
-      }, {});
-
-      // Group items pakai nama sub_category
-      const groupedItems = items.reduce((acc, item) => {
-        const categoryName = subCategoryMap[item.sub_category_id] || "Lainnya";
-        if (!acc[categoryName]) acc[categoryName] = [];
-        acc[categoryName].push(item);
-        return acc;
-      }, {});
-
-      const result = await res.json();
-      return result.listData || [];
-    } catch (err) {
-      console.error("Gagal memuat kategori", err);
-      return [];
-    }
-  }
-
-  // Format currency function
-  const formatCurrency = (val) => `Rp ${(+val).toLocaleString("id-ID")}`;
-
-  // Terbilang function
-  function terbilang(n) {
-    const satuan = [
-      "",
-      "Satu",
-      "Dua",
-      "Tiga",
-      "Empat",
-      "Lima",
-      "Enam",
-      "Tujuh",
-      "Delapan",
-      "Sembilan",
-      "Sepuluh",
-      "Sebelas",
-    ];
-    n = Math.floor(n);
-    if (n < 12) return satuan[n];
-    if (n < 20) return terbilang(n - 10) + " Belas";
-    if (n < 100)
-      return terbilang(Math.floor(n / 10)) + " Puluh " + terbilang(n % 10);
-    if (n < 200) return "Seratus " + terbilang(n - 100);
-    if (n < 1000)
-      return terbilang(Math.floor(n / 100)) + " Ratus " + terbilang(n % 100);
-    if (n < 2000) return "Seribu " + terbilang(n - 1000);
-    if (n < 1000000)
-      return terbilang(Math.floor(n / 1000)) + " Ribu " + terbilang(n % 1000);
-    if (n < 1000000000)
-      return (
-        terbilang(Math.floor(n / 1000000)) + " Juta " + terbilang(n % 1000000)
-      );
-    return "";
-  }
 
   // Pastikan items adalah array
   const items = Array.isArray(invoiceData.items) ? invoiceData.items : [];
@@ -195,7 +149,7 @@ function renderInvoice(invoiceData, isDownload = false) {
     ? invoiceData.inv_number || invoiceData.no_qtn
     : invoiceData.no_qtn;
 
-  // Group items by kategori (jika ada categoryName)
+  // Group items by kategori
   const groupedItems = items.reduce((acc, item) => {
     const categoryName = item.sub_category || "Lainnya";
     if (!acc[categoryName]) acc[categoryName] = [];
@@ -207,166 +161,135 @@ function renderInvoice(invoiceData, isDownload = false) {
   const tableRows = Object.entries(groupedItems)
     .map(([category, items]) => {
       return `
-          <tr class="bg-gray-200">
-            <td colspan="6" class="p-1 font-bold text-gray-800 text-xs">${category}</td>
+        <tr class="bg-gray-200">
+          <td colspan="6" class="p-1 font-bold text-gray-800 text-xs">${category}</td>
+        </tr>
+        ${items
+          .map(
+            (item, index) => `
+          <tr>
+            <td class="text-center text-gray-700">${index + 1}</td>
+            <td class="text-gray-800">
+              <p class="font-medium">${item.product || "-"}</p>
+              ${
+                item.description
+                  ? `<p class="text-xs text-gray-500 mt-0">${item.description}</p>`
+                  : ""
+              }
+            </td>
+            <td class="text-center text-gray-700">${item.qty || 0}</td>
+            <td class="text-center text-gray-700">${item.unit || "-"}</td>
+            <td class="text-right text-gray-800">${formatRp(
+              item.unit_price || 0
+            )}</td>
+            <td class="text-right text-gray-800 font-medium">${formatRp(
+              item.total || 0
+            )}</td>
           </tr>
-          ${items
-            .map(
-              (item, index) => `
-            <tr>
-              <td class="text-center text-gray-700">${index + 1}</td>
-              <td class="text-gray-800">
-                <p class="font-medium">${item.product || "-"}</p>
-                ${
-                  item.description
-                    ? `<p class="text-xs text-gray-500 mt-0">${item.description}</p>`
-                    : ""
-                }
-              </td>
-              <td class="text-center text-gray-700">${item.qty || 0}</td>
-              <td class="text-center text-gray-700">${item.unit || "-"}</td>
-              <td class="text-right text-gray-800">${formatRp(
-                item.unit_price || 0
-              )}</td>
-              <td class="text-right text-gray-800 font-medium">${formatRp(
-                item.total || 0
-              )}</td>
-            </tr>
-          `
-            )
-            .join("")}
-        `;
+        `
+          )
+          .join("")}
+      `;
     })
     .join("");
 
   const html = `
-        <!-- Header -->
-        <div class="relative mb-2">
-          <div class="absolute left-0 top-0">
-            <img src="./assets/img/cropped-logo.png" class="h-12" />
-          </div>
-          <div class="text-center">
-            <h1 class="font-bold text-red-700 text-base">PT. DINASTI ELEKTRIK INDONESIA</h1>
-            <p class="text-xs font-semibold">ELEKTRIKAL ENGINEERING & MAINTENANCE</p>
-            <p class="text-[10px]">
-              Jl. Krisa Ayu 4 RT/RW 002/008 Blok A3 No. 19, Cipondoh, Tangerang<br>
-              Telp.: 0823-7142-5300, Email: admin@dinasti.id
-            </p>
-          </div>
-        </div>
-        <hr class="border-t-2 border-black mb-2 w-full">
+    <!-- Header -->
+    <div class="relative mb-2">
+      <div class="absolute left-0 top-0">
+        <img src="./assets/img/cropped-logo.png" class="h-12" />
+      </div>
+      <div class="text-center">
+        <h1 class="font-bold text-red-700 text-base">PT. DINASTI ELEKTRIK INDONESIA</h1>
+        <p class="text-xs font-semibold">ELEKTRIKAL ENGINEERING & MAINTENANCE</p>
+        <p class="text-[10px]">
+          Jl. Krisa Ayu 4 RT/RW 002/008 Blok A3 No. 19, Cipondoh, Tangerang<br>
+          Telp.: 0823-7142-5300, Email: admin@dinasti.id
+        </p>
+      </div>
+    </div>
+    <hr class="border-t-2 border-black mb-2 w-full">
 
-        <!-- Client and Invoice Info -->
-        <div class="flex justify-between mb-4 p-2 bg-gray-50 rounded text-xs">
-          <div>
-            <h3 class="font-bold text-gray-700 mb-1">Kepada YTH:</h3>
-            <p class="font-semibold text-gray-800">${data.pic_name}</p>
-            <p class="font-semibold text-gray-800">${
-              invoiceData.pelanggan_nama
-            }</p>
-            <p class="text-gray-800">${data.alamat}</p>
-            ${
-              invoiceData.project_name
-                ? `<p class="text-gray-600">${invoiceData.project_name}</p>`
-                : ""
-            }
-          </div>
-          <div class="text-right">
-            <h3 class="font-bold text-gray-700 mb-1">${detailTitle}:</h3>
-            <p class="text-gray-600"><strong>${noLabel}:</strong> ${noValue}</p>
-            <p class="text-gray-600"><strong>Tanggal:</strong> ${
-              invoiceData.tanggal_invoice
-            }</p>
-            <p class="text-gray-600"><span class="font-medium">No. Revisi:</span> ${revisionInfo}</p>
-          </div>
-        </div>
+    <!-- Client and Invoice Info -->
+    <div class="flex justify-between mb-4 p-2 bg-gray-50 rounded text-xs">
+      <div>
+        <h3 class="font-bold text-gray-700 mb-1">Kepada YTH:</h3>
+        <p class="font-semibold text-gray-800">${
+          invoiceData.pic_name || "-"
+        }</p>
+        <p class="font-semibold text-gray-800">${
+          invoiceData.pelanggan_nama || "-"
+        }</p>
+        <p class="text-gray-800 max-w-[350px] break-words">${
+          invoiceData.alamat || "-"
+        }</p>
+        ${
+          invoiceData.project_name
+            ? `<p class="text-gray-600">${invoiceData.project_name}</p>`
+            : ""
+        }
+      </div>
+      <div class="text-right">
+        <h3 class="font-bold text-gray-700 mb-1">${detailTitle}:</h3>
+        <p class="text-gray-600"><strong>${noLabel}:</strong> ${noValue}</p>
+        <p class="text-gray-600"><strong>Tanggal:</strong> ${
+          invoiceData.tanggal_invoice
+        }</p>
+        <p class="text-gray-600"><span class="font-medium">No. Revisi:</span> ${revisionInfo}</p>
+      </div>
+    </div>
 
-        <!-- Table Items -->
-        <table class="w-full compact-table border-collapse bordered mb-3">
-          <thead class="bg-gray-100">
-            <tr class="text-gray-700">
-              <th class="text-center w-8">No</th>
-              <th class="text-left">Produk</th>
-              <th class="text-center w-12">Qty</th>
-              <th class="text-center w-12">Satuan</th>
-              <th class="text-right w-24">Harga Satuan</th>
-              <th class="text-right w-24">Jumlah</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${tableRows}
-          </tbody>
-        </table>
+    <!-- Table Items -->
+    <table class="w-full compact-table border-collapse bordered mb-3">
+      <thead class="bg-gray-100">
+        <tr class="text-gray-700">
+          <th class="text-center w-8">No</th>
+          <th class="text-left">Produk</th>
+          <th class="text-center w-12">Qty</th>
+          <th class="text-center w-12">Satuan</th>
+          <th class="text-right w-24">Harga Satuan</th>
+          <th class="text-right w-24">Jumlah</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tableRows}
+      </tbody>
+    </table>
 
-        <!-- Totals -->
-        <div class="flex justify-end mb-3">
-          <table class="text-xs w-64">
-            <tr>
-              <td class="pr-3 py-0.5 text-right font-semibold text-gray-700">Sub Total</td>
-              <td class="py-0.5 text-right text-gray-800">${formatRp(
-                invoiceData.subtotal
-              )}</td>
-            </tr>
-            <tr>
-              <td class="pr-3 py-0.5 text-right font-semibold text-gray-700">Discount</td>
-              <td class="py-0.5 text-right text-gray-800">${formatRp(
-                invoiceData.disc
-              )}</td>
-            </tr>
-            <tr>
-              <td class="pr-3 py-0.5 text-right font-semibold text-gray-700">PPN 11%</td>
-              <td class="py-0.5 text-right text-gray-800">${formatRp(
-                invoiceData.ppn
-              )}</td>
-            </tr>
-            <tr class="font-bold border-t border-gray-300 total-row">
-              <td class="pr-3 py-1 text-right text-gray-900">TOTAL</td>
-              <td class="py-1 text-right text-red-600">${formatRp(
-                invoiceData.total
-              )}</td>
-            </tr>
-          </table>
-        </div>
+    <!-- Totals -->
+    <div class="flex justify-end mb-3">
+      <table class="text-xs w-64">
+        <tr>
+          <td class="pr-3 py-0.5 text-right font-semibold text-gray-700">Sub Total</td>
+          <td class="py-0.5 text-right text-gray-800">${formatRp(subtotal)}</td>
+        </tr>
+        <tr>
+          <td class="pr-3 py-0.5 text-right font-semibold text-gray-700">Discount</td>
+          <td class="py-0.5 text-right text-gray-800">${formatRp(disc)}</td>
+        </tr>
+        <tr>
+          <td class="pr-3 py-0.5 text-right font-semibold text-gray-700">PPN 11%</td>
+          <td class="py-0.5 text-right text-gray-800">${formatRp(ppn)}</td>
+        </tr>
+        <tr class="font-bold border-t border-gray-300 total-row">
+          <td class="pr-3 py-1 text-right text-gray-900">TOTAL</td>
+          <td class="py-1 text-right text-red-600">${formatRp(total)}</td>
+        </tr>
+      </table>
+    </div>
 
-        <!-- Terbilang -->
-        <div class="text-xs mb-3">
-          <span class="font-semibold text-gray-700">Terbilang:</span>
-          <span class="italic text-gray-800">${terbilang(
-            invoiceData.total
-          )} Rupiah</span>
-        </div>
-
-        <!-- Notes -->
-        <div class="flex justify-between items-start mt-6 text-xs">
-          <!-- Catatan -->
-          <div class="w-1/2">
-            <p class="font-semibold text-gray-700 mb-1">Catatan:</p>
-            <ul class="list-disc list-inside text-gray-600">
-              <li>Barang yang sudah dibeli tidak dapat dikembalikan</li>
-              <li>Pembayaran dianggap lunas setelah dana diterima</li>
-              <li>Invoice ini valid tanpa tanda tangan</li>
-            </ul>
-          </div>
-
-          <!-- Signature Section -->
-          <div class="text-sm text-right">
-            <p>Jakarta, 10 Februari 2025</p>
-            <div class="mt-2">
-              <img src="materai.png"  class="h-20 ml-auto">
-            </div>
-            <p class="mt-2 font-semibold">Nanda Febby Yullantina</p>
-            <p>Finance Manager</p>
-          </div>
-        </div>
+    <!-- Terbilang -->
+    <div class="text-xs mb-3">
+      <span class="font-semibold text-gray-700">Terbilang:</span>
+      <span class="italic text-gray-800">${terbilang(total)} Rupiah</span>
+    </div>
   `;
 
-  // Ganti dengan elemen target yang sesuai
   const invoiceContent = document.getElementById("invoiceContent");
   if (invoiceContent) {
     invoiceContent.innerHTML = html;
   }
 
-  // Auto download jika dalam mode download
   if (isDownload) {
     setTimeout(() => {
       html2pdf()
@@ -382,6 +305,8 @@ function renderInvoice(invoiceData, isDownload = false) {
     }, 1000);
   }
 }
+
+// ... fungsi renderVersionHistory, loadVersionFromList, printVersion, showError tetap sama ...
 
 // Render version history list
 function renderVersionHistory(versions) {

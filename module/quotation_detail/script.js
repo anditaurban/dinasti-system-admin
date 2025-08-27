@@ -23,7 +23,7 @@ if (window.detail_id && window.detail_desc) {
   formatNumberInputs();
 }
 
-async function loadCustomerList(owner_id) {
+async function loadCustomerList() {
   try {
     const response = await fetch(`${baseUrl}/client/sales/`, {
       method: "GET",
@@ -66,7 +66,9 @@ function filterclientSuggestions() {
     li.className = "px-3 py-2 hover:bg-gray-200 cursor-pointer";
 
     li.addEventListener("click", () => {
+      // Tampilkan nama client di input
       document.getElementById("client").value = item.nama_client;
+      // Simpan client_id di hidden input
       document.getElementById("client_id").value = item.client_id;
 
       console.log("✅ Client selected:", {
@@ -301,6 +303,11 @@ async function submitInvoice() {
       document.getElementById("pic_name")?.value || "-"
     );
     formData.append(
+      "pelanggan_id",
+      parseInt(document.getElementById("client_id")?.value || 0)
+    );
+
+    formData.append(
       "type_id",
       parseInt(document.getElementById("type_id")?.value || 0)
     );
@@ -476,6 +483,7 @@ async function updateInvoice() {
       pic_name: document.getElementById("pic_name")?.value || "",
       type_id: document.getElementById("type_id")?.value || 0,
       order_date: document.getElementById("tanggal")?.value || "",
+      pelanggan_id: parseInt(document.getElementById("client_id")?.value || 0),
       contract_amount,
       disc, // ✅ bukan discount
       ppn, // ✅ dihitung

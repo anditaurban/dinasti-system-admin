@@ -24,7 +24,7 @@ if (window.detail_id && window.detail_desc) {
   formatNumberInputs();
 }
 
-async function loadCustomerList(owner_id) {
+async function loadCustomerList() {
   try {
     const response = await fetch(`${baseUrl}/client/sales/`, {
       method: "GET",
@@ -67,7 +67,9 @@ function filterclientSuggestions() {
     li.className = "px-3 py-2 hover:bg-gray-200 cursor-pointer";
 
     li.addEventListener("click", () => {
+      // Tampilkan nama client di input
       document.getElementById("client").value = item.nama_client;
+      // Simpan client_id di hidden input
       document.getElementById("client_id").value = item.client_id;
 
       console.log("✅ Client selected:", {
@@ -83,6 +85,7 @@ function filterclientSuggestions() {
 
   suggestionBox.classList.remove("hidden");
 }
+
 // Sembunyikan suggestion jika klik di luar input dan list
 document.addEventListener("click", (e) => {
   const input = document.getElementById("client");
@@ -355,6 +358,10 @@ async function submitInvoiceTurnKey() {
       document.getElementById("pic_name")?.value || "-"
     );
     formData.append(
+      "pelanggan_id",
+      parseInt(document.getElementById("client_id")?.value || 0)
+    );
+    formData.append(
       "type_id",
       parseInt(document.getElementById("type_id")?.value || 0)
     );
@@ -459,7 +466,6 @@ async function updateInvoiceTurnKey() {
   try {
     calculateInvoiceTotals();
 
-    // Konfirmasi sebelum simpan
     const konfirmasi = await Swal.fire({
       title: "Update Data?",
       text: "Apakah kamu yakin ingin menyimpan perubahan?",
@@ -468,10 +474,8 @@ async function updateInvoiceTurnKey() {
       confirmButtonText: "✅ Ya, simpan",
       cancelButtonText: "❌ Batal",
     });
-
     if (!konfirmasi.isConfirmed) return;
 
-    // Ambil data item dari tabel, group jadi format Turn Key
     const rows = document.querySelectorAll("#tabelItem tr");
     const groupedItems = {};
 
@@ -523,59 +527,84 @@ async function updateInvoiceTurnKey() {
 
     const items = Object.values(groupedItems);
 
-    // Hitung nominal kontrak, diskon, PPN
-    const nominalKontrak = items.reduce((acc, item) => {
-      return (
-        acc + item.materials.reduce((sum, m) => sum + m.qty * m.unit_price, 0)
-      );
-    }, 0);
-
+    const nominalKontrak = items.reduce(
+      (acc, item) =>
+        acc + item.materials.reduce((sum, m) => sum + m.qty * m.unit_price, 0),
+      0
+    );
     const disc = parseRupiah(document.getElementById("discount")?.value || 0);
     const dpp = nominalKontrak - disc;
     const ppn = Math.round(dpp * 0.11);
-
-    // Ambil data status
     const status_id = parseInt(document.getElementById("status")?.value || 1);
     const revisionNumber = window.revision_count || 1;
     const status_revision = `Revisi ${revisionNumber}`;
-
     const no_qtn = document.getElementById("no_qtn")?.value || "";
 
-    // Body JSON sesuai endpoint
-    const bodySales = {
-      owner_id,
-      user_id,
-      no_qtn,
-      project_name: document.getElementById("project_name")?.value || "",
-      client: document.getElementById("client")?.value || "",
-      pic_name: document.getElementById("pic_name")?.value || "",
-      contract_amount: nominalKontrak,
-      disc, // ✅ konsisten dengan endpoint
-      ppn, // ✅ wajib ada
-      status_id,
-      status_revision, // ✅ konsisten dengan endpoint
-      files: [], // ✅ bisa diisi kalau ada file baru
-      items,
-      catatan: document.getElementById("catatan")?.value || "-",
-      syarat_ketentuan:
-        document.getElementById("syarat_ketentuan")?.value || "-",
-      term_pembayaran: document.getElementById("term_pembayaran")?.value || "-",
-    };
-
-    console.log(
-      "Body untuk update Turn Key:",
-      JSON.stringify(bodySales, null, 2)
+    // Buat FormData
+    const formData = new FormData();
+    formData.append("owner_id", owner_id);
+    formData.append("user_id", user_id);
+    formData.append("no_qtn", no_qtn);
+    formData.append(
+      "project_name",
+      document.getElementById("project_name")?.value || ""
     );
+    formData.append("client", document.getElementById("client")?.value || "");
+    formData.append(
+      "pic_name",
+      document.getElementById("pic_name")?.value || ""
+    );
+    formData.append(
+      "pelanggan_id",
+      parseInt(document.getElementById("client_id")?.value || 0)
+    );
+    formData.append("contract_amount", nominalKontrak);
+    formData.append("disc", disc);
+    formData.append("ppn", ppn);
+    formData.append("status_id", status_id);
+    formData.append("status_revision", status_revision);
+    formData.append(
+      "catatan",
+      document.getElementById("catatan")?.value || "-"
+    );
+    formData.append(
+      "syarat_ketentuan",
+      document.getElementById("syarat_ketentuan")?.value || "-"
+    );
+    formData.append(
+      "term_pembayaran",
+      document.getElementById("term_pembayaran")?.value || "-"
+    );
+
+    // Append items, format sesuai FormData yang diterima backend
+    items.forEach((item, i) => {
+      formData.append(`items[${i}][sub_category_id]`, item.sub_category_id);
+      formData.append(`items[${i}][product]`, item.product);
+      formData.append(`items[${i}][description]`, item.description);
+      item.materials.forEach((m, j) => {
+        formData.append(`items[${i}][materials][${j}][name]`, m.name);
+        formData.append(
+          `items[${i}][materials][${j}][specification]`,
+          m.specification
+        );
+        formData.append(`items[${i}][materials][${j}][qty]`, m.qty);
+        formData.append(`items[${i}][materials][${j}][unit]`, m.unit);
+        formData.append(
+          `items[${i}][materials][${j}][unit_price]`,
+          m.unit_price
+        );
+        formData.append(`items[${i}][materials][${j}][total]`, m.total);
+      });
+    });
 
     const res = await fetch(
       `${baseUrl}/update/sales_turnkey/${window.detail_id}`,
       {
-        method: "PUT",
+        method: "PUT", // biasany POST untuk form-data
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${API_TOKEN}`,
         },
-        body: JSON.stringify(bodySales),
+        body: formData,
       }
     );
 
@@ -586,7 +615,6 @@ async function updateInvoiceTurnKey() {
     }
 
     document.getElementById("revision_number").value = status_revision;
-
     Swal.fire("Berhasil", "✅ Data Turn Key berhasil diupdate", "success");
     loadModuleContent("quotation");
   } catch (err) {
@@ -694,6 +722,7 @@ async function loadDetailSalesTurnKey(Id, Detail) {
     console.log("Subcategory array parsed:", subcats);
 
     // 🔹 Render item rows
+    // 🔹 Render item rows
     const tbody = document.getElementById("tabelItem");
     tbody.innerHTML = "";
 
@@ -723,15 +752,6 @@ async function loadDetailSalesTurnKey(Id, Detail) {
       }
     }
 
-    // Helper function to format file size
-    function formatFileSize(bytes) {
-      if (!bytes) return "0 Bytes";
-      const k = 1024;
-      const sizes = ["Bytes", "KB", "MB", "GB"];
-      const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-    }
-
     console.log("Items rendered:", data.items || []);
     calculateInvoiceTotals();
   } catch (err) {
@@ -739,6 +759,9 @@ async function loadDetailSalesTurnKey(Id, Detail) {
     Swal.fire("Error", err.message || "Gagal memuat detail penjualan", "error");
   }
 }
+
+
+
 
 function getSubCategoryName(id) {
   const sub = subCategoryList.find((s) => s.id === id);

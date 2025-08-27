@@ -26,7 +26,7 @@ function formatRp(angka) {
 }
 
 // Global variable to store versions
-globalVersions = [];
+window.globalVersions = window.globalVersions || [];
 
 function terbilang(n) {
   const satuan = [
@@ -83,7 +83,7 @@ async function loadPesananData(pesananId, isDownload = false) {
     }
 
     // Filter and sort versions
-    globalVersions = data.detail
+    window.globalVersions = data.detail
       .filter((version) => version.revision_number !== null)
       .sort((a, b) => b.revision_number - a.revision_number);
 
@@ -187,15 +187,10 @@ async function renderInvoice(invoiceData, isDownload = false) {
     : invoiceData.no_qtn;
 
   // Tambahkan kategori ke setiap item
-  const itemsWithCategory = items.map((item) => {
-    const category = subCategories.find(
-      (c) => c.sub_category_id == item.sub_category_id
-    );
-    return {
-      ...item,
-      categoryName: category ? category.sub_category : "Lainnya",
-    };
-  });
+  const itemsWithCategory = items.map((item) => ({
+    ...item,
+    categoryName: item.sub_category || "Lainnya",
+  }));
 
   // Grouping by sub_category
   const groupedItems = itemsWithCategory.reduce((acc, item) => {
@@ -270,11 +265,13 @@ async function renderInvoice(invoiceData, isDownload = false) {
       <div class="flex justify-between mb-4 p-2 bg-gray-50 rounded text-xs">
         <div>
           <h3 class="font-bold text-gray-700 mb-1">Kepada YTH:</h3>
-          <p class="font-semibold text-gray-800">${data.pic_name}</p>
+          <p class="font-semibold text-gray-800">${invoiceData.pic_name}</p>
           <p class="font-semibold text-gray-800">${
             invoiceData.pelanggan_nama
           }</p>
-          <p class="text-gray-800">${data.alamat}</p>
+          <p class="text-gray-800 max-w-[350px] break-words">${
+            invoiceData.alamat
+          }</p>
           ${
             invoiceData.project_name
               ? `<p class="text-gray-600">${invoiceData.project_name}</p>`
@@ -390,7 +387,6 @@ async function renderInvoice(invoiceData, isDownload = false) {
   }
 }
 
-// Render version history list
 function renderVersionHistory(versions) {
   if (!versions?.length) {
     versionHistoryList.innerHTML =
@@ -439,7 +435,6 @@ function renderVersionHistory(versions) {
     .join("");
 }
 
-// Load specific version from the global versions list
 function loadVersionFromList(index) {
   try {
     if (!globalVersions || !globalVersions[index]) {
@@ -475,6 +470,8 @@ function loadVersionFromList(index) {
     showError(`Failed to load version: ${error.message}`);
   }
 }
+
+// Load specific version from the global versions list
 
 // Print/download specific version
 async function printVersion(historyId) {
