@@ -41,55 +41,30 @@ async function loadCustomerList() {
     if (!response.ok) throw new Error("Gagal mengambil data client");
 
     const result = await response.json();
-
     customerList = result.data || [];
+
+    // isi select option
+    const select = document.getElementById("client");
+    select.innerHTML = `<option value="">-- Pilih Client --</option>`; // reset isi dulu
+
+    customerList.forEach((item) => {
+      const opt = document.createElement("option");
+      opt.value = item.client_id; // simpan id client di value
+      opt.textContent = item.nama_client;
+      select.appendChild(opt);
+    });
   } catch (error) {
+    console.error("Error load client:", error);
     customerList = [];
   }
 }
 
-function filterclientSuggestions() {
-  const inputVal = document.getElementById("client").value.toLowerCase();
-  const suggestionBox = document.getElementById("clientSuggestions");
-
-  suggestionBox.innerHTML = "";
-
-  if (inputVal.length < 2) {
-    return suggestionBox.classList.add("hidden");
-  }
-
-  const filtered = customerList.filter(
-    (c) => c.nama_client && c.nama_client.toLowerCase().includes(inputVal)
-  );
-
-  if (filtered.length === 0) {
-    return suggestionBox.classList.add("hidden");
-  }
-
-  filtered.forEach((item) => {
-    const li = document.createElement("li");
-    li.textContent = item.nama_client;
-    li.className = "px-3 py-2 hover:bg-gray-200 cursor-pointer";
-
-    li.addEventListener("click", () => {
-      // Tampilkan nama client di input
-      document.getElementById("client").value = item.nama_client;
-      // Simpan client_id di hidden input
-      document.getElementById("client_id").value = item.client_id;
-
-      console.log("✅ Client selected:", {
-        id: item.client_id,
-        nama: item.nama_client,
-      });
-
-      suggestionBox.classList.add("hidden");
-    });
-
-    suggestionBox.appendChild(li);
-  });
-
-  suggestionBox.classList.remove("hidden");
-}
+// update hidden input saat dipilih
+document.getElementById("client").addEventListener("change", function () {
+  document.getElementById("client_id").value = this.value;
+  const selected = customerList.find((c) => c.client_id == this.value);
+  console.log("✅ Client selected:", selected);
+});
 
 // Sembunyikan suggestion jika klik di luar input dan list
 document.addEventListener("click", (e) => {
