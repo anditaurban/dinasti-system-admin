@@ -281,6 +281,7 @@ document
     const pesanan_id = document.getElementById("invoicePesananId").value;
     const po_number = document.getElementById("po_number").value.trim();
     const invoice_date = document.getElementById("invoice_date").value;
+    const inv_number = document.getElementById("inv_number").value.trim() || "";
 
     if (!po_number || !invoice_date) {
       alert("PO Number dan Invoice Date wajib diisi!");
@@ -299,6 +300,7 @@ document
           user_id,
           pesanan_id,
           po_number,
+          inv_number,
           invoice_date,
         }),
       });

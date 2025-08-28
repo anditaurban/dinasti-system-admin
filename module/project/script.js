@@ -79,15 +79,14 @@ window.rowTemplate = function (item, index, perPage = 10) {
         ${item.status}
       </span>
       <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
-  <!-- View Order -->
- <button onclick="event.stopPropagation(); loadModuleContent('project_detail', '${
-   item.project_id
- }');" 
-    class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-    👁️ View Order
-</button>
+      <!-- View Order -->
+      <button onclick="event.stopPropagation(); loadModuleContent('project_detail', '${
+        item.project_id
+      }');" 
+          class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+          👁️ View Order
+      </button>
 
-  <!-- Delete Order -->
    
              <button onclick="handleDelete('${
                item.project_id

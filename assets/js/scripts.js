@@ -30,6 +30,7 @@ const month = String(today.getMonth() + 1).padStart(2, "0");
 const day = String(today.getDate()).padStart(2, "0");
 const formattedDate = `${year}-${month}-${day}`;
 let cashier_id = 0;
+
 let current_date = formattedDate;
 
 // Function to load JavaScript files dynamically
@@ -224,6 +225,20 @@ async function loadModuleContent(module, Id, Detail) {
             loadDetailProject(Id, Detail);
           } else {
             console.warn("loadDetailProject belum terdefinisi.");
+          }
+        }
+        if (module === "invoice_detail") {
+          if (typeof loadDetailSales === "function") {
+            loadDetailSales(Id, Detail);
+          } else {
+            console.warn("loadDetailSales belum terdefinisi.");
+          }
+        }
+        if (module === "invoice_detail_turnkey") {
+          if (typeof loadDetailSalesTurnKey === "function") {
+            loadDetailSalesTurnKey(Id, Detail);
+          } else {
+            console.warn("loadDetailSalesTurnKey belum terdefinisi.");
           }
         }
         if (module === "quotation_log_detail") {

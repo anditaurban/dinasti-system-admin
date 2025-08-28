@@ -1,4 +1,4 @@
-pagemoduleparent = "sales";
+pagemoduleparent = "invoice";
 
 setTodayDate();
 loadCustomerList();
@@ -26,73 +26,35 @@ if (window.detail_id && window.detail_desc) {
 }
 
 async function loadCustomerList() {
-  const response = await fetch(`${baseUrl}/all/client/`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${API_TOKEN}`, // sesuaikan dengan token kamu
-    },
-  });
-  const result = await response.json();
-  customerList = result.data || [];
-}
-
-async function loadProdukList() {
-  const res = await fetch(`${baseUrl}/list/product/${owner_id}`, {
-    headers: { Authorization: `Bearer ${API_TOKEN}` },
-  });
-  const json = await res.json();
-  produkList = json.listData || [];
-}
-
-function filterclientSuggestions() {
-  const inputVal = document.getElementById("client").value.toLowerCase();
-  const suggestionBox = document.getElementById("clientSuggestions");
-
-  suggestionBox.innerHTML = "";
-
-  if (inputVal.length < 2) {
-    return suggestionBox.classList.add("hidden");
-  }
-
-  const filtered = customerList.filter(
-    (c) => c.nama && c.nama.toLowerCase().includes(inputVal)
-  );
-
-  if (filtered.length === 0) {
-    return suggestionBox.classList.add("hidden");
-  }
-
-  filtered.forEach((item) => {
-    const li = document.createElement("li");
-    li.textContent = `${item.nama} (${item.whatsapp || "No WA"})`;
-    li.className = "px-3 py-2 hover:bg-gray-200 cursor-pointer";
-
-    // Saat item diklik, isi input dan sembunyikan list
-    li.addEventListener("click", () => {
-      document.getElementById("client").value = item.nama;
-
-      suggestionBox.classList.add("hidden");
+  try {
+    const response = await fetch(`${baseUrl}/client/sales/`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
     });
 
-    suggestionBox.appendChild(li);
-  });
+    if (!response.ok) throw new Error("Gagal mengambil data client");
 
-  suggestionBox.classList.remove("hidden");
+    const result = await response.json();
+    customerList = result.data || [];
+
+    // isi select option
+    const select = document.getElementById("client");
+    select.innerHTML = `<option value="">-- Pilih Client --</option>`; // reset isi dulu
+
+    customerList.forEach((item) => {
+      const opt = document.createElement("option");
+      opt.value = item.client_id; // simpan id client di value
+      opt.textContent = item.nama_client;
+      select.appendChild(opt);
+    });
+  } catch (error) {
+    console.error("Error load client:", error);
+    customerList = [];
+  }
 }
 
-// Sembunyikan suggestion jika klik di luar input dan list
-document.addEventListener("click", (e) => {
-  const input = document.getElementById("client");
-  const suggestionBox = document.getElementById("clientSuggestions");
-
-  // Cek dulu apakah kedua elemen ada
-  if (input && suggestionBox) {
-    // Jika yang diklik bukan input dan bukan list, sembunyikan
-    if (!input.contains(e.target) && !suggestionBox.contains(e.target)) {
-      suggestionBox.classList.add("hidden");
-    }
-  }
-});
 async function tambahItem() {
   const tbody = document.getElementById("tabelItem");
 
@@ -348,7 +310,7 @@ async function submitInvoice() {
     formData.append("items", JSON.stringify(items));
 
     // Ambil file dari input yang pasti ada di DOM saat submit
-    const fileInput = document.querySelector("input[type='file']#file");
+    const fileInput = document.querySelector("input[type='files']#files");
     if (fileInput && fileInput.files && fileInput.files[0]) {
       formData.append("file", fileInput.files[0]);
     } else {
@@ -561,30 +523,46 @@ async function loadDetailSales(Id, Detail) {
   window.detail_desc = Detail;
 
   try {
-    const res = await fetch(`${baseUrl}/detail/sales/${Id}`, {
+    const res = await fetch(`${baseUrl}/detail/sales_invoice/${Id}`, {
       headers: { Authorization: `Bearer ${API_TOKEN}` },
     });
     const response = await res.json();
     console.log("Response API:", response);
 
-    if (!response || !response.detail) {
-      throw new Error("Invalid API response structure - missing detail");
+    if (!response) {
+      throw new Error("Invalid API response - kosong");
+    }
+
+    if (!response.detail) {
+      console.warn("API response tidak punya detail:", response);
+      Swal.fire("Info", response.message || "Detail tidak tersedia", "warning");
+      return; // stop eksekusi biar gak error undefined
     }
 
     const data = response.detail;
     window.revision_count = data.revision_number || 0;
     window.lastRevision = window.revision_count;
 
+    await loadCustomerList();
     await loadSalesType();
     await loadStatusOptions();
-
     // 📝 Isi form utama
-    document.getElementById("formTitle").innerText = `Data No ${Detail}`;
-    document.getElementById("tanggal").value = data.tanggal_ymd || "";
+    const noInvoice = data.inv_number || data.invoice_number || Detail || "-";
+    document.getElementById(
+      "formTitle"
+    ).innerText = `Data Invoice ${noInvoice}`;
+    document.getElementById("inv_number").value = data.inv_number || "";
+    document.getElementById("po_number").value = data.po_number || "";
+
+    document.getElementById("tanggal").value =
+      data.tanggal_ymd || data.invoice_date_ymd || "";
+    document.getElementById("pesanan_id").value = data.pesanan_id || "";
     document.getElementById("type_id").value = data.type_id || "";
     document.getElementById("no_qtn").value = data.inv_number || "";
     document.getElementById("project_name").value = data.project_name || "";
-    document.getElementById("client").value = data.pelanggan_nama || "";
+    document.getElementById("pic_name").value = data.pic_name || "";
+    document.getElementById("client").value = data.pelanggan_id || "";
+    document.getElementById("client_id").value = data.pelanggan_id || "";
     document.getElementById("contract_amount").value =
       data.contract_amount || 0;
     const discountEl = document.getElementById("discount");
@@ -602,28 +580,6 @@ async function loadDetailSales(Id, Detail) {
       data.syarat_ketentuan || "";
     document.getElementById("term_pembayaran").value =
       data.term_pembayaran || "";
-
-    const simpanBtn = document.querySelector(
-      'button[onclick="submitInvoice()"]'
-    );
-    const updateBtn = document.querySelector(
-      'button[onclick="updateInvoice()"]'
-    );
-    const logBtn = document.getElementById("logBtn");
-
-    if (logBtn) {
-      logBtn.setAttribute(
-        "onclick",
-        `event.stopPropagation(); loadModuleContent('sales_log', '${Id}')`
-      );
-      logBtn.classList.remove("hidden");
-    }
-    if (data.status_id === 2) {
-      updateBtn?.classList.add("hidden");
-    } else {
-      updateBtn?.classList.remove("hidden");
-    }
-    simpanBtn?.classList.add("hidden");
 
     // 🔹 Ambil list sub category dari API
     // 🔹 Ambil list sub category dari API
@@ -674,153 +630,58 @@ async function loadDetailSales(Id, Detail) {
       console.log(item.sub_category);
     }
 
-    // --- Render Daftar Pembayaran ---
     const pembayaranSection = document.getElementById("pembayaranSection");
     pembayaranSection.innerHTML = "";
-
     if (data.payments && data.payments.length > 0) {
-      // Add header row
-      const header = document.createElement("div");
-      header.className =
-        "grid grid-cols-3 gap-2 font-semibold text-gray-700 border-b pb-2";
-      header.innerHTML = `
-    <span>Tanggal</span>
-    <span>Sumber</span>
-    <span class="text-right">Jumlah</span>
-  `;
-      pembayaranSection.appendChild(header);
-
-      // Add payment rows
-      data.payments.forEach((pay) => {
+      data.payments.forEach((p) => {
         const div = document.createElement("div");
-        div.className = "grid grid-cols-3 gap-2 border-b pb-2 last:border-0";
+        div.className = "flex justify-between border p-2 rounded bg-gray-50";
         div.innerHTML = `
-      <span class="text-sm">${pay.date || "-"}</span>
-      <span class="text-sm">${pay.source || "-"}</span>
-      <span class="text-right font-medium text-green-600">Rp ${formatNumber(
-        pay.amount || 0
-      )}</span>
+      <span>💳 ${p.payment_desc || "Pembayaran"}</span>
+      <span>${formatNumber(p.amount || 0)}</span>
     `;
         pembayaranSection.appendChild(div);
       });
-
-      // Add total row
-      const total = data.payments.reduce(
-        (sum, pay) => sum + (pay.amount || 0),
-        0
-      );
-      const totalRow = document.createElement("div");
-      totalRow.className = "grid grid-cols-3 gap-2 font-semibold pt-2";
-      totalRow.innerHTML = `
-    <span colspan="2">Total Pembayaran</span>
-    <span class="text-right text-green-700">Rp ${formatNumber(total)}</span>
-  `;
-      pembayaranSection.appendChild(totalRow);
     } else {
-      pembayaranSection.innerHTML = `<div class="text-gray-500 italic text-center py-4">Belum ada pembayaran</div>`;
+      pembayaranSection.innerHTML = `<div class="text-gray-500 italic">-</div>`;
     }
 
-    // --- Render File Pendukung ---
+    // 🔹 Render file pendukung
     const fileSection = document.getElementById("fileSection");
     fileSection.innerHTML = "";
-
     if (data.supporting_files && data.supporting_files.length > 0) {
-      data.supporting_files.forEach((file) => {
+      data.supporting_files.forEach((f) => {
         const div = document.createElement("div");
         div.className =
-          "flex items-center justify-between p-2 hover:bg-gray-50 rounded";
+          "flex items-center justify-between border p-2 rounded bg-gray-50";
         div.innerHTML = `
-      <div class="flex items-center space-x-2">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        <span class="truncate max-w-xs">${file.name || "File"}</span>
-      </div>
-      <div class="flex space-x-2">
-        <span class="text-xs text-gray-500">${formatFileSize(file.size)}</span>
-        <a href="${
-          file.url || "#"
-        }" target="_blank" class="text-blue-600 hover:underline flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-          <span class="ml-1">Download</span>
-        </a>
-      </div>
+      <a href="${baseUrl.replace("/api", "")}/${f.file_path}" 
+         target="_blank" class="text-blue-600 hover:underline">
+        📄 ${f.file_name}
+      </a>
+      <span class="text-xs text-gray-500">${f.uploaded_at}</span>
     `;
         fileSection.appendChild(div);
       });
     } else {
-      fileSection.innerHTML = `
-    <div class="text-center py-4">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-      </svg>
-      <p class="text-gray-500 mt-2">Tidak ada file pendukung</p>
-    </div>
-  `;
+      fileSection.innerHTML = `<div class="text-gray-500 italic">-</div>`;
     }
 
-    // --- Render Invoice Uang Muka ---
+    // 🔹 Render invoice uang muka
     const uangMukaSection = document.getElementById("uangMukaSection");
     uangMukaSection.innerHTML = "";
-
     if (data.down_payments && data.down_payments.length > 0) {
-      // Add header row
-      const header = document.createElement("div");
-      header.className =
-        "grid grid-cols-3 gap-2 font-semibold text-gray-700 border-b pb-2";
-      header.innerHTML = `
-    <span>No. Invoice</span>
-    <span>Tanggal</span>
-    <span class="text-right">Jumlah</span>
-  `;
-      uangMukaSection.appendChild(header);
-
-      // Add down payment rows
       data.down_payments.forEach((dp) => {
         const div = document.createElement("div");
-        div.className = "grid grid-cols-3 gap-2 border-b pb-2 last:border-0";
+        div.className = "flex justify-between border p-2 rounded bg-gray-50";
         div.innerHTML = `
-      <span class="text-sm">${dp.invoice_no || "-"}</span>
-      <span class="text-sm">${dp.date || "-"}</span>
-      <span class="text-right font-medium text-green-600">Rp ${formatNumber(
-        dp.amount || 0
-      )}</span>
+      <span>💰 ${dp.invoice_number || "DP"}</span>
+      <span>${formatNumber(dp.amount || 0)}</span>
     `;
         uangMukaSection.appendChild(div);
       });
-
-      // Add total row
-      const total = data.down_payments.reduce(
-        (sum, dp) => sum + (dp.amount || 0),
-        0
-      );
-      const totalRow = document.createElement("div");
-      totalRow.className = "grid grid-cols-3 gap-2 font-semibold pt-2";
-      totalRow.innerHTML = `
-    <span colspan="2">Total Uang Muka</span>
-    <span class="text-right text-green-700">Rp ${formatNumber(total)}</span>
-  `;
-      uangMukaSection.appendChild(totalRow);
     } else {
-      uangMukaSection.innerHTML = `
-    <div class="text-center py-4">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-      <p class="text-gray-500 mt-2">Belum ada invoice uang muka</p>
-    </div>
-  `;
-    }
-
-    // Helper function to format file size
-    function formatFileSize(bytes) {
-      if (!bytes) return "0 Bytes";
-      const k = 1024;
-      const sizes = ["Bytes", "KB", "MB", "GB"];
-      const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+      uangMukaSection.innerHTML = `<div class="text-gray-500 italic">-</div>`;
     }
 
     console.log("Items rendered:", data.items || []);
@@ -828,6 +689,99 @@ async function loadDetailSales(Id, Detail) {
   } catch (err) {
     console.error("Gagal load detail:", err);
     Swal.fire("Error", err.message || "Gagal memuat detail penjualan", "error");
+  }
+}
+
+async function editProjectWithFile() {
+  const invoiceId = detail_id; // id invoice dari detail sebelumnya
+  const formData = new FormData();
+
+  // 🔹 Ambil pesanan_id
+  const pesananIdValue = document.getElementById("pesanan_id")?.value;
+  if (!pesananIdValue || isNaN(pesananIdValue)) {
+    Swal.fire(
+      "Error",
+      "Pesanan ID wajib diisi dan harus berupa angka",
+      "error"
+    );
+    return;
+  }
+  formData.append("pesanan_id", parseInt(pesananIdValue, 10));
+
+  // 🔹 Ambil PO Number & Invoice Number
+  const poNumber = document.getElementById("po_number")?.value.trim();
+  const invNumber = document.getElementById("inv_number")?.value.trim();
+  if (!poNumber || !invNumber) {
+    Swal.fire("Error", "PO Number dan Invoice Number wajib diisi", "error");
+    return;
+  }
+  formData.append("po_number", poNumber);
+  formData.append("inv_number", invNumber);
+
+  // 🔹 Ambil invoice_date
+  const invoiceDate = document.getElementById("tanggal")?.value;
+  if (!invoiceDate) {
+    Swal.fire("Error", "Tanggal invoice wajib diisi", "error");
+    return;
+  }
+  formData.append("invoice_date", invoiceDate);
+
+  // 🔹 Field tambahan
+  formData.append("owner_id", 1);
+  formData.append("user_id", 1);
+
+  // Kalau ada keterangan tambahan
+  const ket = document.getElementById("keterangan")?.value || "";
+  formData.append("keterangan", ket);
+
+  // 🔹 File upload
+  const fileInput = document.getElementById("files");
+  if (fileInput && fileInput.files.length > 0) {
+    for (let i = 0; i < fileInput.files.length; i++) {
+      formData.append("files", fileInput.files[i]); // <-- hapus "[]" agar sama dengan BE
+    }
+  }
+
+  // 🚨 Log semua isi FormData
+  console.group("Payload yang dikirim:");
+  for (let [key, value] of formData.entries()) {
+    console.log(`${key}:`, value);
+  }
+  console.groupEnd();
+
+  try {
+    console.log(
+      "Kirim ke endpoint:",
+      `${baseUrl}/update/sales_invoice/${invoiceId}`
+    );
+    const res = await fetch(`${baseUrl}/update/sales_invoice/${invoiceId}`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+      body: formData,
+    });
+
+    // 🔹 Ambil response raw text dulu
+    const rawText = await res.text();
+    console.log("Raw response dari server:", rawText);
+
+    let result;
+    try {
+      result = JSON.parse(rawText);
+    } catch (e) {
+      result = { message: "Response bukan JSON", raw: rawText };
+    }
+
+    console.log("Parsed result:", result);
+
+    if (res.ok) {
+      Swal.fire("Sukses", "Invoice berhasil diupdate", "success");
+      loadModuleContent("invoice");
+    } else {
+      Swal.fire("Error", result.message || "Gagal update invoice", "error");
+    }
+  } catch (err) {
+    console.error("Error update invoice:", err);
+    Swal.fire("Error", "Terjadi kesalahan saat update invoice", "error");
   }
 }
 

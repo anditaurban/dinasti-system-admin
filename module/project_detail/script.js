@@ -345,7 +345,6 @@ async function loadDetailProject(Id, Detail) {
 
     const data = response.detail;
 
-    // 📝 Title form - TAMPILKAN PROJECT NUMBER/NOMOR PROYEK
     // Cek jika ada project_number, jika tidak gunakan ID sebagai fallback
     const projectNumber = data.project_number || `PRJ-${Id}`;
     document.getElementById("formTitle").innerText = `Edit (${projectNumber})`;

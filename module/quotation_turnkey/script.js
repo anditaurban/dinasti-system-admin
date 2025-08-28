@@ -647,6 +647,7 @@ async function loadDetailSalesTurnKey(Id, Detail) {
     window.revision_count = data.revision_number || 0;
     window.lastRevision = window.revision_count;
 
+    await loadCustomerList();
     await loadSalesType();
     await loadStatusOptions();
 
@@ -656,7 +657,8 @@ async function loadDetailSalesTurnKey(Id, Detail) {
     document.getElementById("type_id").value = data.type_id || "";
     document.getElementById("no_qtn").value = data.no_qtn || "";
     document.getElementById("project_name").value = data.project_name || "";
-    document.getElementById("client").value = data.pelanggan_nama || "";
+    document.getElementById("client").value = data.pelanggan_id || "";
+    document.getElementById("client_id").value = data.pelanggan_id || 0;
     document.getElementById("pic_name").value = data.pic_name || "";
     document.getElementById("contract_amount").value =
       data.contract_amount || 0;

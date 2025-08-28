@@ -348,17 +348,20 @@ async function confirmPayment(receipt_id, status_value) {
 
     const result = await response.json();
 
-    if (result?.data?.success) {
+    // sesuai struktur response kamu
+    if (result?.response === "200") {
       Swal.fire({
         title: "Berhasil!",
-        text: result.data.message || "Status berhasil diperbarui.",
+        text: result.message || "Status berhasil diperbarui.",
         icon: "success",
         timer: 2000,
         showConfirmButton: false,
       });
+
+      // refresh data tabel/list
       fetchAndUpdateData();
     } else {
-      throw new Error(result.data?.message || "Gagal memperbarui status");
+      throw new Error(result.message || "Gagal memperbarui status");
     }
   } catch (error) {
     Swal.fire({

@@ -164,12 +164,28 @@ window.rowTemplate = function (item, index, perPage = 10) {
         ? `
       <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
 
-      <button onclick="event.stopPropagation(); loadModuleContent('invoice_detail', '${item.pesanan_id}', '${item.inv_number}'); showVersionHistory('${item.pesanan_id}', '${item.inv_number}');" 
-          class="block w-full text-left px-4 py-2 hover:bg-gray-100">👁️ View Order</button>
+      <button 
+    onclick="event.stopPropagation(); 
+      if ('${item.project_type}' === 'Turn Key') {
+        loadModuleContent('invoice_detail_turnkey', '${item.invoice_id}', '${item.no_qtn}');
+      } else {
+        loadModuleContent('invoice_detail', '${item.invoice_id}', '${item.no_qtn}');
+      }
+      showVersionHistory('${item.invoice_id}', '${item.no_qtn}');"
+    class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+    👁️ View Detail
+  </button>
         <button 
           onclick="openSalesReceiptModal('${item.pesanan_id}', '${item.pelanggan_id}')"
           class="block w-full text-left px-4 py-2 hover:bg-gray-100">
           📝 Add Receipt
+        </button>
+
+        <button onclick="event.stopPropagation(); confirmPaymentInvoice('${item.invoice_id}', 2);" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+          ✅ Valid
+        </button>
+        <button onclick="event.stopPropagation(); confirmPaymentInvoice('${item.invoice_id}', 3);" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+          ❌ Tidak Valid
         </button>
 
 
@@ -181,6 +197,57 @@ window.rowTemplate = function (item, index, perPage = 10) {
 
   </tr>`;
 };
+
+async function confirmPaymentInvoice(invoice_id, status_value) {
+  const { isConfirmed } = await Swal.fire({
+    title: "Konfirmasi Pembayaran",
+    text: "Apakah Anda yakin ingin mengonfirmasi pembayaran ini?",
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: "Ya, Konfirmasi",
+    cancelButtonText: "Batal",
+  });
+
+  if (!isConfirmed) return;
+
+  try {
+    const response = await fetch(
+      `${baseUrl}/update/sales_invoice_status/${invoice_id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+        body: JSON.stringify({ status_id: status_value, user_id: user_id }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (result?.response === "200" && result.data) {
+      Swal.fire({
+        title: "Berhasil!",
+        text: `${result.message} (Invoice ID: ${result.data.invoice_id}, Status: ${result.data.status})`,
+        icon: "success",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+
+      // refresh data tabel/list
+      fetchAndUpdateData();
+    } else {
+      throw new Error(result.message || "Gagal memperbarui status");
+    }
+  } catch (error) {
+    Swal.fire({
+      title: "Gagal",
+      text: error.message,
+      icon: "error",
+    });
+  }
+}
+
 document.addEventListener("click", (e) => {
   if (e.target.classList.contains("addButton")) {
     const pesananId = e.target.getAttribute("data-id");
