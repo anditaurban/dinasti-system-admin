@@ -175,13 +175,11 @@
 
         <!-- Client -->
         <div>
-          <label class="block text-sm font-medium">Client</label>
-          <input type="text" id="client" name="client" class="w-full border px-3 py-2 rounded" autocomplete="off"
-            oninput="filterclientSuggestions()" />
+          <label for="client" class="block text-sm font-medium">Client</label>
+          <select id="client" name="client" class="w-full border px-3 py-2 rounded">
+            <option value="">-- Pilih Client --</option>
+          </select>
           <input type="hidden" id="client_id" />
-          <ul id="clientSuggestions"
-            class="absolute z-10 w-full bg-white border rounded mt-1 text-sm shadow hidden max-h-48 overflow-y-auto">
-          </ul>
         </div>
 
         <!-- PIC Name -->

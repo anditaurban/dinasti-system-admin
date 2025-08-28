@@ -390,14 +390,14 @@ document.getElementById("addButton").addEventListener("click", async () => {
     // === ADD MATERIAL ===
     statusLoaded = false;
     await loadModuleContent("quotation_detail");
-    loadCustomerList(owner_id);
+    loadCustomerList();
     loadStatusOptions(); // status select sudah ready
     loadDetailSales(id, detail);
   } else if (result.isDenied) {
     // === ADD TURN KEY ===
     statusLoaded = false;
     await loadModuleContent("quotation_turnkey");
-    loadCustomerList(owner_id);
+    loadCustomerList();
     loadStatusOptions();
     loadDetailSales(id, detail);
   }
