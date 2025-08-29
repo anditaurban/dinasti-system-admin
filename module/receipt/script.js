@@ -188,6 +188,15 @@ document.getElementById("addButton").addEventListener("click", () => {
   loadDropdownCall();
 });
 
+function formatRupiah(angka) {
+  if (!angka) return "0";
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(angka);
+}
+
 formHtml = `
 <form id="dataform" class="space-y-2">
   <!-- Tanggal Transaksi -->

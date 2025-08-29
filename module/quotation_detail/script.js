@@ -43,8 +43,8 @@ async function loadCustomerList() {
 
     customerList.forEach((item) => {
       const opt = document.createElement("option");
-      opt.value = item.client_id; // simpan id client di value
-      opt.textContent = item.nama_client;
+      opt.value = item.client_id; // simpan id client
+      opt.textContent = `${item.nama_client} (${item.alias})`; // tampilkan nama_client (alias)
       select.appendChild(opt);
     });
   } catch (error) {

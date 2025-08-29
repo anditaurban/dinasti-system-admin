@@ -312,3 +312,7 @@ async function fetchAndPopulateOptions(
     console.error("Error fetching options:", error);
   }
 }
+function formatNumber(angka) {
+  if (isNaN(angka) || angka === "") return "0";
+  return parseInt(angka).toLocaleString("id-ID");
+}

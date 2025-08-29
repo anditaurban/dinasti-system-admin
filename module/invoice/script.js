@@ -180,16 +180,6 @@ window.rowTemplate = function (item, index, perPage = 10) {
           class="block w-full text-left px-4 py-2 hover:bg-gray-100">
           📝 Add Receipt
         </button>
-
-        <button onclick="event.stopPropagation(); confirmPaymentInvoice('${item.invoice_id}', 2);" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-          ✅ Valid
-        </button>
-        <button onclick="event.stopPropagation(); confirmPaymentInvoice('${item.invoice_id}', 3);" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-          ❌ Tidak Valid
-        </button>
-
-
-
       </div>
     `
         : ""
@@ -466,15 +456,26 @@ document
     const form = e.target;
     const formData = new FormData(form);
 
-    // Kalau file kosong, hapus dari formData
+    // Tangani file: hapus jika kosong
     const file = formData.get("file");
-    if (file && file.size === 0) {
-      formData.delete("file");
+    if (file && file.size === 0) formData.delete("file");
+
+    // Tangani nominal (jika ada field jumlah)
+    // Tangani nominal
+    const nominalField = formData.get("nominal");
+    if (nominalField) {
+      const nominalNumber = parseInt(nominalField.replace(/\./g, ""));
+      formData.set("nominal", nominalNumber);
     }
 
+    // Debug: lihat semua data FormData sebelum dikirim
     console.group("📌 FormData Payload to API");
     for (let [key, value] of formData.entries()) {
-      console.log(key, value);
+      if (value instanceof File) {
+        console.log(key, value.name, value.size, value.type);
+      } else {
+        console.log(key, value);
+      }
     }
     console.groupEnd();
 
@@ -482,9 +483,10 @@ document
       const res = await fetch(`${baseUrl}/add/sales_receipt`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${API_TOKEN}`, // ❌ tanpa Content-Type manual
+          Authorization: `Bearer ${API_TOKEN}`,
+          // Jangan set Content-Type, biarkan browser handle FormData
         },
-        body: formData, // ✅ kirim langsung FormData
+        body: formData,
       });
 
       const rawText = await res.text();
