@@ -430,25 +430,29 @@ async function openSalesReceiptModal(pesananId, pelangganId) {
   loadFinanceAccounts();
 
   // Ambil sisa bayar dari API
+  // --- Ambil sisa bayar dari API ---
   try {
     const res = await fetch(`${baseUrl}/remaining_amount/${pesananId}`, {
       headers: { Authorization: `Bearer ${API_TOKEN}` },
     });
-    const data = await res.json();
-    console.log("Remaining amount API:", data);
+    const result = await res.json();
+    console.log("Remaining amount API:", result);
 
-    if (res.ok && data.remaining_amount != null) {
+    // ✅ Ambil dari result.data
+    if (res.ok && result.data && result.data.remaining_amount != null) {
       const nominalInput = document.getElementById("sr_nominal");
       const totalInfo = document.getElementById("sr_total_info");
       const sisaInfo = document.getElementById("sr_sisa_info");
 
-      const totalInvoice = data.total_invoice || data.remaining_amount || 0;
-      const remaining = data.remaining_amount || 0;
+      const totalInvoice = result.data.total_order; // total tagihan
+      const sisaBayar = result.data.remaining_amount;
 
-      nominalInput.value = formatRupiah(remaining);
+      // default isi nominal = sisa bayar penuh
+      nominalInput.value = formatRupiah(sisaBayar);
 
+      // tampilkan info
       totalInfo.textContent = `Total tagihan: ${formatRupiah(totalInvoice)}`;
-      sisaInfo.textContent = `Sisa bayar: ${formatRupiah(remaining)}`;
+      sisaInfo.textContent = `Sisa bayar: ${formatRupiah(sisaBayar)}`;
     }
   } catch (err) {
     console.error("❌ Gagal ambil sisa bayar:", err);
@@ -469,11 +473,6 @@ function closeSalesReceiptModal() {
 
   setTimeout(() => {
     modal.classList.add("hidden");
-    // reset form biar gak nyisa
-    document.getElementById("salesReceiptForm").reset();
-    document.getElementById("sr_total_info").textContent = "";
-    document.getElementById("sr_sisa_info").textContent = "";
-    document.getElementById("sr_nominal").value = "";
   }, 300);
 }
 
@@ -491,11 +490,10 @@ document
       const res = await fetch(`${baseUrl}/remaining_amount/${pesananId}`, {
         headers: { Authorization: `Bearer ${API_TOKEN}` },
       });
-      const data = await res.json();
+      const result = await res.json();
 
-      if (res.ok && data.remaining_amount != null) {
-        let sisa = data.remaining_amount - nominalInput;
-        if (sisa < 0) sisa = 0; // cegah minus
+      if (res.ok && result.data && result.data.remaining_amount != null) {
+        const sisa = result.data.remaining_amount - nominalInput;
         document.getElementById(
           "sr_sisa_info"
         ).textContent = `Sisa bayar: ${formatRupiah(sisa)}`;
@@ -513,15 +511,18 @@ document
     const form = e.target;
     const formData = new FormData(form);
 
+    // Tangani file: hapus jika kosong
     const file = formData.get("file");
     if (file && file.size === 0) formData.delete("file");
 
+    // Tangani nominal
     const nominalField = formData.get("nominal");
     if (nominalField) {
-      const nominalNumber = parseInt(nominalField.replace(/\D/g, ""));
+      const nominalNumber = parseInt(nominalField.replace(/\D/g, "")) || 0;
       formData.set("nominal", nominalNumber);
     }
 
+    // Debug FormData
     console.group("📌 FormData Payload to API");
     for (let [key, value] of formData.entries()) {
       if (value instanceof File)
@@ -562,47 +563,45 @@ function formatRupiah(angka) {
 }
 
 async function loadFinanceAccounts() {
-  // pastikan diganti sesuai baseUrl real
   try {
     const response = await fetch(`${baseUrl}/list/finance_accounts`, {
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${API_TOKEN}`, // kalau butuh token
+        Authorization: `Bearer ${API_TOKEN}`,
       },
     });
     const result = await response.json();
 
-    console.log("📌 API result finance_accounts:", result); // cek isi di console
+    console.log("📌 API result finance_accounts:", result);
 
-    if (result.response === "200") {
-      const select = document.getElementById("akun");
+    if (result.response === "200" && Array.isArray(result.listData)) {
+      const select = document.getElementById("akun_select");
       if (!select) {
-        console.error("⚠️ Element select#akun tidak ditemukan di modal!");
+        console.error("⚠️ Element select#akun_select tidak ditemukan!");
         return;
       }
 
       select.innerHTML = '<option value="">Pilih Akun</option>';
 
-      const groups = {};
       result.listData.forEach((item) => {
-        const group = item.tipe || "Lainnya";
-        if (!groups[group]) groups[group] = [];
-        groups[group].push(item);
+        if (item.nama_akun && item.nama_akun !== "undefined") {
+          const option = document.createElement("option");
+          option.value = item.akun_id || item.no_rekening; // pake no_rekening sbg key
+          option.textContent = `${item.nama_akun} - ${item.no_rekening}`;
+          option.dataset.no_rekening = item.no_rekening;
+          option.dataset.pemilik = item.pemilik_rekening || "";
+          select.appendChild(option);
+        }
       });
 
-      for (const [tipe, items] of Object.entries(groups)) {
-        const optgroup = document.createElement("optgroup");
-        optgroup.label = tipe;
-        items.forEach((item) => {
-          const option = document.createElement("option");
-          option.value = item.akun_id;
-          option.textContent = item.nama_akun;
-          optgroup.appendChild(option);
-        });
-        select.appendChild(optgroup);
-      }
-
       console.log("✅ Akun berhasil di-load ke select");
+
+      // handle perubahan dropdown → set hidden input
+      select.addEventListener("change", function () {
+        const selected = select.options[select.selectedIndex];
+        document.getElementById("akun_id").value = selected.value; // angka (index + 1)
+        document.getElementById("no_rekening").value =
+          selected.dataset.no_rekening || "";
+      });
     } else {
       console.error("⚠️ Gagal ambil data akun:", result.message);
     }

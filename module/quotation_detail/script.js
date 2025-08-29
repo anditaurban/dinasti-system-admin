@@ -784,17 +784,28 @@ function formatDateForInput(dateStr) {
 
 async function printInvoice(pesanan_id) {
   try {
+    // 🔹 Ambil detail faktur
     const response = await fetch(`${baseUrl}/detail/sales/${pesanan_id}`, {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${API_TOKEN}`,
-      },
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
     });
 
     const result = await response.json();
     const detail = result?.detail;
     if (!detail) throw new Error("Data faktur tidak ditemukan");
 
+    // 🔹 Ambil list subcategory
+    const subcatRes = await fetch(`${baseUrl}/list/sub_category/${owner_id}`, {
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+    });
+    const subcatData = await subcatRes.json();
+    const subcats = subcatData.listData || [];
+
+    // 🔹 Simpan ke localStorage supaya bisa dibaca di faktur_print.html
+    localStorage.setItem("lastInvoiceDetail", JSON.stringify(detail));
+    localStorage.setItem("lastInvoiceSubcats", JSON.stringify(subcats));
+
+    // 🔹 Pilih mode print/download
     const { isConfirmed, dismiss } = await Swal.fire({
       title: "Cetak Faktur Penjualan",
       text: "Pilih metode pencetakan:",

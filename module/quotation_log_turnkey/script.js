@@ -209,10 +209,10 @@ async function renderInvoice(invoiceData, isDownload = false) {
           <td colspan="7" class="p-1 text-gray-700">
             ${item.product || "-"}
             ${
-              item.description
-                ? `<div class="text-xs text-gray-500">${item.description}</div>`
-                : ""
+              item.description &&
+              `<div class="text-xs text-gray-500">${item.description}</div>`
             }
+
           </td>
         </tr>
       `);
@@ -297,7 +297,7 @@ async function renderInvoice(invoiceData, isDownload = false) {
             <th class="text-right w-24">Jumlah</th>
           </tr>
         </thead>
-        <tbody>${tableRows}</tbody>
+        <tbody>${tableRows.join("")}</tbody>
       </table>
 
       <!-- Totals -->
@@ -413,13 +413,7 @@ function renderVersionHistory(versions) {
                         : ""
                     }
                 </button>
-                <button onclick="printVersion('${version.history_id}')" 
-                    class="ml-2 p-1 text-gray-500 hover:text-blue-600" 
-                    title="Download this version">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                </button>
+                
             </div>
         </li>
     `
@@ -427,6 +421,13 @@ function renderVersionHistory(versions) {
     .join("");
 }
 
+// <button onclick="printVersion('${version.history_id}')"
+//                     class="ml-2 p-1 text-gray-500 hover:text-blue-600"
+//                     title="Download this version">
+//                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+//                     </svg>
+//                 </button>
 function loadVersionFromList(index) {
   try {
     if (!globalVersions || !globalVersions[index]) {
