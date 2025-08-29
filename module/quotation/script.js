@@ -401,8 +401,8 @@ document.getElementById("addButton").addEventListener("click", async () => {
   } else if (result.isDenied) {
     // === ADD TURN KEY ===
     statusLoaded = false;
-    await loadModuleContent("quotation_turnkey");
     loadCustomerList();
+    await loadModuleContent("quotation_turnkey");
     loadStatusOptions();
     loadDetailSales(id, detail);
   }
