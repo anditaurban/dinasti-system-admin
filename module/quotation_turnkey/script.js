@@ -883,12 +883,15 @@ function formatDateForInput(dateStr) {
 
 async function printInvoice(pesanan_id) {
   try {
-    const response = await fetch(`${baseUrl}/detail/sales/${pesanan_id}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${API_TOKEN}`,
-      },
-    });
+    const response = await fetch(
+      `${baseUrl}/detail/sales_turnkey/${pesanan_id}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+      }
+    );
 
     const result = await response.json();
     const detail = result?.detail;
