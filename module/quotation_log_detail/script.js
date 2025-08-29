@@ -120,18 +120,16 @@ async function loadPesananData(pesananId, isDownload = false) {
   }
 }
 
-function renderInvoice(invoiceData, isDownload = false) {
+async function renderInvoice(invoiceData, isDownload = false) {
   if (!invoiceData) return;
 
-  // Pastikan items adalah array
   const items = Array.isArray(invoiceData.items) ? invoiceData.items : [];
 
-  // Hitung nilai jika tidak disediakan
   const subtotal =
     invoiceData.subtotal ||
     items.reduce((sum, item) => sum + (item.total || 0), 0);
   const disc = invoiceData.disc || 0;
-  const ppn = invoiceData.ppn || Math.round(subtotal * 0.11); // Default PPN 11%
+  const ppn = invoiceData.ppn || Math.round(subtotal * 0.11);
   const total = invoiceData.total || subtotal - disc + ppn;
 
   const revisionInfo =
@@ -139,7 +137,6 @@ function renderInvoice(invoiceData, isDownload = false) {
       ? `${invoiceData.revision_status}`
       : "-";
 
-  // 🔹 Cek status: jika WON maka tampilkan Invoice
   const isWon =
     invoiceData.status_id == 2 || invoiceData.status_sales === "Won";
   const headerTitle = isWon ? "INVOICE" : "QUOTATION";
@@ -149,7 +146,7 @@ function renderInvoice(invoiceData, isDownload = false) {
     ? invoiceData.inv_number || invoiceData.no_qtn
     : invoiceData.no_qtn;
 
-  // Group items by kategori
+  // 🔹 Lazy load grouped items
   const groupedItems = items.reduce((acc, item) => {
     const categoryName = item.sub_category || "Lainnya";
     if (!acc[categoryName]) acc[categoryName] = [];
@@ -157,16 +154,11 @@ function renderInvoice(invoiceData, isDownload = false) {
     return acc;
   }, {});
 
-  // Buat tabel grouped
-  const tableRows = Object.entries(groupedItems)
-    .map(([category, items]) => {
-      return `
-        <tr class="bg-gray-200">
-          <td colspan="6" class="p-1 font-bold text-gray-800 text-xs">${category}</td>
-        </tr>
-        ${items
-          .map(
-            (item, index) => `
+  const tableRows = await Promise.all(
+    Object.entries(groupedItems).map(async ([category, items]) => {
+      const rowHtml = items
+        .map(
+          (item, index) => `
           <tr>
             <td class="text-center text-gray-700">${index + 1}</td>
             <td class="text-gray-800">
@@ -187,11 +179,16 @@ function renderInvoice(invoiceData, isDownload = false) {
             )}</td>
           </tr>
         `
-          )
-          .join("")}
+        )
+        .join("");
+      return `
+        <tr class="bg-gray-200">
+          <td colspan="6" class="p-1 font-bold text-gray-800 text-xs">${category}</td>
+        </tr>
+        ${rowHtml}
       `;
     })
-    .join("");
+  );
 
   const html = `
     <!-- Header -->
@@ -252,7 +249,7 @@ function renderInvoice(invoiceData, isDownload = false) {
         </tr>
       </thead>
       <tbody>
-        ${tableRows}
+        ${tableRows.join("")}
       </tbody>
     </table>
 
@@ -286,23 +283,21 @@ function renderInvoice(invoiceData, isDownload = false) {
   `;
 
   const invoiceContent = document.getElementById("invoiceContent");
-  if (invoiceContent) {
-    invoiceContent.innerHTML = html;
-  }
+  if (invoiceContent) invoiceContent.innerHTML = html;
 
+  // ⚡ Lazy download PDF setelah DOM render selesai
   if (isDownload) {
-    setTimeout(() => {
-      html2pdf()
-        .set({
-          margin: 0,
-          filename: `${noValue || "invoice"}.pdf`,
-          image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2 },
-          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        })
-        .from(invoiceContent || document.querySelector(".invoice-container"))
-        .save();
-    }, 1000);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    html2pdf()
+      .set({
+        margin: 0,
+        filename: `${noValue || "invoice"}.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      })
+      .from(invoiceContent || document.querySelector(".invoice-container"))
+      .save();
   }
 }
 

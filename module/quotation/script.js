@@ -288,6 +288,9 @@ document
       return;
     }
 
+    // ✅ Lazy yield sejenak supaya UI tidak freeze
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
     try {
       const res = await fetch(`${baseUrl}/add/sales_invoice`, {
         method: "POST",

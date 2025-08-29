@@ -120,13 +120,11 @@ async function fetchSubCategories() {
 async function renderInvoice(invoiceData, isDownload = false) {
   if (!invoiceData) return;
 
-  // Ambil list sub kategori
+  // Ambil list sub kategori secara lazy
   const subCategories = await fetchSubCategories();
 
-  // Format currency function
   const formatCurrency = (val) => `Rp ${(+val).toLocaleString("id-ID")}`;
 
-  // Terbilang function
   function terbilang(n) {
     const satuan = [
       "",
@@ -160,15 +158,13 @@ async function renderInvoice(invoiceData, isDownload = false) {
     return "";
   }
 
-  // Pastikan items adalah array
   const items = Array.isArray(invoiceData.items) ? invoiceData.items : [];
 
-  // Hitung nilai jika tidak disediakan
   const subtotal =
     invoiceData.subtotal ||
     items.reduce((sum, item) => sum + (item.total || 0), 0);
   const disc = invoiceData.disc || 0;
-  const ppn = invoiceData.ppn || Math.round(subtotal * 0.11); // Default PPN 11%
+  const ppn = invoiceData.ppn || Math.round(subtotal * 0.11);
   const total = invoiceData.total || subtotal - disc + ppn;
 
   const revisionInfo =
@@ -176,15 +172,13 @@ async function renderInvoice(invoiceData, isDownload = false) {
       ? `${invoiceData.revision_status}`
       : "-";
 
-  // 🔹 Cek status: jika WON maka tampilkan Invoice
   const isWon =
     invoiceData.status_id == 2 || invoiceData.status_sales === "Won";
-  const headerTitle = isWon ? "INVOICE" : "QUOTATION";
-  const detailTitle = isWon ? "Invoice" : "Quotation";
   const noLabel = isWon ? "No Invoice" : "No Qtn";
   const noValue = isWon
     ? invoiceData.inv_number || invoiceData.no_qtn
     : invoiceData.no_qtn;
+  const detailTitle = isWon ? "Invoice" : "Quotation";
 
   // Tambahkan kategori ke setiap item
   const itemsWithCategory = items.map((item) => ({
@@ -192,37 +186,40 @@ async function renderInvoice(invoiceData, isDownload = false) {
     categoryName: item.sub_category || "Lainnya",
   }));
 
-  // Grouping by sub_category
+  // Grouping by category
   const groupedItems = itemsWithCategory.reduce((acc, item) => {
     if (!acc[item.categoryName]) acc[item.categoryName] = [];
     acc[item.categoryName].push(item);
     return acc;
   }, {});
 
-  // Buat tabel grouped
+  // 🔹 Lazy build table rows
   let rowNumber = 1;
-  const tableRows = Object.entries(groupedItems)
-    .map(([category, items]) => {
-      return `
-        <tr class="bg-gray-200">
-          <td colspan="7" class="p-1 font-bold text-gray-800 text-xs">${category}</td>
+  const tableRows = [];
+  for (const [category, items] of Object.entries(groupedItems)) {
+    tableRows.push(`
+      <tr class="bg-gray-200">
+        <td colspan="7" class="p-1 font-bold text-gray-800 text-xs">${category}</td>
+      </tr>
+    `);
+
+    for (const item of items) {
+      tableRows.push(`
+        <tr class="bg-gray-100 italic">
+          <td colspan="7" class="p-1 text-gray-700">
+            ${item.product || "-"}
+            ${
+              item.description
+                ? `<div class="text-xs text-gray-500">${item.description}</div>`
+                : ""
+            }
+          </td>
         </tr>
-        ${items
-          .map(
-            (item) => `
-          <tr class="bg-gray-100 italic">
-            <td colspan="7" class="p-1 text-gray-700">
-              ${item.product || "-"}
-              ${
-                item.description
-                  ? `<div class="text-xs text-gray-500">${item.description}</div>`
-                  : ""
-              }
-            </td>
-          </tr>
-          ${item.materials
-            .map(
-              (mat) => `
+      `);
+
+      if (Array.isArray(item.materials)) {
+        for (const mat of item.materials) {
+          tableRows.push(`
             <tr>
               <td class="text-center">${rowNumber++}</td>
               <td>${mat.name}</td>
@@ -234,15 +231,14 @@ async function renderInvoice(invoiceData, isDownload = false) {
                 mat.total
               )}</td>
             </tr>
-          `
-            )
-            .join("")}
-        `
-          )
-          .join("")}
-      `;
-    })
-    .join("");
+          `);
+        }
+      }
+    }
+
+    // Lazy yield untuk memberi browser waktu render
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
 
   const html = `
       <!-- Header -->
@@ -364,26 +360,22 @@ async function renderInvoice(invoiceData, isDownload = false) {
         </div>
   `;
 
-  // Ganti dengan elemen target yang sesuai
   const invoiceContent = document.getElementById("invoiceContent");
-  if (invoiceContent) {
-    invoiceContent.innerHTML = html;
-  }
+  if (invoiceContent) invoiceContent.innerHTML = html;
 
-  // Auto download jika dalam mode download
+  // ⚡ Lazy PDF download
   if (isDownload) {
-    setTimeout(() => {
-      html2pdf()
-        .set({
-          margin: 0,
-          filename: `${noValue || "invoice"}.pdf`,
-          image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2 },
-          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        })
-        .from(invoiceContent || document.querySelector(".invoice-container"))
-        .save();
-    }, 1000);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    html2pdf()
+      .set({
+        margin: 0,
+        filename: `${noValue || "invoice"}.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      })
+      .from(invoiceContent)
+      .save();
   }
 }
 

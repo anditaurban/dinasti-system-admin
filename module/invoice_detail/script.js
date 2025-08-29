@@ -529,23 +529,25 @@ async function loadDetailSales(Id, Detail) {
     const response = await res.json();
     console.log("Response API:", response);
 
-    if (!response) {
-      throw new Error("Invalid API response - kosong");
-    }
+    if (!response) throw new Error("Invalid API response - kosong");
 
     if (!response.detail) {
       console.warn("API response tidak punya detail:", response);
       Swal.fire("Info", response.message || "Detail tidak tersedia", "warning");
-      return; // stop eksekusi biar gak error undefined
+      return;
     }
 
     const data = response.detail;
     window.revision_count = data.revision_number || 0;
     window.lastRevision = window.revision_count;
 
-    await loadCustomerList();
-    await loadSalesType();
-    await loadStatusOptions();
+    // ⚡ Tunggu semua async selesai
+    await Promise.all([
+      loadCustomerList(),
+      loadSalesType(),
+      loadStatusOptions(),
+    ]);
+
     // 📝 Isi form utama
     const noInvoice = data.inv_number || data.invoice_number || Detail || "-";
     document.getElementById(
@@ -553,7 +555,6 @@ async function loadDetailSales(Id, Detail) {
     ).innerText = `Data Invoice ${noInvoice}`;
     document.getElementById("inv_number").value = data.inv_number || "";
     document.getElementById("po_number").value = data.po_number || "";
-
     document.getElementById("tanggal").value =
       data.tanggal_ymd || data.invoice_date_ymd || "";
     document.getElementById("pesanan_id").value = data.pesanan_id || "";
@@ -563,12 +564,11 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("pic_name").value = data.pic_name || "";
     document.getElementById("client").value = data.pelanggan_id || "";
     document.getElementById("client_id").value = data.pelanggan_id || "";
+
     document.getElementById("contract_amount").value =
       data.contract_amount || 0;
     const discountEl = document.getElementById("discount");
-    if (discountEl) {
-      discountEl.value = formatNumber(data.disc || 0);
-    }
+    if (discountEl) discountEl.value = formatNumber(data.disc || 0);
 
     document.getElementById("ppn").value = data.ppn || 0;
     document.getElementById("total").value = data.total || 0;
@@ -581,65 +581,56 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("term_pembayaran").value =
       data.term_pembayaran || "";
 
-    // 🔹 Ambil list sub category dari API
-    // 🔹 Ambil list sub category dari API
+    // 🔹 Ambil subcategories
     const subcategoryRes = await fetch(
       `${baseUrl}/list/sub_category/${owner_id}`,
       {
         headers: { Authorization: `Bearer ${API_TOKEN}` },
       }
     );
-    if (!subcategoryRes.ok) {
+    if (!subcategoryRes.ok)
       throw new Error(
         `Failed to load subcategories, status: ${subcategoryRes.status}`
       );
-    }
     const subcatResponse = await subcategoryRes.json();
-    console.log("Subcategory response:", subcatResponse);
-
-    // Perbaikan: Akses data subcategory dari response yang benar
     const subcats = Array.isArray(subcatResponse.listData)
       ? subcatResponse.listData
       : [];
 
-    console.log("Subcategory array parsed:", subcats);
-
-    // 🔹 Render item rows
+    // 🔹 Render item rows (lazy load)
     const tbody = document.getElementById("tabelItem");
     tbody.innerHTML = "";
 
-    for (const item of data.items || []) {
-      tambahItem();
-      const row = tbody.lastElementChild;
+    if (data.items?.length) {
+      const renderPromises = data.items.map(async (item) => {
+        tambahItem();
+        const row = tbody.lastElementChild;
+        const subcatSelect = row.querySelector(".itemSubcategory");
+        await loadSubcategories(subcatSelect, item.sub_category_id);
 
-      const subcatSelect = row.querySelector(".itemSubcategory");
-      // 🔹 panggil dengan sub_category_id biar auto select
-      await loadSubcategories(subcatSelect, item.sub_category_id);
-
-      row.querySelector(".itemProduct").value = item.product || "";
-      row.querySelector(".itemDesc").value = item.description || "";
-      row.querySelector(".itemUnit").value = item.unit || "";
-      row.querySelector(".itemQty").value = item.qty || 1;
-      row.querySelector(".itemHarga").value = formatNumber(
-        item.unit_price || 0
-      );
-      row.querySelector(".itemTotal").innerText = formatNumber(
-        item.total || item.qty * item.unit_price
-      );
-
-      console.log(item.sub_category);
+        row.querySelector(".itemProduct").value = item.product || "";
+        row.querySelector(".itemDesc").value = item.description || "";
+        row.querySelector(".itemUnit").value = item.unit || "";
+        row.querySelector(".itemQty").value = item.qty || 1;
+        row.querySelector(".itemHarga").value = formatNumber(
+          item.unit_price || 0
+        );
+        row.querySelector(".itemTotal").innerText = formatNumber(
+          item.total || item.qty * item.unit_price
+        );
+      });
+      await Promise.all(renderPromises);
     }
 
+    // 🔹 Render pembayaran
     const pembayaranSection = document.getElementById("pembayaranSection");
     pembayaranSection.innerHTML = "";
-    if (data.payments && data.payments.length > 0) {
+    if (data.payments?.length) {
       data.payments.forEach((p) => {
         const div = document.createElement("div");
         div.className = "flex justify-between border p-2 rounded bg-gray-50";
-        div.innerHTML = `
-      <span>💳 ${p.payment_desc || "Pembayaran"}</span>
-      <span>${formatNumber(p.amount || 0)}</span>
-    `;
+        div.innerHTML = `<span>💳 ${p.payment_desc || "Pembayaran"}</span>
+                         <span>${formatNumber(p.amount || 0)}</span>`;
         pembayaranSection.appendChild(div);
       });
     } else {
@@ -649,43 +640,42 @@ async function loadDetailSales(Id, Detail) {
     // 🔹 Render file pendukung
     const fileSection = document.getElementById("fileSection");
     fileSection.innerHTML = "";
-    if (data.supporting_files && data.supporting_files.length > 0) {
+    if (data.supporting_files?.length) {
       data.supporting_files.forEach((f) => {
         const div = document.createElement("div");
         div.className =
           "flex items-center justify-between border p-2 rounded bg-gray-50";
-        div.innerHTML = `
-      <a href="${baseUrl.replace("/api", "")}/${f.file_path}" 
-         target="_blank" class="text-blue-600 hover:underline">
-        📄 ${f.file_name}
-      </a>
-      <span class="text-xs text-gray-500">${f.uploaded_at}</span>
-    `;
+        div.innerHTML = `<a href="${baseUrl.replace("/api", "")}/${
+          f.file_path
+        }" target="_blank" class="text-blue-600 hover:underline">📄 ${
+          f.file_name
+        }</a>
+                         <span class="text-xs text-gray-500">${
+                           f.uploaded_at
+                         }</span>`;
         fileSection.appendChild(div);
       });
     } else {
       fileSection.innerHTML = `<div class="text-gray-500 italic">-</div>`;
     }
 
-    // 🔹 Render invoice uang muka
+    // 🔹 Render uang muka
     const uangMukaSection = document.getElementById("uangMukaSection");
     uangMukaSection.innerHTML = "";
-    if (data.down_payments && data.down_payments.length > 0) {
+    if (data.down_payments?.length) {
       data.down_payments.forEach((dp) => {
         const div = document.createElement("div");
         div.className = "flex justify-between border p-2 rounded bg-gray-50";
-        div.innerHTML = `
-      <span>💰 ${dp.invoice_number || "DP"}</span>
-      <span>${formatNumber(dp.amount || 0)}</span>
-    `;
+        div.innerHTML = `<span>💰 ${dp.invoice_number || "DP"}</span>
+                         <span>${formatNumber(dp.amount || 0)}</span>`;
         uangMukaSection.appendChild(div);
       });
     } else {
       uangMukaSection.innerHTML = `<div class="text-gray-500 italic">-</div>`;
     }
 
-    console.log("Items rendered:", data.items || []);
     calculateInvoiceTotals();
+    window.dataLoaded = true; // ⚡ flag data siap digunakan
   } catch (err) {
     console.error("Gagal load detail:", err);
     Swal.fire("Error", err.message || "Gagal memuat detail penjualan", "error");
@@ -734,11 +724,14 @@ async function editProjectWithFile() {
   const ket = document.getElementById("keterangan")?.value || "";
   formData.append("keterangan", ket);
 
-  // 🔹 File upload
+  // 🔹 File upload dengan lazy load
   const fileInput = document.getElementById("files");
   if (fileInput && fileInput.files.length > 0) {
     for (let i = 0; i < fileInput.files.length; i++) {
-      formData.append("files", fileInput.files[i]); // <-- hapus "[]" agar sama dengan BE
+      formData.append("files", fileInput.files[i]); // hapus "[]"
+
+      // Lazy yield setiap 5 file
+      if (i % 5 === 0) await new Promise((resolve) => setTimeout(resolve, 0));
     }
   }
 

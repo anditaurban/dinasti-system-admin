@@ -648,7 +648,11 @@ async function loadDetailSalesTurnKey(Id, Detail) {
     console.log("Response API:", response);
 
     if (!response || !response.detail) {
-      Swal.fire("Info", response.message || "Detail tidak tersedia", "warning");
+      Swal.fire(
+        "Info",
+        response?.message || "Detail tidak tersedia",
+        "warning"
+      );
       return;
     }
 
@@ -656,13 +660,17 @@ async function loadDetailSalesTurnKey(Id, Detail) {
     window.revision_count = data.revision_number || 0;
     window.lastRevision = window.revision_count;
 
-    await loadCustomerList();
-    await loadSalesType();
-    await loadStatusOptions();
-    // === Isi form sesuai HTML ===
+    // ⚡ Tunggu semua async dropdown siap
+    await Promise.all([
+      loadCustomerList(),
+      loadSalesType(),
+      loadStatusOptions(),
+    ]);
+
+    // === Isi form utama ===
     document.getElementById("tanggal").value = data.invoice_date_ymd || "";
     document.getElementById("type_id").value = data.type_id || "";
-    document.getElementById("no_qtn").value = data.no_qtn || ""; // field baru
+    document.getElementById("no_qtn").value = data.no_qtn || "";
     document.getElementById(
       "revision_number"
     ).value = `R${window.revision_count}`;
@@ -688,32 +696,35 @@ async function loadDetailSalesTurnKey(Id, Detail) {
     // Status
     document.getElementById("status").value = data.status_id || "";
 
-    // Render items (sama kayak sebelumnya)
+    // 🔹 Render item rows dengan lazy load
     const tbody = document.getElementById("tabelItem");
     tbody.innerHTML = "";
-    for (const item of data.items || []) {
-      for (const mat of item.materials || []) {
-        tambahItem();
-        const row = tbody.lastElementChild;
-        row.querySelector(".itemProduct").value = item.product || "";
-        row.querySelector(".itemDesc").value =
-          mat.specification || item.description || "";
-        row.querySelector(".itemUnit").value = mat.unit || "";
-        row.querySelector(".itemQty").value = mat.qty || 1;
-        row.querySelector(".itemHarga").value = formatNumber(
-          mat.unit_price || 0
-        );
-        row.querySelector(".itemTotal").innerText = formatNumber(
-          mat.total || mat.qty * mat.unit_price
-        );
-      }
+    if (data.items?.length) {
+      const itemPromises = data.items.map(async (item) => {
+        for (const mat of item.materials || []) {
+          tambahItem();
+          const row = tbody.lastElementChild;
+          row.querySelector(".itemProduct").value = item.product || "";
+          row.querySelector(".itemDesc").value =
+            mat.specification || item.description || "";
+          row.querySelector(".itemUnit").value = mat.unit || "";
+          row.querySelector(".itemQty").value = mat.qty || 1;
+          row.querySelector(".itemHarga").value = formatNumber(
+            mat.unit_price || 0
+          );
+          row.querySelector(".itemTotal").innerText = formatNumber(
+            mat.total || mat.qty * mat.unit_price
+          );
+        }
+      });
+      await Promise.all(itemPromises);
     }
 
-    // Render supporting files
+    // 🔹 Render supporting files
     const fileSection = document.getElementById("fileSection");
     if (fileSection) {
       fileSection.innerHTML = "";
-      if (data.supporting_files && data.supporting_files.length > 0) {
+      if (data.supporting_files?.length) {
         data.supporting_files.forEach((f) => {
           const div = document.createElement("div");
           div.className =
@@ -733,6 +744,7 @@ async function loadDetailSalesTurnKey(Id, Detail) {
     }
 
     calculateInvoiceTotals();
+    window.turnkeyDataLoaded = true; // ⚡ flag data siap digunakan
   } catch (err) {
     console.error("Gagal load detail Turn Key:", err);
     Swal.fire(
@@ -785,11 +797,14 @@ async function editProjectWithFile() {
   const ket = document.getElementById("keterangan")?.value || "";
   formData.append("keterangan", ket);
 
-  // 🔹 File upload
+  // 🔹 File upload dengan lazy load
   const fileInput = document.getElementById("files");
   if (fileInput && fileInput.files.length > 0) {
     for (let i = 0; i < fileInput.files.length; i++) {
-      formData.append("files", fileInput.files[i]); // <-- hapus "[]" agar sama dengan BE
+      formData.append("files", fileInput.files[i]); // hapus "[]"
+
+      // Lazy yield setiap 5 file
+      if (i % 5 === 0) await new Promise((resolve) => setTimeout(resolve, 0));
     }
   }
 

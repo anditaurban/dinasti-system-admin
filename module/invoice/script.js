@@ -416,7 +416,7 @@ async function confirmPayment(receipt_id, status_value) {
     });
   }
 }
-function openSalesReceiptModal(pesananId, pelangganId) {
+async function openSalesReceiptModal(pesananId, pelangganId) {
   const modal = document.getElementById("salesReceiptModal");
   const content = document.getElementById("salesReceiptContent");
 
@@ -424,11 +424,35 @@ function openSalesReceiptModal(pesananId, pelangganId) {
   document.getElementById("sr_pesanan_id").value = pesananId;
   document.getElementById("sr_pelanggan_id").value = pelangganId || "";
 
-  // Debug biar kelihatan di console
   console.log("📌 openSalesReceiptModal()", { pesananId, pelangganId });
 
   modal.classList.remove("hidden");
   loadFinanceAccounts();
+
+  // Ambil sisa bayar dari API
+  try {
+    const res = await fetch(`${baseUrl}/remaining_amount/${pesananId}`, {
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+    });
+    const data = await res.json();
+    console.log("Remaining amount API:", data);
+
+    if (res.ok && data.remaining_amount != null) {
+      const nominalInput = document.getElementById("sr_nominal");
+      const totalInfo = document.getElementById("sr_total_info");
+      const sisaInfo = document.getElementById("sr_sisa_info");
+
+      const totalInvoice = data.total_invoice || data.remaining_amount || 0;
+      const remaining = data.remaining_amount || 0;
+
+      nominalInput.value = formatRupiah(remaining);
+
+      totalInfo.textContent = `Total tagihan: ${formatRupiah(totalInvoice)}`;
+      sisaInfo.textContent = `Sisa bayar: ${formatRupiah(remaining)}`;
+    }
+  } catch (err) {
+    console.error("❌ Gagal ambil sisa bayar:", err);
+  }
 
   setTimeout(() => {
     content.classList.remove("scale-95", "opacity-0");
@@ -445,53 +469,75 @@ function closeSalesReceiptModal() {
 
   setTimeout(() => {
     modal.classList.add("hidden");
+    // reset form biar gak nyisa
+    document.getElementById("salesReceiptForm").reset();
+    document.getElementById("sr_total_info").textContent = "";
+    document.getElementById("sr_sisa_info").textContent = "";
+    document.getElementById("sr_nominal").value = "";
   }, 300);
 }
 
+/* ===== Update Sisa Bayar Saat User Edit Nominal ===== */
+document
+  .getElementById("sr_nominal")
+  .addEventListener("input", async function () {
+    const pesananId = document.getElementById("sr_pesanan_id").value;
+    let raw = this.value.replace(/\D/g, "");
+    let nominalInput = parseInt(raw) || 0;
+
+    this.value = formatRupiah(nominalInput.toString());
+
+    try {
+      const res = await fetch(`${baseUrl}/remaining_amount/${pesananId}`, {
+        headers: { Authorization: `Bearer ${API_TOKEN}` },
+      });
+      const data = await res.json();
+
+      if (res.ok && data.remaining_amount != null) {
+        let sisa = data.remaining_amount - nominalInput;
+        if (sisa < 0) sisa = 0; // cegah minus
+        document.getElementById(
+          "sr_sisa_info"
+        ).textContent = `Sisa bayar: ${formatRupiah(sisa)}`;
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  });
+
+/* ===== Submit Form ===== */
 document
   .getElementById("salesReceiptForm")
   .addEventListener("submit", async function (e) {
     e.preventDefault();
-
     const form = e.target;
     const formData = new FormData(form);
 
-    // Tangani file: hapus jika kosong
     const file = formData.get("file");
     if (file && file.size === 0) formData.delete("file");
 
-    // Tangani nominal (jika ada field jumlah)
-    // Tangani nominal
     const nominalField = formData.get("nominal");
     if (nominalField) {
-      const nominalNumber = parseInt(nominalField.replace(/\./g, ""));
+      const nominalNumber = parseInt(nominalField.replace(/\D/g, ""));
       formData.set("nominal", nominalNumber);
     }
 
-    // Debug: lihat semua data FormData sebelum dikirim
     console.group("📌 FormData Payload to API");
     for (let [key, value] of formData.entries()) {
-      if (value instanceof File) {
+      if (value instanceof File)
         console.log(key, value.name, value.size, value.type);
-      } else {
-        console.log(key, value);
-      }
+      else console.log(key, value);
     }
     console.groupEnd();
 
     try {
       const res = await fetch(`${baseUrl}/add/sales_receipt`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${API_TOKEN}`,
-          // Jangan set Content-Type, biarkan browser handle FormData
-        },
+        headers: { Authorization: `Bearer ${API_TOKEN}` },
         body: formData,
       });
 
       const rawText = await res.text();
-      console.log("⬅️ Raw Response:", rawText);
-
       let data;
       try {
         data = JSON.parse(rawText);
@@ -503,14 +549,17 @@ document
         Swal.fire("Berhasil!", "Sales Receipt berhasil ditambahkan", "success");
         closeSalesReceiptModal();
         loadModuleContent("quotation");
-      } else {
-        throw new Error(data.message || "Gagal menambahkan sales receipt");
-      }
+      } else throw new Error(data.message || "Gagal menambahkan sales receipt");
     } catch (err) {
       console.error("❌ Error saat submit:", err);
       Swal.fire("Error!", err.message, "error");
     }
   });
+
+function formatRupiah(angka) {
+  if (!angka) return "Rp 0";
+  return "Rp " + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
 
 async function loadFinanceAccounts() {
   // pastikan diganti sesuai baseUrl real
