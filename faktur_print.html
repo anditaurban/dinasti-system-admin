@@ -222,11 +222,11 @@
         <!-- Catatan -->
         <div class="w-1/2">
           <p class="font-semibold text-gray-700 mb-1">Catatan:</p>
-          <ul class="list-disc list-inside text-gray-600">
-            <li>Barang yang sudah dibeli tidak dapat dikembalikan</li>
-            <li>Pembayaran dianggap lunas setelah dana diterima</li>
-            <li>Invoice ini valid tanpa tanda tangan</li>
-          </ul>
+          <p class="text-gray-700 mb-1">
+            ${data.catatan && data.catatan.trim() !== "" && data.catatan !== "-" ? data.catatan : "-"}
+          </p>
+
+          
         </div>
 
         <!-- Signature Section -->
