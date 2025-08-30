@@ -172,6 +172,13 @@ async function renderInvoice(invoiceData, isDownload = false) {
       ? `${invoiceData.revision_status}`
       : "-";
 
+  const today = new Date();
+  const tanggalCetak = today.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
   const isWon =
     invoiceData.status_id == 2 || invoiceData.status_sales === "Won";
   const noLabel = isWon ? "No Invoice" : "No Qtn";
@@ -340,23 +347,28 @@ async function renderInvoice(invoiceData, isDownload = false) {
       <div class="flex justify-between items-start mt-6 text-xs">
           <!-- Catatan -->
           <div class="w-1/2">
-            <p class="font-semibold text-gray-700 mb-1">Catatan:</p>
-            <ul class="list-disc list-inside text-gray-600">
-              <li>Barang yang sudah dibeli tidak dapat dikembalikan</li>
-              <li>Pembayaran dianggap lunas setelah dana diterima</li>
-              <li>Invoice ini valid tanpa tanda tangan</li>
-            </ul>
-          </div>
+          <p class="font-semibold text-gray-700 mb-1">Catatan:</p>
+          <p class="text-gray-700 mb-1">
+            ${
+              invoiceData.catatan &&
+              invoiceData.catatan.trim() !== "" &&
+              invoiceData.catatan !== "-"
+                ? invoiceData.catatan
+                : "-"
+            }
+          </p>
+
+        </div>
 
           <!-- Signature Section -->
           <div class="text-sm text-right">
-            <p>Jakarta, 10 Februari 2025</p>
-            <div class="mt-2">
-              <img src="materai.png"  class="h-20 ml-auto">
-            </div>
-            <p class="mt-2 font-semibold">Nanda Febby Yullantina</p>
-            <p>Finance Manager</p>
+          <p>Jakarta, ${tanggalCetak}</p>
+          <div class="mt-2">
+            <img src="materai.png"  class="h-20 ml-auto">
           </div>
+          <p class="mt-2 font-semibold">Nanda Febby Yullantina</p>
+          <p>Finance Manager</p>
+        </div>
         </div>
   `;
 

@@ -132,6 +132,12 @@ async function renderInvoice(invoiceData, isDownload = false) {
   const ppn = invoiceData.ppn || Math.round(subtotal * 0.11);
   const total = invoiceData.total || subtotal - disc + ppn;
 
+  const today = new Date();
+  const tanggalCetak = today.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
   const revisionInfo =
     invoiceData.revision_status && invoiceData.revision_number
       ? `${invoiceData.revision_status}`
@@ -280,6 +286,32 @@ async function renderInvoice(invoiceData, isDownload = false) {
       <span class="font-semibold text-gray-700">Terbilang:</span>
       <span class="italic text-gray-800">${terbilang(total)} Rupiah</span>
     </div>
+    <div class="flex justify-between items-start mt-6 text-xs">
+          <!-- Catatan -->
+          <div class="w-1/2">
+          <p class="font-semibold text-gray-700 mb-1">Catatan:</p>
+          <p class="text-gray-700 mb-1">
+            ${
+              invoiceData.catatan &&
+              invoiceData.catatan.trim() !== "" &&
+              invoiceData.catatan !== "-"
+                ? invoiceData.catatan
+                : "-"
+            }
+          </p>
+
+        </div>
+
+          <!-- Signature Section -->
+          <div class="text-sm text-right">
+          <p>Jakarta, ${tanggalCetak}</p>
+          <div class="mt-2">
+            <img src="materai.png"  class="h-20 ml-auto">
+          </div>
+          <p class="mt-2 font-semibold">Nanda Febby Yullantina</p>
+          <p>Finance Manager</p>
+        </div>
+        </div>
   `;
 
   const invoiceContent = document.getElementById("invoiceContent");
@@ -345,13 +377,15 @@ function renderVersionHistory(versions) {
     )
     .join("");
 }
-{/* <button onclick="printVersion('${version.history_id}')" 
+{
+  /* <button onclick="printVersion('${version.history_id}')" 
                     class="ml-2 p-1 text-gray-500 hover:text-blue-600" 
                     title="Download this version">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
-                </button> */}
+                </button> */
+}
 
 // Load specific version from the global versions list
 function loadVersionFromList(index) {
