@@ -36,8 +36,13 @@
     }
   </style>
   <script>
-    document.write('<script src="./assets/js/api.js?v=' + new Date().getTime() + '"><\/script>');
+    document.addEventListener("DOMContentLoaded", () => {
+      const script = document.createElement('script');
+      script.src = `./assets/js/api.js?v=${new Date().getTime()}`;
+      document.body.appendChild(script);
+    });
   </script>
+
 
 </head>
 
@@ -79,7 +84,7 @@
       try {
         const res = await fetch(`${baseUrl}/list/sub_category/1`, {
           headers: {
-            Authorization: `Bearer  ${API_TOKEN}`
+            Authorization: `Bearer ${API_TOKEN}`
           }
         });
         const result = await res.json();
@@ -158,7 +163,7 @@
         const noLabel = isWon ? "No Invoice" : "No Qtn";
         const noValue = isWon ? (data.inv_number || data.no_qtn) : data.no_qtn;
 
-        const html  `
+        const html = `
       <!-- Header -->
       <div class="relative mb-2">
         <div class="absolute left-0 top-0">

@@ -531,11 +531,8 @@ async function updateInvoiceTurnKey() {
     const status_revision = `Revisi ${revisionNumber}`;
     const no_qtn = document.getElementById("no_qtn")?.value || "";
 
-    // Ambil client text dan ID
     const clientSelect = document.getElementById("client");
-    const selectedOption = clientSelect.options[clientSelect.selectedIndex];
-    const clientText = selectedOption ? selectedOption.text : "";
-    const clientId = document.getElementById("client_id")?.value || "";
+    const pelangganId = parseInt(clientSelect.value || 0);
 
     // === Buat FormData ===
     const formData = new FormData();
@@ -547,7 +544,10 @@ async function updateInvoiceTurnKey() {
       document.getElementById("project_name")?.value || ""
     );
     formData.append("client", clientText);
-    formData.append("pelanggan_id", clientId);
+    formData.append(
+      "pelanggan_id",
+      String(parseInt(document.getElementById("client_id")?.value || 0))
+    );
     formData.append(
       "pic_name",
       document.getElementById("pic_name")?.value || ""
