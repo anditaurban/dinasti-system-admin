@@ -543,11 +543,11 @@ async function updateInvoiceTurnKey() {
       "project_name",
       document.getElementById("project_name")?.value || ""
     );
-    formData.append("client", clientText);
     formData.append(
       "pelanggan_id",
       String(parseInt(document.getElementById("client_id")?.value || 0))
     );
+
     formData.append(
       "pic_name",
       document.getElementById("pic_name")?.value || ""
