@@ -187,6 +187,25 @@ async function renderInvoice(invoiceData, isDownload = false) {
     : invoiceData.no_qtn;
   const detailTitle = isWon ? "Invoice" : "Quotation";
 
+  let signatureSection = "";
+  if (isWon) {
+    signatureSection = `
+        <div class="text-sm text-right">
+          <p>Jakarta, ${invoiceData.formatted_date}</p>
+          <div class="mt-2">
+            <img src="materai.png"  class="h-20 ml-auto">
+          </div>
+          <p class="mt-2 font-semibold">Nanda Febby Yullantina</p>
+          <p>Finance Manager</p>
+        </div>
+      `;
+  } else {
+    // Kalau Quotation
+    signatureSection = `
+        <div class="text-sm text-right"> <p>APPROVED BY</p> <div class="mt-2"> <img src="materai.png" class="h-20 ml-auto"> </div> <p class="mt-2 font-semibold">Rian Septiadi Saimima</p> </div> </div> <div class="text-xs mt-5 text-center"> <p> If you have any questions about this quotations, please contact<br> Nanda Febby Yuliantina, 082371425300, nandafebby@dinasti.id</p> </div>
+      `;
+  }
+
   // Tambahkan kategori ke setiap item
   const itemsWithCategory = items.map((item) => ({
     ...item,
@@ -345,8 +364,7 @@ async function renderInvoice(invoiceData, isDownload = false) {
         )} Rupiah</span>
       </div>
       <div class="flex justify-between items-start mt-6 text-xs">
-          <!-- Catatan -->
-          <div class="w-1/2">
+        <div class="w-1/2">
           <p class="font-semibold text-gray-700 mb-1">Catatan:</p>
           <p class="text-gray-700 mb-1">
             ${
@@ -357,19 +375,9 @@ async function renderInvoice(invoiceData, isDownload = false) {
                 : "-"
             }
           </p>
-
         </div>
-
-          <!-- Signature Section -->
-          <div class="text-sm text-right">
-          <p>Jakarta, ${tanggalCetak}</p>
-          <div class="mt-2">
-            <img src="materai.png"  class="h-20 ml-auto">
-          </div>
-          <p class="mt-2 font-semibold">Nanda Febby Yullantina</p>
-          <p>Finance Manager</p>
-        </div>
-        </div>
+        ${signatureSection}
+      </div>
   `;
 
   const invoiceContent = document.getElementById("invoiceContent");

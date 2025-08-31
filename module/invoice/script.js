@@ -564,48 +564,24 @@ function formatRupiah(angka) {
 
 async function loadFinanceAccounts() {
   try {
-    const response = await fetch(`${baseUrl}/list/finance_accounts`, {
-      headers: {
-        Authorization: `Bearer ${API_TOKEN}`,
-      },
+    const res = await fetch(`${baseUrl}/list/finance_accounts`, {
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
     });
-    const result = await response.json();
+    const result = await res.json();
 
-    console.log("📌 API result finance_accounts:", result);
+    const akunSelect = document.getElementById("akun_select");
+    akunSelect.innerHTML = `<option value="">Pilih Akun</option>`;
 
-    if (result.response === "200" && Array.isArray(result.listData)) {
-      const select = document.getElementById("akun_select");
-      if (!select) {
-        console.error("⚠️ Element select#akun_select tidak ditemukan!");
-        return;
-      }
-
-      select.innerHTML = '<option value="">Pilih Akun</option>';
-
-      result.listData.forEach((item) => {
-        if (item.nama_akun && item.nama_akun !== "undefined") {
-          const option = document.createElement("option");
-          option.value = item.akun_id || item.no_rekening; // pake no_rekening sbg key
-          option.textContent = `${item.nama_akun} - ${item.no_rekening}`;
-          option.dataset.no_rekening = item.no_rekening;
-          option.dataset.pemilik = item.pemilik_rekening || "";
-          select.appendChild(option);
-        }
+    if (res.ok && result.listData) {
+      result.listData.forEach((acc) => {
+        akunSelect.innerHTML += `
+          <option value="${acc.akun_id}">
+            ${acc.nama_akun} - ${acc.no_rekening} (${acc.pemilik_rekening})
+          </option>
+        `;
       });
-
-      console.log("✅ Akun berhasil di-load ke select");
-
-      // handle perubahan dropdown → set hidden input
-      select.addEventListener("change", function () {
-        const selected = select.options[select.selectedIndex];
-        document.getElementById("akun_id").value = selected.value; // angka (index + 1)
-        document.getElementById("no_rekening").value =
-          selected.dataset.no_rekening || "";
-      });
-    } else {
-      console.error("⚠️ Gagal ambil data akun:", result.message);
     }
-  } catch (error) {
-    console.error("❌ Error fetch akun:", error);
+  } catch (err) {
+    console.error("❌ Gagal load akun:", err);
   }
 }

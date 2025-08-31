@@ -97,72 +97,78 @@
 
     async function loadPesananData() {
       try {
-        const [subCategories, pesananRes] = await Promise.all([
-          loadSubCategories(),
-          fetch(`${baseUrl}/detail/sales_turnkey/${pesanan_id}`, {
-            headers: { Authorization: `Bearer ${API_TOKEN}` }
-          })
-        ]);
-
+        // 🔹 Ambil detail pesanan langsung
+        const pesananRes = await fetch(`${baseUrl}/detail/sales_turnkey/${pesanan_id}`, {
+          headers: { Authorization: `Bearer ${API_TOKEN}` }
+        });
         const pesananResult = await pesananRes.json();
         const data = pesananResult?.detail;
         if (!data) throw new Error("Data pesanan tidak ditemukan");
 
-        // mapping sub_category name ke item
-        const itemsWithCategory = data.items.map(item => {
-          const category = subCategories.find(c => c.sub_category_id == item.sub_category_id);
-          return {
-            ...item,
-            categoryName: category ? category.nama : 'Lainnya'
-          };
-        });
-
-        // grouping by sub_category
-        const groupedItems = itemsWithCategory.reduce((acc, item) => {
-          if (!acc[item.categoryName]) acc[item.categoryName] = [];
-          acc[item.categoryName].push(item);
+        // 🔹 Group items berdasarkan sub_category langsung dari API
+        const groupedItems = data.items.reduce((acc, item) => {
+          const category = item.sub_category || "Lainnya";
+          if (!acc[category]) acc[category] = [];
+          acc[category].push(item);
           return acc;
         }, {});
 
-        // build table
-        let rowNumber = 1;
-        const tableRows = Object.entries(groupedItems).map(([category, items]) => {
-          return `
-        <tr class="bg-gray-200">
-          <td colspan="7" class="p-1 font-bold text-gray-800 text-xs">${category}</td>
+        // 🔹 Render tabel grouped dengan nomor global
+        let globalIndex = 1;
+        const tableRows = Object.entries(groupedItems).map(([category, items]) => `
+      <tr class="bg-gray-200">
+        <td colspan="6" class="p-1 font-bold text-gray-800 text-xs">${category}</td>
+      </tr>
+      ${items.map(item => `
+        <tr>
+          <td class="text-center text-gray-700">${globalIndex++}</td>
+          <td class="text-gray-800">
+            <p class="font-medium">${item.product || '-'}</p>
+            ${item.description ? `<p class="text-xs text-gray-500 mt-0">${item.description}</p>` : ''}
+          </td>
+          <td class="text-center text-gray-700">${item.qty || 0}</td>
+          <td class="text-center text-gray-700">${item.unit || '-'}</td>
+          <td class="text-right text-gray-800">${formatRp(item.unit_price || 0)}</td>
+          <td class="text-right text-gray-800 font-medium">${formatRp(item.total || 0)}</td>
         </tr>
-        ${items.map(item => `
-          <tr class="bg-gray-100 italic">
-            <td colspan="7" class="p-1 text-gray-700">
-              ${item.product || '-'}
-              ${item.description ? `<div class="text-xs text-gray-500">${item.description}</div>` : ''}
-            </td>
-          </tr>
-          ${item.materials.map(mat => `
-            <tr>
-              <td class="text-center">${rowNumber++}</td>
-              <td>${mat.name}</td>
-              <td>${mat.specification || '-'}</td>
-              <td class="text-center">${mat.unit}</td>
-              <td class="text-center">${mat.qty}</td>
-              <td class="text-right">${formatRp(mat.unit_price)}</td>
-              <td class="text-right font-medium">${formatRp(mat.total)}</td>
-            </tr>
-          `).join('')}
-        `).join('')}
-      `;
-        }).join('');
+      `).join('')}
+    `).join('');
 
+        // 🔹 Info revisi
         const revisionInfo = data.revision_status && data.revision_number
-          ? `${data.revision_status} (${data.revision_number})`
+          ? `${data.revision_status}`
           : '-';
 
+        // 🔹 Tentukan apakah status WON
         const isWon = data.status_id == 2 || data.status_sales === "Won";
+
         const headerTitle = isWon ? "INVOICE" : "QUOTATION";
         const detailTitle = isWon ? "Invoice" : "Quotation";
         const noLabel = isWon ? "No Invoice" : "No Qtn";
         const noValue = isWon ? (data.inv_number || data.no_qtn) : data.no_qtn;
 
+        // 🔹 Signature Section sesuai status
+        let signatureSection = "";
+        if (isWon) {
+          signatureSection = `
+        <div class="text-sm text-right">
+          <p>Jakarta, ${data.formatted_date}</p>
+          <div class="mt-2">
+            <img src="materai.png"  class="h-20 ml-auto">
+          </div>
+          <p class="mt-2 font-semibold">Nanda Febby Yullantina</p>
+          <p>Finance Manager</p>
+        </div>
+      `;
+        } else {
+          // Kalau Quotation
+          signatureSection = `
+        <div class="text-sm text-right"> <p>APPROVED BY</p> <div class="mt-2"> <img src="materai.png" class="h-20 ml-auto"> </div> <p class="mt-2 font-semibold">Rian Septiadi Saimima</p> </div> </div> <div class="text-xs mt-5 text-center"> <p> If you have any questions about this quotations, please contact<br> Nanda Febby Yuliantina, 082371425300, nandafebby@dinasti.id</p> </div>
+      `;
+
+        }
+
+        // 🔹 Render HTML
         const html = `
       <!-- Header -->
       <div class="relative mb-2">
@@ -202,15 +208,16 @@
         <thead class="bg-gray-100">
           <tr class="text-gray-700">
             <th class="text-center w-8">No</th>
-            <th class="text-left">Deskripsi</th>
-            <th class="text-left">Spesifikasi</th>
-            <th class="text-center w-12">Unit</th>
+            <th class="text-left">Produk</th>
             <th class="text-center w-12">Qty</th>
+            <th class="text-center w-12">Satuan</th>
             <th class="text-right w-24">Harga Satuan</th>
             <th class="text-right w-24">Jumlah</th>
           </tr>
         </thead>
-        <tbody>${tableRows}</tbody>
+        <tbody>
+          ${tableRows}
+        </tbody>
       </table>
 
       <!-- Totals -->
@@ -240,25 +247,17 @@
         <span class="font-semibold text-gray-700">Terbilang:</span>
         <span class="italic text-gray-800">${terbilang(data.total)} Rupiah</span>
       </div>
-      <div class="flex justify-between items-start mt-6 text-xs">
-          <!-- Catatan -->
-          <div class="w-1/2">
-            <p class="font-semibold text-gray-700 mb-1">Catatan:</p>
-            <p class="text-gray-700 mb-1">
-              ${data.catatan && data.catatan.trim() !== "" && data.catatan !== "-" ? data.catatan : "-"}
-            </p>
-          </div>
 
-          <!-- Signature Section -->
-          <div class="text-sm text-right">
-            <p>Jakarta, 10 Februari 2025</p>
-            <div class="mt-2">
-              <img src="materai.png"  class="h-20 ml-auto">
-            </div>
-            <p class="mt-2 font-semibold">Nanda Febby Yullantina</p>
-            <p>Finance Manager</p>
-          </div>
+      <!-- Notes + Signature -->
+      <div class="flex justify-between items-start mt-6 text-xs">
+        <div class="w-1/2">
+          <p class="font-semibold text-gray-700 mb-1">Catatan:</p>
+          <p class="text-gray-700 mb-1">
+            ${data.catatan && data.catatan.trim() !== "" && data.catatan !== "-" ? data.catatan : "-"}
+          </p>
         </div>
+        ${signatureSection}
+      </div>
     `;
 
         container.innerHTML = html;
@@ -280,7 +279,6 @@
         alert("Gagal memuat data pesanan.");
       }
     }
-
 
     window.onload = loadPesananData;
   </script>

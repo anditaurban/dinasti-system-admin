@@ -132,11 +132,26 @@
         const noLabel = isWon ? "No Invoice" : "No Qtn";
         const noValue = isWon ? (data.inv_number || data.no_qtn) : data.no_qtn;
 
-        // 🔹 Tanggal tanda tangan dinamis
-        const today = new Date();
-        const tanggalCetak = today.toLocaleDateString("id-ID", {
-          day: "numeric", month: "long", year: "numeric"
-        });
+        // 🔹 Signature Section sesuai status
+        let signatureSection = "";
+        if (isWon) {
+          signatureSection = `
+        <div class="text-sm text-right">
+          <p>Jakarta, ${data.formatted_date}</p>
+          <div class="mt-2">
+            <img src="materai.png"  class="h-20 ml-auto">
+          </div>
+          <p class="mt-2 font-semibold">Nanda Febby Yullantina</p>
+          <p>Finance Manager</p>
+        </div>
+      `;
+        } else {
+          // Kalau Quotation
+          signatureSection = `
+        <div class="text-sm text-right"> <p>APPROVED BY</p> <div class="mt-2"> <img src="materai.png" class="h-20 ml-auto"> </div> <p class="mt-2 font-semibold">Rian Septiadi Saimima</p> </div> </div> <div class="text-xs mt-5 text-center"> <p> If you have any questions about this quotations, please contact<br> Nanda Febby Yuliantina, 082371425300, nandafebby@dinasti.id</p> </div>
+      `;
+
+        }
 
         // 🔹 Render HTML
         const html = `
@@ -218,27 +233,15 @@
         <span class="italic text-gray-800">${terbilang(data.total)} Rupiah</span>
       </div>
 
-      <!-- Notes -->
+      <!-- Notes + Signature -->
       <div class="flex justify-between items-start mt-6 text-xs">
-        <!-- Catatan -->
         <div class="w-1/2">
           <p class="font-semibold text-gray-700 mb-1">Catatan:</p>
           <p class="text-gray-700 mb-1">
             ${data.catatan && data.catatan.trim() !== "" && data.catatan !== "-" ? data.catatan : "-"}
           </p>
-
-          
         </div>
-
-        <!-- Signature Section -->
-        <div class="text-sm text-right">
-          <p>Jakarta, ${tanggalCetak}</p>
-          <div class="mt-2">
-            <img src="materai.png"  class="h-20 ml-auto">
-          </div>
-          <p class="mt-2 font-semibold">Nanda Febby Yullantina</p>
-          <p>Finance Manager</p>
-        </div>
+        ${signatureSection}
       </div>
     `;
 
@@ -261,6 +264,7 @@
         alert("Gagal memuat data pesanan.");
       }
     }
+
 
 
     window.onload = loadPesananData;
