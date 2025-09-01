@@ -338,13 +338,13 @@ async function renderInvoice(invoiceData, isDownload = false) {
       <table class="w-full compact-table border-collapse bordered mb-3">
         <thead class="bg-gray-100">
           <tr class="text-gray-700">
-            <th class="text-center w-8">No</th>
-            <th class="text-left">Deskripsi</th>
-            <th class="text-left">Spesifikasi</th>
+            <th class="text-center w-8">No.</th>
+            <th class="text-center">DESCRIPTION</th>
+            <th class="text-center">Spesification </th>
             <th class="text-center w-12">Unit</th>
             <th class="text-center w-12">Qty</th>
-            <th class="text-right w-24">Harga Satuan</th>
-            <th class="text-right w-24">Jumlah</th>
+            <th class="text-center w-24">UNIT PRICE</th>
+            <th class="text-center w-24">TOTAL</th>
           </tr>
         </thead>
         <tbody>${tableRows.join("")}</tbody>
