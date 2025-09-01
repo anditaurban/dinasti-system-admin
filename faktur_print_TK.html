@@ -14,6 +14,9 @@
       font-family: 'Roboto', sans-serif;
       background: #fff;
       font-size: 12px;
+      position: relative;
+      min-height: 297mm;
+      /* Tinggi A4 */
     }
 
     .bordered th,
@@ -34,6 +37,19 @@
     .compact-table td {
       padding: 3px 4px;
     }
+
+    /* Footer khusus untuk quotation */
+    .quotation-footer {
+      position: absolute;
+      bottom: 10mm;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 11px;
+      padding-top: 10px;
+      width: 210mm;
+      margin: 0 auto;
+    }
   </style>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
@@ -42,12 +58,10 @@
       document.body.appendChild(script);
     });
   </script>
-
-
 </head>
 
 <body>
-  <div id="invoiceContainer" class="w-[210mm] mx-auto p-[10mm] bg-white"></div>
+  <div id="invoiceContainer" class="w-[210mm] mx-auto p-[10mm] bg-white min-h-[277mm] relative pb-20"></div>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
@@ -128,12 +142,12 @@
         let rowNumber = 1;
         const tableRows = Object.entries(groupedItems).map(([category, items]) => {
           return `
-        <tr class="bg-gray-200">
-          <td colspan="7" class="p-1 font-bold text-gray-800 text-xs">${category}</td>
+        <tr class="bg-white">
+          <td colspan="7" class="p-1 font-bold text-black text-xs">${category}</td>
         </tr>
         ${items.map(item => `
-          <tr class="bg-gray-100 italic">
-            <td colspan="7" class="p-1 text-gray-700">
+          <tr class="bg-material italic">
+            <td colspan="7" class="p-1 text-black">
               ${item.product || '-'}
               ${item.description ? `<div class="text-xs text-gray-500">${item.description}</div>` : ''}
             </td>
@@ -175,12 +189,33 @@
           <p>Finance Manager</p>
         </div>
       `;
-        } else {
-          // Kalau Quotation
-          signatureSection = `
-        <div class="text-sm text-right"> <p>APPROVED BY</p> <div class="mt-2"> <img src="materai.png" class="h-20 ml-auto"> </div> <p class="mt-2 font-semibold">Rian Septiadi Saimima</p> </div> </div> <div class="text-xs mt-5 text-center"> <p> If you have any questions about this quotations, please contact<br> Nanda Febby Yuliantina, 082371425300, nandafebby@dinasti.id</p> </div>
-      `;
         }
+
+        // Footer khusus Quotation
+        let footerSection = "";
+        let approvedSection = "";
+
+        if (!isWon) {
+          approvedSection = `
+    <div class="text-sm text-right mt-10">
+      <p class="font-semibold">APPROVED BY</p>
+      <div class="mt-2">
+        <img src="materai.png" class="h-20 ml-auto">
+      </div>
+      <p class="mt-2 font-semibold">Rian Septiadi Saimima</p>
+    </div>
+  `;
+
+          footerSection = `
+    <div class="quotation-footer">
+      <p>
+        If you have any questions about this quotations, please contact<br>
+        Nanda Febby Yuliantina, 082371425300, nandafebby@dinasti.id
+      </p>
+    </div>
+  `;
+        }
+
 
         const html = `
       <!-- Header -->
@@ -218,15 +253,15 @@
 
       <!-- Table Items -->
       <table class="w-full compact-table border-collapse bordered mb-3">
-        <thead class="bg-gray-100">
-          <tr class="text-gray-700">
+        <thead class="bg-blue-900">
+          <tr class="text-white">
             <th class="text-center w-8">No</th>
-            <th class="text-left">Deskripsi</th>
-            <th class="text-left">Spesifikasi</th>
+            <th class="text-center">Deskripsi</th>
+            <th class="text-center">Spesifikasi</th>
             <th class="text-center w-12">Unit</th>
             <th class="text-center w-12">Qty</th>
-            <th class="text-right w-24">Harga Satuan</th>
-            <th class="text-right w-24">Jumlah</th>
+            <th class="text-center w-24">Harga Satuan</th>
+            <th class="text-center w-24">Jumlah</th>
           </tr>
         </thead>
         <tbody>${tableRows}</tbody>
@@ -261,17 +296,21 @@
       </div>
       
       <!-- Signature Section -->
-          <div class="flex justify-between items-start mt-6 text-xs">
-        <div class="w-1/2">
-          <p class="font-semibold text-gray-700 mb-1">Catatan:</p>
-          <p class="text-gray-700 mb-1">
-            ${data.catatan && data.catatan.trim() !== "" && data.catatan !== "-" ? data.catatan : "-"}
-          </p>
-        </div>
-        ${signatureSection}
-      </div>
+          <div class="w-1/2 text-xs mb-10">
+            <p class="font-semibold text-gray-700 mb-1">Catatan:</p>
+            <p class="text-gray-700 mb-1">
+              ${data.catatan && data.catatan.trim() !== "" && data.catatan !== "-" ? data.catatan : "-"}
+            </p>
+          </div>
 
-          
+           <!-- Signature -->
+      ${signatureSection}
+
+      <!-- Approved Section (untuk Quotation) -->
+${approvedSection}
+
+      <!-- Footer -->
+      ${footerSection}
     `;
 
         container.innerHTML = html;
@@ -293,7 +332,6 @@
         alert("Gagal memuat data pesanan.");
       }
     }
-
 
     window.onload = loadPesananData;
   </script>

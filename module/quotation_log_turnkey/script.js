@@ -187,23 +187,45 @@ async function renderInvoice(invoiceData, isDownload = false) {
     : invoiceData.no_qtn;
   const detailTitle = isWon ? "Invoice" : "Quotation";
 
+  // 🔹 Signature Section sesuai status
   let signatureSection = "";
   if (isWon) {
     signatureSection = `
-        <div class="text-sm text-right">
-          <p>Jakarta, ${invoiceData.formatted_date}</p>
-          <div class="mt-2">
-            <img src="materai.png"  class="h-20 ml-auto">
-          </div>
-          <p class="mt-2 font-semibold">Nanda Febby Yullantina</p>
-          <p>Finance Manager</p>
-        </div>
-      `;
-  } else {
-    // Kalau Quotation
-    signatureSection = `
-        <div class="text-sm text-right"> <p>APPROVED BY</p> <div class="mt-2"> <img src="materai.png" class="h-20 ml-auto"> </div> <p class="mt-2 font-semibold">Rian Septiadi Saimima</p> </div> </div> <div class="text-xs mt-5 text-center"> <p> If you have any questions about this quotations, please contact<br> Nanda Febby Yuliantina, 082371425300, nandafebby@dinasti.id</p> </div>
-      `;
+    <div class="text-sm text-right mt-10">
+      <p>Jakarta, ${invoiceData.formatted_date}</p>
+      <div class="mt-2">
+        <img src="materai.png"  class="h-20 ml-auto">
+      </div>
+      <p class="mt-2 font-semibold">Nanda Febby Yullantina</p>
+      <p>Finance Manager</p>
+    </div>
+  `;
+  }
+
+  // Footer khusus Quotation
+  let footerSection = "";
+  let approvedSection = "";
+
+  if (!isWon) {
+    approvedSection = `
+    <div class="text-sm text-right mt-12">
+      <p class="font-semibold">APPROVED BY</p>
+      <div class="mt-2">
+        <img src="materai.png" class="h-20 ml-auto">
+      </div>
+      <p class="mt-2 font-semibold">Rian Septiadi Saimima</p>
+    </div>
+  `;
+
+    footerSection = `
+    <div class="text-center text-xs mt-10">
+  <p>
+    If you have any questions about this quotations, please contact<br>
+    Nanda Febby Yuliantina, 082371425300, nandafebby@dinasti.id
+  </p>
+</div>
+
+  `;
   }
 
   // Tambahkan kategori ke setiap item
@@ -224,15 +246,15 @@ async function renderInvoice(invoiceData, isDownload = false) {
   const tableRows = [];
   for (const [category, items] of Object.entries(groupedItems)) {
     tableRows.push(`
-      <tr class="bg-gray-200">
-        <td colspan="7" class="p-1 font-bold text-gray-800 text-xs">${category}</td>
+      <tr class="bg-white">
+        <td colspan="7" class="p-1 font-bold text-black">${category}</td>
       </tr>
     `);
 
     for (const item of items) {
       tableRows.push(`
-        <tr class="bg-gray-100 italic">
-          <td colspan="7" class="p-1 text-gray-700">
+        <tr class="bg-white italic">
+          <td colspan="7" class="p-1 text-black text-xs">
             ${item.product || "-"}
             ${
               item.description &&
@@ -248,12 +270,14 @@ async function renderInvoice(invoiceData, isDownload = false) {
           tableRows.push(`
             <tr>
               <td class="text-center">${rowNumber++}</td>
-              <td>${mat.name}</td>
-              <td>${mat.specification || "-"}</td>
-              <td class="text-center">${mat.unit}</td>
-              <td class="text-center">${mat.qty}</td>
-              <td class="text-right">${formatCurrency(mat.unit_price)}</td>
-              <td class="text-right font-medium">${formatCurrency(
+              <td class="text-xs">${mat.name}</td>
+              <td class="text-xs">${mat.specification || "-"}</td>
+              <td class="text-center text-xs">${mat.unit}</td>
+              <td class="text-center text-xs">${mat.qty}</td>
+              <td class="text-center w-24 text-xs">${formatCurrency(
+                mat.unit_price
+              )}</td>
+              <td class="text-center w-24 text-xs">${formatCurrency(
                 mat.total
               )}</td>
             </tr>
@@ -296,7 +320,7 @@ async function renderInvoice(invoiceData, isDownload = false) {
           }</p>
           ${
             invoiceData.project_name
-              ? `<p class="text-gray-600">${invoiceData.project_name}</p>`
+              ? `<p class="text-gray-600">Project: ${invoiceData.project_name}</p>`
               : ""
           }
         </div>
@@ -363,21 +387,27 @@ async function renderInvoice(invoiceData, isDownload = false) {
           invoiceData.total
         )} Rupiah</span>
       </div>
-      <div class="flex justify-between items-start mt-6 text-xs">
-        <div class="w-1/2">
-          <p class="font-semibold text-gray-700 mb-1">Catatan:</p>
-          <p class="text-gray-700 mb-1">
-            ${
-              invoiceData.catatan &&
-              invoiceData.catatan.trim() !== "" &&
-              invoiceData.catatan !== "-"
-                ? invoiceData.catatan
-                : "-"
-            }
-          </p>
-        </div>
-        ${signatureSection}
-      </div>
+      <div class="w-1/2 text-xs mb-10">
+            <p class="font-semibold text-gray-700 mb-1">Catatan:</p>
+            <p class="text-gray-700 mb-1">
+              ${
+                invoiceData.catatan &&
+                invoiceData.catatan.trim() !== "" &&
+                invoiceData.catatan !== "-"
+                  ? invoiceData.catatan
+                  : "-"
+              }
+            </p>
+          </div>
+
+           <!-- Signature -->
+      ${signatureSection}
+
+      <!-- Approved Section (untuk Quotation) -->
+${approvedSection}
+
+      <!-- Footer -->
+      ${footerSection}
   `;
 
   const invoiceContent = document.getElementById("invoiceContent");

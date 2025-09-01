@@ -155,20 +155,41 @@ async function renderInvoice(invoiceData, isDownload = false) {
   let signatureSection = "";
   if (isWon) {
     signatureSection = `
-        <div class="text-sm text-right">
-          <p>Jakarta, ${invoiceData.formatted_date}</p>
-          <div class="mt-2">
-            <img src="materai.png"  class="h-20 ml-auto">
-          </div>
-          <p class="mt-2 font-semibold">Nanda Febby Yullantina</p>
-          <p>Finance Manager</p>
-        </div>
-      `;
-  } else {
-    // Kalau Quotation
-    signatureSection = `
-        <div class="text-sm text-right"> <p>APPROVED BY</p> <div class="mt-2"> <img src="materai.png" class="h-20 ml-auto"> </div> <p class="mt-2 font-semibold">Rian Septiadi Saimima</p> </div> </div> <div class="text-xs mt-5 text-center"> <p> If you have any questions about this quotations, please contact<br> Nanda Febby Yuliantina, 082371425300, nandafebby@dinasti.id</p> </div>
-      `;
+    <div class="text-sm text-right mt-10">
+      <p>Jakarta, ${invoiceData.formatted_date}</p>
+      <div class="mt-2">
+        <img src="materai.png"  class="h-20 ml-auto">
+      </div>
+      <p class="mt-2 font-semibold">Nanda Febby Yullantina</p>
+      <p>Finance Manager</p>
+    </div>
+  `;
+  }
+
+  // Footer khusus Quotation
+  let footerSection = "";
+  let approvedSection = "";
+
+  if (!isWon) {
+    approvedSection = `
+    <div class="text-sm text-right mt-12">
+      <p class="font-semibold">APPROVED BY</p>
+      <div class="mt-2">
+        <img src="materai.png" class="h-20 ml-auto">
+      </div>
+      <p class="mt-2 font-semibold">Rian Septiadi Saimima</p>
+    </div>
+  `;
+
+    footerSection = `
+    <div class="text-center text-xs mt-10">
+  <p>
+    If you have any questions about this quotations, please contact<br>
+    Nanda Febby Yuliantina, 082371425300, nandafebby@dinasti.id
+  </p>
+</div>
+
+  `;
   }
 
   // 🔹 Lazy load grouped items
@@ -207,8 +228,8 @@ async function renderInvoice(invoiceData, isDownload = false) {
         )
         .join("");
       return `
-        <tr class="bg-gray-200">
-          <td colspan="6" class="p-1 font-bold text-gray-800 text-xs">${category}</td>
+        <tr>
+          <td colspan="6" class="p-1 font-semibold text-medium">${category}</td>
         </tr>
         ${rowHtml}
       `;
@@ -247,7 +268,7 @@ async function renderInvoice(invoiceData, isDownload = false) {
         }</p>
         ${
           invoiceData.project_name
-            ? `<p class="text-gray-600">${invoiceData.project_name}</p>`
+            ? `<p class="text-gray-600">Project: ${invoiceData.project_name}</p>`
             : ""
         }
       </div>
@@ -305,21 +326,27 @@ async function renderInvoice(invoiceData, isDownload = false) {
       <span class="font-semibold text-gray-700">Terbilang:</span>
       <span class="italic text-gray-800">${terbilang(total)} Rupiah</span>
     </div>
-    <div class="flex justify-between items-start mt-6 text-xs">
-        <div class="w-1/2">
-          <p class="font-semibold text-gray-700 mb-1">Catatan:</p>
-          <p class="text-gray-700 mb-1">
-            ${
-              invoiceData.catatan &&
-              invoiceData.catatan.trim() !== "" &&
-              invoiceData.catatan !== "-"
-                ? invoiceData.catatan
-                : "-"
-            }
-          </p>
-        </div>
-        ${signatureSection}
-      </div>
+    <div class="w-1/2 text-xs mb-10">
+            <p class="font-semibold text-gray-700 mb-1">Catatan:</p>
+            <p class="text-gray-700 mb-1">
+              ${
+                invoiceData.catatan &&
+                invoiceData.catatan.trim() !== "" &&
+                invoiceData.catatan !== "-"
+                  ? invoiceData.catatan
+                  : "-"
+              }
+            </p>
+          </div>
+
+           <!-- Signature -->
+      ${signatureSection}
+
+      <!-- Approved Section (untuk Quotation) -->
+${approvedSection}
+
+      <!-- Footer -->
+      ${footerSection}
   `;
 
   const invoiceContent = document.getElementById("invoiceContent");
