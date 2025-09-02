@@ -445,7 +445,6 @@ async function updateInvoice() {
         sub_category: sub_category_id,
       });
 
-      // Lazy yield setiap 50 rows
       if (i % 50 === 0) await new Promise((resolve) => setTimeout(resolve, 0));
     }
 
@@ -460,12 +459,27 @@ async function updateInvoice() {
     const dpp = contract_amount - disc;
     const ppn = Math.round(dpp * 0.11);
 
-    // --- Status & info lainnya
+    // --- Status & revisi
     const status_id = parseInt(document.getElementById("status")?.value || 1);
-    const revisionNumber = window.revision_count || 1;
-    const status_revision = `Revisi ${revisionNumber}`;
-    const no_qtn = document.getElementById("no_qtn")?.value || "";
+    let revisionNumber = window.revision_count ?? 0;
+    let status_revision = `R${revisionNumber}`;
 
+    const WON_STATUS_ID = 2; // ⚡ sesuaikan dengan ID WON di sistemmu
+
+    if (status_id === WON_STATUS_ID) {
+      // langsung ubah ke WON
+      if (revisionNumber === 0) {
+        status_revision = "R0"; // langsung WON tanpa revisi
+      } else {
+        status_revision = `R${revisionNumber}`; // WON setelah ada revisi
+      }
+    } else {
+      // kalau bukan WON → berarti revisi baru
+      revisionNumber += 1;
+      status_revision = `R${revisionNumber}`;
+    }
+
+    const no_qtn = document.getElementById("no_qtn")?.value || "";
     const clientSelect = document.getElementById("client");
     const clientText =
       clientSelect.options[clientSelect.selectedIndex]?.text || "";
@@ -508,10 +522,9 @@ async function updateInvoice() {
       document.getElementById("term_pembayaran")?.value || "-"
     );
 
-    // --- Items → kirim JSON string
     formData.append("items", JSON.stringify(items));
 
-    // --- File upload dengan lazy load
+    // --- File upload
     const fileInput = document.getElementById("file");
     if (fileInput && fileInput.files.length > 0) {
       for (let i = 0; i < fileInput.files.length; i++) {
@@ -581,6 +594,20 @@ async function loadDetailSales(Id, Detail) {
     window.revision_count = data.revision_number || 0;
     window.lastRevision = window.revision_count;
 
+    // === Hitung status revisi konsisten ===
+    const WON_STATUS_ID = 2; // ⚡ sesuaikan sama master status WON di sistem
+    let status_revision = `R${window.revision_count}`;
+
+    if (data.status_id === WON_STATUS_ID) {
+      if (window.revision_count === 0) {
+        status_revision = "R0"; // langsung WON tanpa revisi
+      } else {
+        status_revision = `R${window.revision_count}`; // WON setelah revisi
+      }
+    } else {
+      status_revision = `R${window.revision_count}`;
+    }
+
     // ⚡ Tunggu semua load async selesai dulu
     await Promise.all([
       loadCustomerList(),
@@ -613,8 +640,11 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("ppn").value = data.ppn || 0;
     document.getElementById("total").value = data.total || 0;
     document.getElementById("status").value = data.status_id || 1;
+
+    // 🔹 Gunakan hasil logika revisi baru
     document.getElementById("revision_number").value =
-      data.revision_status || `R${window.revision_count}`;
+      data.revision_status || status_revision;
+
     document.getElementById("catatan").value = data.catatan || "";
     document.getElementById("syarat_ketentuan").value =
       data.syarat_ketentuan || "";
@@ -636,7 +666,7 @@ async function loadDetailSales(Id, Detail) {
       );
       logBtn.classList.remove("hidden");
     }
-    if (data.status_id === 2) {
+    if (data.status_id === WON_STATUS_ID) {
       updateBtn?.classList.add("hidden");
     } else {
       updateBtn?.classList.remove("hidden");
@@ -646,9 +676,7 @@ async function loadDetailSales(Id, Detail) {
     const versionDiv = document.getElementById("versionInfo");
     if (versionDiv) {
       versionDiv.classList.remove("hidden");
-      document.getElementById(
-        "currentVersion"
-      ).innerText = `R${window.revision_count}`;
+      document.getElementById("currentVersion").innerText = status_revision;
       const btnHistory = document.getElementById("btnVersionHistory");
       if (btnHistory) {
         btnHistory.onclick = (event) => {
@@ -962,20 +990,24 @@ async function loadStatusOptions(defaultSelectedId = 1) {
 
 function updateRevisionNumber() {
   const statusSelect = document.getElementById("status");
-  const selectedIndex = statusSelect.selectedIndex;
   const selectedValue = statusSelect.value;
 
-  if (!selectedValue || selectedIndex === 0) {
+  if (!selectedValue) {
     document.getElementById("revision_number").value = "";
     return;
   }
 
   const currentRevision = lastRevision || 0;
-  const newRevision = currentRevision + 1;
-  const revisionStatus = `R${newRevision}`;
 
-  console.log("Revision status:", revisionStatus);
-  document.getElementById("revision_number").value = revisionStatus;
+  // Kondisi khusus berdasarkan status
+  if (selectedValue == 1) {
+    // 1 = On Going → revisi baru
+    const newRevision = currentRevision + 1;
+    document.getElementById("revision_number").value = `R${newRevision}`;
+  } else {
+    // Status selain On Going (Won, Lost, Cancel) → tetap pakai revisi terakhir
+    document.getElementById("revision_number").value = `R${currentRevision}`;
+  }
 }
 
 document.addEventListener("input", function (e) {

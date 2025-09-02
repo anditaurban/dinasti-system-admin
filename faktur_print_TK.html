@@ -142,30 +142,31 @@
         let rowNumber = 1;
         const tableRows = Object.entries(groupedItems).map(([category, items]) => {
           return `
-        <tr class="bg-white">
-          <td colspan="7" class="p-1 font-bold text-black text-xs">${category}</td>
+    <tr class="bg-white">
+      <td colspan="7" class="p-1 font-bold text-black text-xs border border-black">${category}</td>
+    </tr>
+    ${items.map(item => `
+      <tr class="bg-material italic">
+        <td colspan="7" class="p-1 text-black border border-black">
+          ${item.product || '-'}
+          ${item.description ? `<div class="text-xs text-gray-500">${item.description}</div>` : ''}
+        </td>
+      </tr>
+      ${item.materials.map(mat => `
+        <tr>
+          <td class="text-center border border-black">${rowNumber++}</td>
+          <td class="border border-black">${mat.name}</td>
+          <td class="border border-black">${mat.specification || '-'}</td>
+          <td class="text-center border border-black">${mat.unit}</td>
+          <td class="text-center border border-black">${mat.qty}</td>
+          <td class="text-right border border-black">${formatRp(mat.unit_price)}</td>
+          <td class="text-right font-medium border border-black">${formatRp(mat.total)}</td>
         </tr>
-        ${items.map(item => `
-          <tr class="bg-material italic">
-            <td colspan="7" class="p-1 text-black">
-              ${item.product || '-'}
-              ${item.description ? `<div class="text-xs text-gray-500">${item.description}</div>` : ''}
-            </td>
-          </tr>
-          ${item.materials.map(mat => `
-            <tr>
-              <td class="text-center">${rowNumber++}</td>
-              <td>${mat.name}</td>
-              <td>${mat.specification || '-'}</td>
-              <td class="text-center">${mat.unit}</td>
-              <td class="text-center">${mat.qty}</td>
-              <td class="text-right">${formatRp(mat.unit_price)}</td>
-              <td class="text-right font-medium">${formatRp(mat.total)}</td>
-            </tr>
-          `).join('')}
-        `).join('')}
-      `;
+      `).join('')}
+    `).join('')}
+  `;
         }).join('');
+
 
         const revisionInfo = data.revision_status && data.revision_number
           ? `${data.revision_status} (${data.revision_number})`
@@ -221,7 +222,7 @@
       <!-- Header -->
       <div class="relative mb-2">
         <div class="absolute left-0 top-0">
-          <img src="./assets/img/cropped-logo.png" class="h-12" />
+          <img src="./assets/img/cropped-logo.png" class="h-16" />
         </div>
         <div class="text-center">
           <h1 class="font-bold text-red-700 text-base">PT. DINASTI ELEKTRIK INDONESIA</h1>
@@ -252,20 +253,23 @@
       </div>
 
       <!-- Table Items -->
-      <table class="w-full compact-table border-collapse bordered mb-3">
-        <thead class="bg-blue-900">
-          <tr class="text-white">
-            <th class="text-center w-8">No.</th>
-            <th class="text-center">DESCRIPTION</th>
-            <th class="text-center">Spesification </th>
-            <th class="text-center w-12">Unit</th>
-            <th class="text-center w-12">Qty</th>
-            <th class="text-center w-24">UNIT PRICE</th>
-            <th class="text-center w-24">TOTAL</th>
-          </tr>
-        </thead>
-        <tbody>${tableRows}</tbody>
-      </table>
+      <table class="w-full compact-table border-collapse border border-black mb-3">
+  <thead class="bg-blue-900">
+    <tr class="text-white">
+      <th class="text-center w-8 border border-black">No.</th>
+      <th class="text-center border border-black">DESCRIPTION</th>
+      <th class="text-center border border-black">Spesification</th>
+      <th class="text-center w-12 border border-black">Unit</th>
+      <th class="text-center w-12 border border-black">Qty</th>
+      <th class="text-center w-24 border border-black">UNIT PRICE</th>
+      <th class="text-center w-24 border border-black">TOTAL</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${tableRows}
+  </tbody>
+</table>
+
 
       <!-- Totals -->
       <div class="flex justify-end mb-3">

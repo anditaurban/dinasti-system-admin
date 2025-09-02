@@ -117,23 +117,24 @@
         // 🔹 Render tabel grouped dengan nomor global
         let globalIndex = 1;
         const tableRows = Object.entries(groupedItems).map(([category, items]) => `
-      <tr class="bg-white">
-        <td colspan="6" class="p-1 font-bold text-gray-800 text-xs">${category}</td>
+      <tr class="bg-white border border-black">
+        <td colspan="6" class="p-1 font-bold text-gray-800 text-xs border border-black">${category}</td>
       </tr>
       ${items.map(item => `
-        <tr>
-          <td class="text-center text-gray-700">${globalIndex++}</td>
-          <td class="text-gray-800">
+        <tr class="border border-black">
+          <td class="text-center text-gray-700 border border-black">${globalIndex++}</td>
+          <td class="text-gray-800 border border-black">
             <p class="font-medium">${item.product || '-'}</p>
             ${item.description ? `<p class="text-xs text-gray-500 mt-0">${item.description}</p>` : ''}
           </td>
-          <td class="text-center text-gray-700">${item.qty || 0}</td>
-          <td class="text-center text-gray-700">${item.unit || '-'}</td>
-          <td class="text-right text-gray-800">${formatRp(item.unit_price || 0)}</td>
-          <td class="text-right text-gray-800 font-medium">${formatRp(item.total || 0)}</td>
+          <td class="text-center text-gray-700 border border-black">${item.qty || 0}</td>
+          <td class="text-center text-gray-700 border border-black">${item.unit || '-'}</td>
+          <td class="text-right text-gray-800 border border-black">${formatRp(item.unit_price || 0)}</td>
+          <td class="text-right text-gray-800 font-medium border border-black">${formatRp(item.total || 0)}</td>
         </tr>
       `).join('')}
     `).join('');
+
 
         // 🔹 Info revisi
         const revisionInfo = data.revision_status && data.revision_number
@@ -194,8 +195,9 @@
       <!-- Header -->
       <div class="relative mb-2">
         <div class="absolute left-0 top-0">
-          <img src="./assets/img/cropped-logo.png" class="h-12" />
+          <img src="./assets/img/cropped-logo.png" class="h-16" />
         </div>
+
         <div class="text-center">
           <h1 class="font-bold text-red-700 text-base">PT. DINASTI ELEKTRIK INDONESIA</h1>
           <p class="text-xs font-semibold">ELEKTRIKAL ENGINEERING & MAINTENANCE</p>
@@ -225,21 +227,22 @@
       </div>
 
       <!-- Table Items -->
-      <table class="w-full compact-table border-collapse bordered mb-3">
-        <thead class="bg-blue-900">
-          <tr class="text-white">
-            <th class="text-center w-8">No.</th>
-            <th class="text-center">DESCRIPTION</th>
-            <th class="text-center w-12">QTY</th>
-            <th class="text-center w-12">Unit</th>
-            <th class="text-center w-24">UNIT PRICE</th>
-            <th class="text-center w-24">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${tableRows}
-        </tbody>
-      </table>
+      <table class="w-full compact-table border-collapse border border-black mb-3">
+  <thead class="bg-blue-900">
+    <tr class="text-white">
+      <th class="text-center w-8 border border-black">NO.</th>
+      <th class="text-center border border-black">DESCRIPTION</th>
+      <th class="text-center w-12 border border-black">QTY</th>
+      <th class="text-center w-12 border border-black">UNIT</th>
+      <th class="text-center w-24 border border-black">UNIT PRICE</th>
+      <th class="text-center w-24 border border-black">TOTAL</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${tableRows}
+  </tbody>
+</table>
+
 
       <!-- Totals -->
       <div class="flex justify-end mb-3">

@@ -529,10 +529,26 @@ async function updateInvoiceTurnKey() {
     const status_id = parseInt(document.getElementById("status")?.value || 1);
     const revisionNumber = window.revision_count || 1;
     const status_revision = `Revisi ${revisionNumber}`;
-    const no_qtn = document.getElementById("no_qtn")?.value || "";
 
+    const WON_STATUS_ID = 2;
+
+    if (status_id === WON_STATUS_ID) {
+      // langsung ubah ke WON
+      if (revisionNumber === 0) {
+        status_revision = "R0"; // langsung WON tanpa revisi
+      } else {
+        status_revision = `R${revisionNumber}`; // WON setelah ada revisi
+      }
+    } else {
+      // kalau bukan WON → berarti revisi baru
+      revisionNumber += 1;
+      status_revision = `R${revisionNumber}`;
+    }
+
+    const no_qtn = document.getElementById("no_qtn")?.value || "";
     const clientSelect = document.getElementById("client");
-    const pelangganId = parseInt(clientSelect.value || 0);
+    const clientText =
+      clientSelect.options[clientSelect.selectedIndex]?.text || "";
 
     // === Buat FormData ===
     const formData = new FormData();
@@ -668,6 +684,24 @@ async function loadDetailSalesTurnKey(Id, Detail) {
     const data = response.detail;
     window.revision_count = data.revision_number || 0;
     window.lastRevision = window.revision_count;
+
+    // === Hitung status revisi konsisten ===
+    const WON_STATUS_ID = 2; // ⚡ sesuaikan sama master status WON di sistem
+    let revisionNumber = window.revision_count ?? 0;
+    let status_revision = `R${revisionNumber}`;
+
+    if (data.status_id === WON_STATUS_ID) {
+      // langsung ubah ke WON
+      if (revisionNumber === 0) {
+        status_revision = "R0"; // belum ada revisi sama sekali
+      } else {
+        status_revision = `R${revisionNumber}`; // sudah ada revisi sebelumnya
+      }
+    } else {
+      // kalau masih proses revisi (bukan WON)
+      revisionNumber += 1;
+      status_revision = `R${revisionNumber}`;
+    }
 
     // ⚡ Tunggu semua load async selesai dulu
     await Promise.all([
@@ -1053,20 +1087,24 @@ async function loadStatusOptions(defaultSelectedId = 1) {
 
 function updateRevisionNumber() {
   const statusSelect = document.getElementById("status");
-  const selectedIndex = statusSelect.selectedIndex;
   const selectedValue = statusSelect.value;
 
-  if (!selectedValue || selectedIndex === 0) {
+  if (!selectedValue) {
     document.getElementById("revision_number").value = "";
     return;
   }
 
   const currentRevision = lastRevision || 0;
-  const newRevision = currentRevision + 1;
-  const revisionStatus = `R${newRevision}`;
 
-  console.log("Revision status:", revisionStatus);
-  document.getElementById("revision_number").value = revisionStatus;
+  // Kondisi khusus berdasarkan status
+  if (selectedValue == 1) {
+    // 1 = On Going → revisi baru
+    const newRevision = currentRevision + 1;
+    document.getElementById("revision_number").value = `R${newRevision}`;
+  } else {
+    // Status selain On Going (Won, Lost, Cancel) → tetap pakai revisi terakhir
+    document.getElementById("revision_number").value = `R${currentRevision}`;
+  }
 }
 
 document.addEventListener("input", function (e) {
