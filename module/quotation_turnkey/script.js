@@ -527,20 +527,18 @@ async function updateInvoiceTurnKey() {
     const ppn = Math.round(dpp * 0.11);
 
     const status_id = parseInt(document.getElementById("status")?.value || 1);
-    const revisionNumber = window.revision_count || 1;
-    const status_revision = `Revisi ${revisionNumber}`;
+    let revisionNumber = window.revision_count || 0;
+    let status_revision = `R${revisionNumber}`;
 
     const WON_STATUS_ID = 2;
 
     if (status_id === WON_STATUS_ID) {
-      // langsung ubah ke WON
       if (revisionNumber === 0) {
-        status_revision = "R0"; // langsung WON tanpa revisi
+        status_revision = "R0";
       } else {
-        status_revision = `R${revisionNumber}`; // WON setelah ada revisi
+        status_revision = `R${revisionNumber}`;
       }
     } else {
-      // kalau bukan WON → berarti revisi baru
       revisionNumber += 1;
       status_revision = `R${revisionNumber}`;
     }
@@ -687,20 +685,16 @@ async function loadDetailSalesTurnKey(Id, Detail) {
 
     // === Hitung status revisi konsisten ===
     const WON_STATUS_ID = 2; // ⚡ sesuaikan sama master status WON di sistem
-    let revisionNumber = window.revision_count ?? 0;
-    let status_revision = `R${revisionNumber}`;
+    let status_revision = `R${window.revision_count}`;
 
     if (data.status_id === WON_STATUS_ID) {
-      // langsung ubah ke WON
-      if (revisionNumber === 0) {
-        status_revision = "R0"; // belum ada revisi sama sekali
+      if (window.revision_count === 0) {
+        status_revision = "R0"; // langsung WON tanpa revisi
       } else {
-        status_revision = `R${revisionNumber}`; // sudah ada revisi sebelumnya
+        status_revision = `R${window.revision_count}`; // WON setelah revisi
       }
     } else {
-      // kalau masih proses revisi (bukan WON)
-      revisionNumber += 1;
-      status_revision = `R${revisionNumber}`;
+      status_revision = `R${window.revision_count}`;
     }
 
     // ⚡ Tunggu semua load async selesai dulu
@@ -737,7 +731,7 @@ async function loadDetailSalesTurnKey(Id, Detail) {
     document.getElementById("total").value = data.total || 0;
     document.getElementById("status").value = data.status_id || 1;
     document.getElementById("revision_number").value =
-      data.revision_status || `R${window.revision_count}`;
+      data.revision_status || status_revision;
     document.getElementById("catatan").value = data.catatan || "";
     document.getElementById("syarat_ketentuan").value =
       data.syarat_ketentuan || "";
