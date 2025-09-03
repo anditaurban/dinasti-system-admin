@@ -255,6 +255,7 @@ async function loadModuleContent(module, Id, Detail) {
             console.warn("loadPesananData belum terdefinisi.");
           }
         }
+        
 
         resolve();
       };

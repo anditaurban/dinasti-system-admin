@@ -169,8 +169,6 @@ function loadDropdownCall() {
     <option value="Superadmin">Super Admin</option>
     <option value="sales">Sales</option>
     <option value="finance">Finance</option>
-    <option value="packed">Packing</option>
-    <option value="shipped">Shipping</option>
     <option value="viewer">Viewer</option>
   </select>
 

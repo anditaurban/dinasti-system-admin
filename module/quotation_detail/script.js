@@ -571,7 +571,11 @@ function initializeForm(isEdit = false) {
     updateRevisionNumber();
   } else {
     document.getElementById("statusContainer").classList.add("hidden");
-    document.getElementById("revision_number").value = "R0";
+    const revInput = document.getElementById("revision_number");
+    if (revInput) {
+      revInput.value = "R0"; // ✅ Saat tambah baru → selalu R0
+      console.log("✅ Revision number set ke R0 (tambah baru)");
+    }
   }
 }
 
@@ -596,16 +600,16 @@ async function loadDetailSales(Id, Detail) {
 
     // === Hitung status revisi konsisten ===
     const WON_STATUS_ID = 2; // ⚡ sesuaikan sama master status WON di sistem
-    let status_revision = `R${window.revision_count}`;
 
+    // Ambil angka revisi asli dari API
+    const revisionCount = parseInt(data.revision_number, 10) || 0;
+
+    // Default format revisi
+    let status_revision = `R${revisionCount}`;
+
+    // Kalau status WON, tetap ikut angka revisi terakhir
     if (data.status_id === WON_STATUS_ID) {
-      if (window.revision_count === 0) {
-        status_revision = "R0"; // langsung WON tanpa revisi
-      } else {
-        status_revision = `R${window.revision_count}`; // WON setelah revisi
-      }
-    } else {
-      status_revision = `R${window.revision_count}`;
+      status_revision = `R${revisionCount}`;
     }
 
     // ⚡ Tunggu semua load async selesai dulu
@@ -642,8 +646,7 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("status").value = data.status_id || 1;
 
     // 🔹 Gunakan hasil logika revisi baru
-    document.getElementById("revision_number").value =
-      data.revision_status || status_revision;
+    document.getElementById("revision_number").value = status_revision;
 
     document.getElementById("catatan").value = data.catatan || "";
     document.getElementById("syarat_ketentuan").value =
@@ -991,21 +994,19 @@ async function loadStatusOptions(defaultSelectedId = 1) {
 function updateRevisionNumber() {
   const statusSelect = document.getElementById("status");
   const selectedValue = statusSelect.value;
-
-  if (!selectedValue) {
-    document.getElementById("revision_number").value = "";
-    return;
-  }
-
   const currentRevision = lastRevision || 0;
 
-  // Kondisi khusus berdasarkan status
-  if (selectedValue == 1) {
-    // 1 = On Going → revisi baru
-    const newRevision = currentRevision + 1;
-    document.getElementById("revision_number").value = `R${newRevision}`;
+  if (selectedValue == "1") {
+    // Status On Going
+    if (currentRevision === 0 && !window.detail_id) {
+      document.getElementById("revision_number").value = "R0"; // tambah baru tetap R0
+    } else {
+      document.getElementById("revision_number").value = `R${
+        currentRevision + 1
+      }`;
+    }
   } else {
-    // Status selain On Going (Won, Lost, Cancel) → tetap pakai revisi terakhir
+    // Status selain On Going → pakai revisi terakhir
     document.getElementById("revision_number").value = `R${currentRevision}`;
   }
 }

@@ -43,11 +43,12 @@ const state = {
   product_bundling: { ...defaultState },
   client: { ...defaultState },
   project_detail: { ...defaultState },
-  business_category: { ...defaultState },
+  client: { ...defaultState },
 };
 
 const endpoints = [
   "user",
+  "client",
   "sales",
   "sales_unpaid",
   "sales_receipt",

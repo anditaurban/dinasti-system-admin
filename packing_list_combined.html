@@ -1,138 +1,603 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <title>Gabungan Packing List</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: auto;
-    }
-
-    #packingContainer {
-      margin: 0;
-      padding: 0;
-    }
-
-    .print-page {
-      width: 210mm;
-      height: 297mm;
-      padding: 20mm 25mm;
-      box-sizing: border-box;
-      position: relative;
-    }
-  </style>
-</head>
-<body class="bg-white text-black font-sans text-sm">
-  <div id="combinedContainer"></div>
-
-  <script>
-    const script = document.createElement('script');
-    script.src = `./assets/js/api.js?v=${new Date().getTime()}`;
-    document.body.appendChild(script);
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const ids = (urlParams.get('ids') || '').split(',');
-    const isDownload = urlParams.get('mode') === 'download';
-    const today = new Date().toISOString().split('T')[0];
-    const container = document.getElementById('combinedContainer');
-
-    async function loadAllPacking() {
-      for (const package_id of ids) {
-        try {
-          const res = await fetch(`${baseUrl}/detail/sales_package/${package_id}`, {
-            headers: { 'Authorization': `Bearer ${API_TOKEN}` }
-          });
-
-          const data = await res.json();
-          const detail = data?.detail;
-          const items = detail?.items || [];
-
-          if (!detail) continue;
-
-          const section = document.createElement('section');
-          section.className = 'print-page';
-          section.innerHTML = `
-            <img src="assets/img/cropped-Logo-MKI.webp" alt="Logo MKI" class="absolute top-[20mm] left-[25mm] h-10" />
-            <h2 class="text-center text-xl font-bold">PACKING LIST</h2>
-            <h4 class="text-center text-base font-medium mt-1">${detail.no_package || '-'}</h4>
-
-            <div class="mt-6 grid gap-1 w-full max-w-md">
-              <div class="grid grid-cols-3">
-                <div class="font-medium">No Invoice</div>
-                <div class="col-span-2">: ${detail.no_inv}</div>
-              </div>
-              <div class="grid grid-cols-3">
-                <div class="font-medium">Tanggal</div>
-                <div class="col-span-2">: ${detail.date}</div>
-              </div>
-              <div class="grid grid-cols-3">
-                <div class="font-medium">Catatan</div>
-                <div class="col-span-2">: ${detail.notes || '-'}</div>
-              </div>
-              <div class="grid grid-cols-3">
-                <div class="font-medium">Total Item</div>
-                <div class="col-span-2">: ${detail.total_items}</div>
-              </div>
-            </div>
-
-            <table class="w-full border border-black mt-6 text-sm">
-              <thead>
-                <tr class="bg-gray-100">
-                  <th class="border border-black px-2 py-1 w-[15%] text-left">QTY</th>
-                  <th class="border border-black px-2 py-1 text-left">ITEM</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${items.map(item => `
-                  <tr>
-                    <td class="border border-black px-2 py-1">${item.qty}</td>
-                    <td class="border border-black px-2 py-1">${item.item_name}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-
-            <div class="mt-6 grid gap-1 w-full max-w-md">
-              <div class="grid grid-cols-3">
-                <div class="font-medium">Di Pack Oleh</div>
-                <div class="col-span-2">: ${detail.pic_name || '-'}</div>
-              </div>
-              <div class="grid grid-cols-3">
-                <div class="font-medium">Tanggal</div>
-                <div class="col-span-2">: ${today}</div>
-              </div>
-            </div>
-          `;
-
-          container.appendChild(section);
-        } catch (err) {
-          console.error(`❌ Gagal ambil paket ${package_id}`, err);
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Settings Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
         }
-      }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .setting-btn {
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .setting-btn.active {
+            background-color: #f8fafc;
+            color: #0ea5e9;
+            font-weight: 500;
+        }
+        
+        .setting-btn.active:before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background-color: #0ea5e9;
+            border-radius: 0 4px 4px 0;
+        }
+        
+        .dark .setting-btn.active {
+            background-color: #1e293b;
+        }
+        
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+        }
+        
+        .dark .card {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .dark .card:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+        }
+        
+        .section-content {
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        
+        .setting-section.active .section-content {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .mode-switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+        }
+        
+        .mode-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e1;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #0ea5e9;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-200 transition-colors duration-200">
+    <div class="max-w-6xl mx-auto p-4 md:p-6">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Pengaturan</h1>
+            <div class="flex items-center space-x-3">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Mode Gelap</span>
+                <label class="mode-switch">
+                    <input type="checkbox" id="darkModeToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Sidebar -->
+            <div class="lg:col-span-1 space-y-1">
+                <div class="card bg-white dark:bg-gray-800 p-4">
+                    <div class="px-2 py-3 border-b border-gray-100 dark:border-gray-700">
+                        <h3 class="font-medium text-gray-500 dark:text-gray-400 text-sm">UMUM</h3>
+                    </div>
+                    <button class="setting-btn w-full text-left px-4 py-3 rounded-lg flex items-center active" data-section="profil">
+                        <i class="fas fa-user-circle w-5 mr-3 text-primary-500"></i>
+                        <span>Profil</span>
+                    </button>
+                    <button class="setting-btn w-full text-left px-4 py-3 rounded-lg flex items-center" data-section="bahasa">
+                        <i class="fas fa-globe w-5 mr-3 text-primary-500"></i>
+                        <span>Bahasa</span>
+                    </button>
+                    <button class="setting-btn w-full text-left px-4 py-3 rounded-lg flex items-center" data-section="fitur">
+                        <i class="fas fa-puzzle-piece w-5 mr-3 text-primary-500"></i>
+                        <span>Fitur</span>
+                    </button>
+                    
+                    <div class="px-2 py-3 mt-2 border-b border-gray-100 dark:border-gray-700">
+                        <h3 class="font-medium text-gray-500 dark:text-gray-400 text-sm">AKUN</h3>
+                    </div>
+                    <button class="setting-btn w-full text-left px-4 py-3 rounded-lg flex items-center" data-section="billing">
+                        <i class="fas fa-credit-card w-5 mr-3 text-primary-500"></i>
+                        <span>Billing</span>
+                    </button>
+                    
+                    <div class="px-2 py-3 mt-2 border-b border-gray-100 dark:border-gray-700">
+                        <h3 class="font-medium text-gray-500 dark:text-gray-400 text-sm">INTEGRASI</h3>
+                    </div>
+                    <button class="setting-btn w-full text-left px-4 py-3 rounded-lg flex items-center" data-section="integrasi">
+                        <i class="fas fa-plug w-5 mr-3 text-primary-500"></i>
+                        <span>Integrasi</span>
+                    </button>
+                    
+                    <div class="px-2 py-3 mt-2 border-b border-gray-100 dark:border-gray-700">
+                        <h3 class="font-medium text-gray-500 dark:text-gray-400 text-sm">LAINNYA</h3>
+                    </div>
+                    <button class="setting-btn w-full text-left px-4 py-3 rounded-lg flex items-center" data-section="log">
+                        <i class="fas fa-history w-5 mr-3 text-primary-500"></i>
+                        <span>Update Log</span>
+                    </button>
+                </div>
+                
+                <div class="card bg-white dark:bg-gray-800 p-4 mt-4 text-center">
+                    <div class="w-16 h-16 mx-auto rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mb-3">
+                        <i class="fas fa-question text-primary-500 text-xl"></i>
+                    </div>
+                    <h3 class="font-medium mb-2">Butuh Bantuan?</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Kunjungi pusat bantuan kami untuk panduan lengkap</p>
+                    <button class="w-full bg-primary-50 hover:bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:hover:bg-primary-900/50 dark:text-primary-400 py-2 rounded-lg text-sm font-medium transition-colors">
+                        Buka Pusat Bantuan
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Content -->
+            <div class="lg:col-span-3">
+                <div id="section-profil" class="setting-section card bg-white dark:bg-gray-800 p-6 active">
+                    <div class="flex items-center mb-6">
+                        <div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mr-3">
+                            <i class="fas fa-user-circle text-primary-500"></i>
+                        </div>
+                        <h2 class="text-xl font-semibold">Profil</h2>
+                    </div>
+                    
+                    <div class="section-content">
+                        <p class="text-gray-600 dark:text-gray-300 mb-6">Kelola informasi profil Anda untuk mengontrol, melindungi, dan mengamankan akun</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nama Depan</label>
+                                <input type="text" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white" value="Ahmad">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nama Belakang</label>
+                                <input type="text" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white" value="Surya">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                                <input type="email" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white" value="ahmad.surya@example.com">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Telepon</label>
+                                <input type="tel" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white" value="+62 812 3456 7890">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bio</label>
+                            <textarea class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white" rows="3">Saya seorang software developer dengan minat dalam pengembangan web dan mobile.</textarea>
+                        </div>
+                        
+                        <div class="flex justify-end">
+                            <button class="px-5 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors">Simpan Perubahan</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="section-bahasa" class="setting-section card bg-white dark:bg-gray-800 p-6 hidden">
+                    <div class="flex items-center mb-6">
+                        <div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mr-3">
+                            <i class="fas fa-globe text-primary-500"></i>
+                        </div>
+                        <h2 class="text-xl font-semibold">Bahasa</h2>
+                    </div>
+                    
+                    <div class="section-content">
+                        <p class="text-gray-600 dark:text-gray-300 mb-6">Pilih bahasa dan preferensi regional untuk pengalaman yang dipersonalisasi</p>
+                        
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Bahasa Antarmuka</label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div class="flex items-center p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                                        <span class="text-sm font-medium">ID</span>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">Indonesia</p>
+                                        <p class="text-sm text-gray-500">Bahasa Indonesia</p>
+                                    </div>
+                                    <i class="fas fa-check ml-auto text-primary-500"></i>
+                                </div>
+                                
+                                <div class="flex items-center p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                                        <span class="text-sm font-medium">EN</span>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">English</p>
+                                        <p class="text-sm text-gray-500">English (US)</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Format Regional</label>
+                            <select class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white">
+                                <option>Indonesia (IDR)</option>
+                                <option>United States (USD)</option>
+                                <option>Europe (EUR)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="flex justify-end">
+                            <button class="px-5 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors">Simpan Preferensi</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="section-fitur" class="setting-section card bg-white dark:bg-gray-800 p-6 hidden">
+                    <div class="flex items-center mb-6">
+                        <div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mr-3">
+                            <i class="fas fa-puzzle-piece text-primary-500"></i>
+                        </div>
+                        <h2 class="text-xl font-semibold">Fitur</h2>
+                    </div>
+                    
+                    <div class="section-content">
+                        <p class="text-gray-600 dark:text-gray-300 mb-6">Aktifkan atau nonaktifkan fitur tambahan sesuai kebutuhan Anda</p>
+                        
+                        <div class="space-y-4 mb-6">
+                            <div class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                                <div>
+                                    <h3 class="font-medium">Mode Produktivitas</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Blokir notifikasi yang mengganggu saat fokus bekerja</p>
+                                </div>
+                                <label class="mode-switch">
+                                    <input type="checkbox" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                                <div>
+                                    <h3 class="font-medium">Pembaruan Otomatis</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Secara otomatis mengunduh dan menginstal pembaruan</p>
+                                </div>
+                                <label class="mode-switch">
+                                    <input type="checkbox">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                                <div>
+                                    <h3 class="font-medium">Sinkronisasi Cloud</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Simpan dan sinkronkan data Anda di cloud</p>
+                                </div>
+                                <label class="mode-switch">
+                                    <input type="checkbox" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                                <div>
+                                    <h3 class="font-medium">Pemberitahuan Email</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Kirim pemberitahuan penting melalui email</p>
+                                </div>
+                                <label class="mode-switch">
+                                    <input type="checkbox" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-end">
+                            <button class="px-5 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors">Terapkan Perubahan</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="section-billing" class="setting-section card bg-white dark:bg-gray-800 p-6 hidden">
+                    <div class="flex items-center mb-6">
+                        <div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mr-3">
+                            <i class="fas fa-credit-card text-primary-500"></i>
+                        </div>
+                        <h2 class="text-xl font-semibold">Billing</h2>
+                    </div>
+                    
+                    <div class="section-content">
+                        <p class="text-gray-600 dark:text-gray-300 mb-6">Kelola langganan dan informasi pembayaran Anda</p>
+                        
+                        <div class="bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 rounded-lg p-4 mb-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-medium">Paket Professional</h3>
+                                    <p class="text-sm text-primary-600 dark:text-primary-400">Berakhir pada 12 Desember 2023</p>
+                                </div>
+                                <span class="px-3 py-1 bg-primary-100 dark:bg-primary-800 text-primary-700 dark:text-primary-300 rounded-full text-sm font-medium">Aktif</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <h3 class="font-medium mb-3">Metode Pembayaran</h3>
+                            <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                                <div class="flex items-center justify-between p-4 bg-white dark:bg-gray-800">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-6 bg-gray-200 rounded-sm mr-3"></div>
+                                        <div>
+                                            <p class="font-medium">Kartu Kredit</p>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">Berakhir dengan 4592</p>
+                                        </div>
+                                    </div>
+                                    <button class="text-primary-500 hover:text-primary-600 text-sm font-medium">Edit</button>
+                                </div>
+                                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 bg-gray-200 rounded-full mr-3 flex items-center justify-center">
+                                            <i class="fas fa-plus text-gray-500"></i>
+                                        </div>
+                                        <p class="font-medium">Tambah Metode Pembayaran</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-end">
+                            <button class="px-5 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors">Keluar Langganan</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="section-integrasi" class="setting-section card bg-white dark:bg-gray-800 p-6 hidden">
+                    <div class="flex items-center mb-6">
+                        <div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mr-3">
+                            <i class="fas fa-plug text-primary-500"></i>
+                        </div>
+                        <h2 class="text-xl font-semibold">Integrasi</h2>
+                    </div>
+                    
+                    <div class="section-content">
+                        <p class="text-gray-600 dark:text-gray-300 mb-6">Atur koneksi ke platform lain seperti WhatsApp, Email, dan layanan pihak ketiga</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                <div class="flex items-center mb-3">
+                                    <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                                        <i class="fab fa-whatsapp text-green-600"></i>
+                                    </div>
+                                    <h3 class="font-medium">WhatsApp Business</h3>
+                                </div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Terhubung dengan akun WhatsApp Business Anda</p>
+                                <button class="w-full py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors">Hubungkan</button>
+                            </div>
+                            
+                            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                <div class="flex items-center mb-3">
+                                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                                        <i class="far fa-envelope text-blue-600"></i>
+                                    </div>
+                                    <h3 class="font-medium">Email Marketing</h3>
+                                </div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Sinkronkan dengan layanan email marketing</p>
+                                <button class="w-full py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors">Hubungkan</button>
+                            </div>
+                            
+                            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                <div class="flex items-center mb-3">
+                                    <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                                        <i class="fab fa-google text-red-600"></i>
+                                    </div>
+                                    <h3 class="font-medium">Google Analytics</h3>
+                                </div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Pantau statistik dengan Google Analytics</p>
+                                <button class="w-full py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors">Hubungkan</button>
+                            </div>
+                            
+                            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                <div class="flex items-center mb-3">
+                                    <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                                        <i class="fas fa-cloud text-purple-600"></i>
+                                    </div>
+                                    <h3 class="font-medium">Cloud Storage</h3>
+                                </div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Simpan data Anda di cloud storage</p>
+                                <button class="w-full py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors">Hubungkan</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="section-log" class="setting-section card bg-white dark:bg-gray-800 p-6 hidden">
+                    <div class="flex items-center mb-6">
+                        <div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mr-3">
+                            <i class="fas fa-history text-primary-500"></i>
+                        </div>
+                        <h2 class="text-xl font-semibold">Update Log</h2>
+                    </div>
+                    
+                    <div class="section-content">
+                        <p class="text-gray-600 dark:text-gray-300 mb-6">Riwayat pembaruan dan perbaikan sistem</p>
+                        
+                        <div class="space-y-4">
+                            <div class="border-l-2 border-primary-500 pl-4 relative">
+                                <div class="absolute -left-1.5 top-0 w-3 h-3 rounded-full bg-primary-500"></div>
+                                <h3 class="font-medium">Versi 2.1.0</h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">12 Oktober 2023</p>
+                                <ul class="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                                    <li class="flex items-start">
+                                        <span class="text-primary-500 mr-2">•</span>
+                                        <span>Menambahkan fitur ekspor data dalam format CSV</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <span class="text-primary-500 mr-2">•</span>
+                                        <span>Memperbaiki bug pada sinkronisasi data</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <span class="text-primary-500 mr-2">•</span>
+                                        <span>Peningkatan performa pada perangkat mobile</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            
+                            <div class="border-l-2 border-gray-300 dark:border-gray-600 pl-4 relative">
+                                <div class="absolute -left-1.5 top-0 w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+                                <h3 class="font-medium">Versi 2.0.3</h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">28 September 2023</p>
+                                <ul class="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                                    <li class="flex items-start">
+                                        <span class="text-primary-500 mr-2">•</span>
+                                        <span>Menambahkan integrasi dengan WhatsApp Business API</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <span class="text-primary-500 mr-2">•</span>
+                                        <span>Perbaikan minor pada antarmuka pengguna</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            
+                            <div class="border-l-2 border-gray-300 dark:border-gray-600 pl-4 relative">
+                                <div class="absolute -left-1.5 top-0 w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+                                <h3 class="font-medium">Versi 2.0.0</h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">15 September 2023</p>
+                                <ul class="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                                    <li class="flex items-start">
+                                        <span class="text-primary-500 mr-2">•</span>
+                                        <span>Redesain antarmuka pengguna lengkap</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <span class="text-primary-500 mr-2">•</span>
+                                        <span>Menambahkan mode gelap</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <span class="text-primary-500 mr-2">•</span>
+                                        <span>Integrasi dengan lebih banyak platform pihak ketiga</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-      if (isDownload) {
-        setTimeout(() => {
-          html2pdf()
-            .set({
-              margin: 0,
-              filename: `packing-list-combined.pdf`,
-              image: { type: 'jpeg', quality: 1 },
-              html2canvas: { scale: 2 },
-              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            })
-            .from(container)
-            .save();
-        }, 800);
-      }
-    }
-
-    window.onload = loadAllPacking;
-  </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Dark mode toggle
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            const htmlElement = document.documentElement;
+            
+            // Check for saved dark mode preference
+            if (localStorage.getItem('darkMode') === 'true') {
+                htmlElement.classList.add('dark');
+                darkModeToggle.checked = true;
+            }
+            
+            darkModeToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    htmlElement.classList.add('dark');
+                    localStorage.setItem('darkMode', 'true');
+                } else {
+                    htmlElement.classList.remove('dark');
+                    localStorage.setItem('darkMode', 'false');
+                }
+            });
+            
+            // Section switching
+            const settingButtons = document.querySelectorAll('.setting-btn');
+            const settingSections = document.querySelectorAll('.setting-section');
+            
+            settingButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const targetSection = this.getAttribute('data-section');
+                    
+                    // Update active button
+                    settingButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Show target section
+                    settingSections.forEach(section => {
+                        section.classList.add('hidden');
+                        section.classList.remove('active');
+                    });
+                    
+                    const targetElement = document.getElementById(`section-${targetSection}`);
+                    targetElement.classList.remove('hidden');
+                    setTimeout(() => {
+                        targetElement.classList.add('active');
+                    }, 10);
+                });
+            });
+        });
+    </script>
 </body>
 </html>
