@@ -38,7 +38,7 @@ const state = {
   package_slip: { ...defaultState },
   project: { ...defaultState },
   sales_invoice: { ...defaultState },
-  shipment_label: { ...defaultState },
+  employee: { ...defaultState },
   product: { ...defaultState },
   product_bundling: { ...defaultState },
   client: { ...defaultState },
@@ -49,6 +49,7 @@ const state = {
 const endpoints = [
   "user",
   "client",
+  "employee",
   "sales",
   "sales_unpaid",
   "sales_receipt",

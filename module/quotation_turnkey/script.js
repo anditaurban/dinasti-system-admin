@@ -668,6 +668,7 @@ function initializeForm(isEdit = false) {
     }
   }
 }
+
 async function loadDetailSalesTurnKey(Id, Detail) {
   window.detail_id = Id;
   window.detail_desc = Detail;
