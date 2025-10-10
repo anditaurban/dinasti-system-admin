@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - Dinasti</title>
+  <link rel="icon" href="./assets/img/cropped-favicon-Dinasti-1.webp" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --Dinasti-primary: #2a37f1;
+      --Dinasti-primary-hover: #1a1de0;
+      --Dinasti-soft-bg: #fef8f5;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f9f9f9;
+    }
+
+    .login-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .input-field {
+      transition: all 0.3s ease;
+      border: 1px solid #e2e8f0;
+    }
+
+    .input-field:focus {
+      box-shadow: 0 0 0 3px rgba(42, 55, 241, 0.2);
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center p-4">
+  <div class="login-card p-8">
+    <!-- Logo dan Judul -->
+    <div class="text-center mb-8">
+      <img src="./assets/img/cropped-logo.png" alt="Logo Dinasti" class="w-20 mx-auto mb-4" />
+      <h1 class="text-2xl font-semibold text-gray-800">Masuk ke Akun</h1>
+      <p class="text-gray-500 mt-1">Gunakan nomor HP terdaftar untuk melanjutkan</p>
+    </div>
+
+    <form id="login-form" class="space-y-5">
+      <!-- Phone Input -->
+      <div>
+        <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">Nomor Handphone</label>
+        <div class="relative">
+
+          <input type="text" id="phone" name="phone" placeholder="0858xxxxxx" autocomplete="username"
+            class="input-field w-full py-3 px-4 text-base rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--Dinasti-primary)]" />
+        </div>
+      </div>
+
+      <!-- OTP Section -->
+      <div id="otp-section" class="hidden">
+        <label for="otp" class="block text-sm font-medium text-gray-700 mb-2">Kode OTP</label>
+        <div class="grid grid-cols-6 gap-2" id="otp-container">
+          <input type="text" maxlength="1"
+            class="otp-digit input-field w-full py-3 text-center text-lg rounded-lg focus:ring-2 focus:ring-[var(--Dinasti-primary)]">
+          <input type="text" maxlength="1"
+            class="otp-digit input-field w-full py-3 text-center text-lg rounded-lg focus:ring-2 focus:ring-[var(--Dinasti-primary)]">
+          <input type="text" maxlength="1"
+            class="otp-digit input-field w-full py-3 text-center text-lg rounded-lg focus:ring-2 focus:ring-[var(--Dinasti-primary)]">
+          <input type="text" maxlength="1"
+            class="otp-digit input-field w-full py-3 text-center text-lg rounded-lg focus:ring-2 focus:ring-[var(--Dinasti-primary)]">
+          <input type="text" maxlength="1"
+            class="otp-digit input-field w-full py-3 text-center text-lg rounded-lg focus:ring-2 focus:ring-[var(--Dinasti-primary)]">
+          <input type="text" maxlength="1"
+            class="otp-digit input-field w-full py-3 text-center text-lg rounded-lg focus:ring-2 focus:ring-[var(--Dinasti-primary)]">
+        </div>
+        <p class="mt-2 text-sm text-gray-500">Kode OTP telah dikirim ke nomor Anda</p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="space-y-3">
+        <button type="button" id="send-otp"
+          class="w-full py-3 px-4 bg-[var(--Dinasti-primary)] text-white font-medium rounded-lg hover:bg-[var(--Dinasti-primary-hover)] transition"
+          disabled>
+          Kirim OTP
+        </button>
+        <div id="verification-status" class="hidden text-center py-2">
+          <div class="inline-flex items-center text-sm text-gray-500">
+            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-[var(--Dinasti-primary)]"
+              xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+              </path>
+            </svg>
+            Memverifikasi...
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <div id="message" class="mt-4 text-sm text-center"></div>
+
+    <div id="loadingOTP" class="mt-4 text-sm text-center text-gray-500 hidden">
+      <div class="inline-flex items-center">
+        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-[var(--Dinasti-primary)]" xmlns="http://www.w3.org/2000/svg"
+          fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+          </path>
+        </svg>
+        Mengirim OTP...
+      </div>
+    </div>
+
+    <p class="text-center text-xs text-gray-400 mt-8">© 2025 PT Dinasti Elekrik Indonesia</p>
+  </div>
+
+
+  <script>
+    // Simple OTP input navigation
+    const script = document.createElement('script');
+    script.src = `./assets/js/auth.js?v=${new Date().getTime()}`;
+    document.body.appendChild(script);
+  </script>
+</body>
+
+</html>

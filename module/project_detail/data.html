@@ -1,0 +1,97 @@
+<div class="bg-white p-6 rounded-lg shadow">
+  <section class="space-y-6">
+
+    <!-- Header -->
+    <div class="flex flex-wrap items-start justify-between mb-4 gap-4">
+      <div>
+        <h1 id="pageTitle" class="text-2xl font-bold mb-1"></h1>
+        <nav id="breadcrumb" class="text-gray-500 text-sm flex items-center flex-wrap gap-1"></nav>
+      </div>
+    </div>
+
+    <!-- Search + Filter -->
+    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 text-sm">
+
+      <!-- Search -->
+      <div class="w-full md:w-auto">
+        <input type="text" id="project_name" name="project_name"
+          placeholder="Project Name"
+          class="hidden px-3 py-2 border rounded w-full md:w-96" />
+      </div>
+
+      <!-- Actions -->
+      <div class="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto">
+        <button id="downloadBtn" onclick="printInvoice(detail_id)"
+          class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded text-sm">
+          📄 Download PDF
+        </button>
+
+        <button onclick="loadModuleContent('invoice')"
+          class="bg-gray-300 text-sm px-4 py-2 rounded">
+          ⬅️ Back
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+      <!-- Project Value -->
+      <div class="bg-white rounded-xl shadow p-5">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-lg font-semibold">Project Value</span>
+        </div>
+        <div id="projectAmount" class="text-3xl text-right font-bold tracking-wider mb-3">---</div>
+      </div>
+
+      <!-- Plan Costing -->
+      <div class="bg-white rounded-xl shadow p-5">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-gray-800 font-semibold">Plan Costing</span>
+        </div>
+        <div id="plan_costing" class="text-2xl text-right font-bold text-gray-800 mb-2">---</div>
+      </div>
+
+      <!-- Actual Costing -->
+      <div class="bg-white rounded-xl shadow p-5">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-gray-800 font-semibold">Actual Costing</span>
+        </div>
+        <div id="actual_costing" class="text-2xl text-right font-bold text-gray-800 mb-2">---</div>
+      </div>
+
+      <!-- Margin -->
+      <div class="bg-white rounded-xl shadow p-5">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-gray-800 font-semibold">Margin</span>
+        </div>
+        <div id="margin" class="text-3xl text-right font-bold tracking-wider mb-3">---</div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div>
+      <section>
+        <div class="overflow-auto border rounded">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="px-3 py-2 w-[3%] border text-center">No</th>
+                <th class="px-3 py-2 border text-left">Produk</th>
+                <th class="px-3 py-2 w-[5%] border text-right">Qty</th>
+                <th class="px-3 py-2 w-[5%] border text-right">Unit</th>
+                <th class="px-3 py-2 w-[5%] border text-right">Harga</th>
+                <th class="px-3 py-2 w-[5%] border text-right">Subtotal</th>
+                <th class="px-3 py-2 w-[10%] border text-right">Costing</th>
+                <th class="px-3 py-2 w-[10%] border text-right">Actual</th>
+                <th class="px-3 py-2 w-[10%] border text-right">Payment</th>
+                <th class="px-3 py-2 w-[5%] border text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="tabelItem" class="bg-white"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+  </section>
+</div>

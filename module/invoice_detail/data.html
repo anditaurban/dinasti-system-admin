@@ -1,0 +1,177 @@
+<div class="bg-white p-6 rounded-lg shadow">
+  <section class="space-y-6">
+
+    <!-- Header -->
+    <div class="flex flex-wrap items-start justify-between mb-4 gap-4">
+      <div>
+        <h1 id="pageTitle" class="text-2xl font-bold mb-1"></h1>
+        <nav id="breadcrumb" class="text-gray-500 text-sm flex items-center flex-wrap gap-1"></nav>
+      </div>
+    </div>
+
+    <!-- Search + Filter -->
+    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 text-sm">
+
+      <!-- Search -->
+      <div class="w-full md:w-auto">
+        <input type="text" id="project_name" name="project_name"
+          placeholder="Project Name"
+          class="hidden px-3 py-2 border rounded w-full md:w-96" />
+      </div>
+
+      <!-- Actions -->
+      <div class="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto">
+
+        <button id="downloadBtn" onclick="printInvoice(detail_id)"
+          class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded text-sm">
+          📄 Download PDF
+        </button>
+
+        <button onclick="loadModuleContent('invoice')"
+          class="bg-gray-300 text-sm px-4 py-2 rounded">
+          ⬅️ Back
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 md:grid-cols-10 gap-6">
+
+      <!-- Left Section: Items -->
+      <div class="md:col-span-7">
+        <section>
+          <div class="overflow-auto border rounded">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="px-3 py-2 w-[5%] border text-center">No</th>
+                  <th class="px-3 py-2 border text-left">Produk</th>
+                  <th class="px-3 py-2 w-[12%] border text-right">Qty</th>
+                  <th class="px-3 py-2 w-[10%] border text-right">Unit</th>
+                  <th class="px-3 py-2 w-[17%] border text-right">Harga</th>
+                  <th class="px-3 py-2 w-[12%] border text-right">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody id="tabelItem" class="bg-white"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right Section: Info & Summary -->
+      <aside class="md:col-span-3 bg-gray-50 p-4 rounded shadow space-y-4">
+
+        <!-- Collapsible Template -->
+        <div class="border rounded bg-white text-sm">
+          <button onclick="toggleSection('projectinfoSection')" 
+                  class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
+            📁 Project Info
+            <span id="icon-projectinfoSection">▼</span>
+          </button>
+          <div id="projectinfoSection" class="px-4 py-3 space-y-3 text-sm text-gray-700">
+            <div class="flex justify-between"><span id="project_name" class="font-medium">Project</span></div>
+            <div class="flex justify-between"><span class="font-medium">No Invoice</span><span id="no_qtn" class="text-gray-600">-</span></div>
+            <div class="flex justify-between"><span class="font-medium">References</span><span id="no_po" class="text-gray-600">-</span></div>
+            <div class="flex justify-between"><span class="font-medium">Tanggal</span><span id="tanggal" class="text-gray-600">-</span></div>
+            <div class="flex justify-between"><span class="font-medium">Sales Type</span><span id="type_sales" class="text-gray-600">-</span></div>
+            <div class="flex justify-between"><span class="font-medium">Client</span><span id="client_name" class="text-gray-600">-</span></div>
+          </div>
+        </div>
+
+        <div class="border rounded bg-white text-sm">
+          <button onclick="toggleSection('ringkasanSection')" 
+                  class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
+            💡 Ringkasan
+            <span id="icon-ringkasanSection">▼</span>
+          </button>
+          <div id="ringkasanSection" class="p-3 space-y-2">
+            <p><span class="text-gray-500">Subtotal:</span> <span id="contract_amount" class="float-right">0</span></p>
+            <p><span class="text-gray-500">Diskon:</span> <span id="diskon" class="float-right">0</span></p>
+            <p><span class="text-gray-500">Pajak (11%):</span> <span id="ppn" class="float-right">0</span></p>
+            <hr>
+            <p class="font-bold">Total: <span id="total" class="float-right">0</span></p>
+            <p class="font-bold">Payment: <span id="payment" class="float-right">0</span></p>
+            <p class="font-bold">Outstanding: <span id="outstanding" class="float-right">0</span></p>
+            <p class="font-bold">Status: <span id="status" class="float-right">Unpaid</span></p>
+          </div>
+        </div>
+
+        <div class="border rounded bg-white text-sm">
+          <button onclick="toggleSection('pembayaranSection')" 
+                  class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
+            💳 Daftar Pembayaran
+            <span id="icon-pembayaranSection">▼</span>
+          </button>
+          <div id="pembayaranSection" class="p-3 space-y-2">
+            <div class="text-gray-500 italic">-</div>
+          </div>
+          <div id="pembayaranbutton" class="border-t p-3"></div>
+        </div>
+
+        <div class="border rounded bg-white text-sm">
+          <button onclick="toggleSection('fileSection')" 
+                  class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
+            📂 File Pendukung
+            <span id="icon-fileSection">▼</span>
+          </button>
+          <div id="fileSection" class="p-3 space-y-2">
+            <div class="text-gray-500 italic">-</div>
+          </div>
+          <div class="border-t p-3 flex flex-col gap-2">
+            <input type="file" id="files" name="files" multiple class="border rounded px-2 py-1 text-sm">
+            <button type="button" onclick="editProjectWithFile()" 
+                    class="w-full py-1 px-2 border rounded bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs">
+              ✏️ Upload File
+            </button>
+          </div>
+        </div>
+
+        <div class="border rounded bg-white text-sm">
+          <button onclick="toggleSection('uangMukaSection')" 
+                  class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
+            💰 Invoice Uang Muka
+            <span id="icon-uangMukaSection">▼</span>
+          </button>
+          <div id="uangMukaSection" class="p-3 space-y-2">
+            <div class="text-gray-500 italic">-</div>
+          </div>
+          <div id="invoiceDPbutton" class="border-t p-3"></div>
+        </div>
+
+        <div class="border rounded bg-white text-sm">
+          <button onclick="toggleSection('catatanSection')" 
+                  class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
+            📝 Catatan
+            <span id="icon-catatanSection">▼</span>
+          </button>
+          <div id="catatanSection" class="p-3 space-y-2">
+            <div class="text-gray-500 italic">-</div>
+          </div>
+        </div>
+
+        <div class="border rounded bg-white text-sm">
+          <button onclick="toggleSection('syaratKetentuanSection')" 
+                  class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
+            📌 Syarat & Ketentuan
+            <span id="icon-syaratKetentuanSection">▼</span>
+          </button>
+          <div id="syaratKetentuanSection" class="p-3 space-y-2">
+            <div class="text-gray-500 italic">-</div>
+          </div>
+        </div>
+
+        <div class="border rounded bg-white text-sm">
+          <button onclick="toggleSection('topSection')" 
+                  class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
+            💰 Term of Payment
+            <span id="icon-topSection">▼</span>
+          </button>
+          <div id="topSection" class="p-3 space-y-2">
+            <div class="text-gray-500 italic">-</div>
+          </div>
+        </div>
+
+      </aside>
+    </div>
+  </section>
+</div>

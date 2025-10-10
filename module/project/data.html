@@ -1,0 +1,111 @@
+<div class="bg-white p-6 rounded-lg shadow">
+  <section class="space-y-6">
+
+    <!-- Header -->
+    <div class="flex flex-wrap items-start justify-between mb-4 gap-4">
+      <div>
+        <h1 id="pageTitle" class="text-2xl font-bold mb-1"></h1>
+        <nav id="breadcrumb" class="text-gray-500 text-sm flex items-center flex-wrap gap-1"></nav>
+      </div>
+    </div>
+
+    <!-- Search + Filter -->
+    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 text-sm">
+
+      <!-- Search -->
+      <div class="w-full md:w-auto">
+        <input
+          type="text"
+          id="searchInput"
+          onkeyup="debounceSearch()"
+          placeholder="🔎 Cari..."
+          class="px-3 py-2 border rounded w-full md:w-96"
+        />
+      </div>
+
+      <!-- Actions -->
+      <div class="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto">
+        
+        <!-- Export Dropdown -->
+        <div class="relative">
+          <button id="dropdownExportButton" onclick="toggleDropdownButton('dropdownExportMenu')" 
+            class="flex items-center justify-between px-3 py-2 border rounded w-52 hover:bg-gray-50">
+            <span>Export Data</span>
+            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          <div id="dropdownExportMenu" 
+            class="hidden absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+            <button onclick="exportPDF()" 
+              class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Export PDF</button>
+            <button onclick="exportExcel()" 
+              class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Export Excel</button>
+          </div>
+        </div>
+
+        <!-- Filter Dropdown -->
+        <div class="relative">
+          <button id="dropdownFilterButton" onclick="toggleDropdownButton('dropdownFilterMenu')" 
+            class="flex items-center justify-between px-3 py-2 border rounded w-52 hover:bg-gray-50">
+            <span>Filter Data</span>
+            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          <div id="dropdownFilterMenu" 
+            class="hidden absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+            <!-- Status Filters akan diinject dari JS -->
+          </div>
+        </div>
+
+        <!-- Add Button -->
+        <button id="addButton" 
+          class="hidden bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">
+          + Create Project
+        </button>
+      </div>
+    </div>
+    
+
+    <!-- Table -->
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm border">
+        <thead id="tableHeader"
+          class="hidden md:table-header-group bg-gray-100 text-gray-600">
+          <tr>
+            <th rowspan="2" class="px-4 py-2 border">ProjectNr</th>
+            <th rowspan="2" class="px-4 py-2 border">Information</th>
+            <th rowspan="2" class="px-4 py-2 border w-[15%]">Value Project</th>
+            <th colspan="3" class="px-4 py-2 border w-[15%]">Costing</th>
+            <th rowspan="2" class="px-4 py-2 border w-[15%]">Status</th>
+          </tr>
+          <tr>
+            <th class="px-4 py-2 border w-[15%]">Plan(%)</th>
+            <th class="px-4 py-2 border w-[15%]">Actual(%)</th>
+            <th class="px-4 py-2 border w-[15%]">Margin(%)</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Pagination + Info -->
+    <div class="mt-4 flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+      <!-- Info Text: hanya tampil di desktop -->
+      <p id="infoText" class="hidden md:block text-gray-600 text-sm text-left"></p>
+
+      <!-- Pagination: hanya tampil di desktop -->
+      <div id="pagination" class="hidden md:flex w-full justify-between items-center flex-wrap gap-2 text-sm"></div>
+
+      <!-- Mobile Page Selector -->
+      <div class="block md:hidden text-sm text-center mb-12">
+        <label for="pageSelect" class="mr-2">Go to Page:</label>
+        <select id="pageSelect" class="px-2 py-1 border rounded"></select>
+      </div>
+    </div>
+
+  </section>
+</div>
