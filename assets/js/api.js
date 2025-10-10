@@ -1,11 +1,7 @@
-const isLocalhost = ['localhost', '127.0.0.1', 'dev.dinastielektrik.id'].includes(window.location.hostname);
-const mode = isLocalhost ? 'development' : 'production';
 const baseUrl = mode === 'development'
   ? 'https://dev.dinastielektrik.cloud'
   : 'https://prod.dinastielektrik.cloud';
 const API_TOKEN = 'e29c2e3db5f5299dc954eae580893689c35ecde79f40213365f56fb54850f9b1';
-
-
 
 let url = null;
 let currentDataSearch = "";
