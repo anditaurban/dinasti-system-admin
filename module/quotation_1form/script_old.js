@@ -328,13 +328,12 @@ async function tambahItem() {
   const tr = document.createElement("tr");
   tr.classList.add("itemRow");
   const index = document.querySelectorAll("#tabelItem tr.itemRow").length + 1;
-
   tr.innerHTML = `
-    <!-- No -->
-    <td class="border px-3 py-2 w-[5%] align-top">${index}</td>
 
-    <!-- Produk -->
-    <td class="border px-5 py-2 w-[55%] align-top">
+    <td class="border px-3 py-2 w-[5%] align-top">
+      ${index}
+    </td>
+    <td class="border px-3 py-2">
       <div class="mb-1">
         <label class="block text-xs text-gray-500">Type</label>
         <select class="w-full border rounded px-2 itemSubcategory"></select>
@@ -343,33 +342,26 @@ async function tambahItem() {
         <label class="block text-xs text-gray-500">Product</label>
         <input type="text" class="w-full border rounded px-2 itemProduct" placeholder="Product">
       </div>
-      <div class="mb-1">
+      <div>
         <label class="block text-xs text-gray-500">Deskripsi</label>
-        <textarea class="w-full border rounded px-2 itemDesc" rows="3" placeholder="Deskripsi"></textarea>
-      </div>
-
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-xs text-gray-500">Qty</label>
-          <input type="number" class="w-full border rounded px-2 itemQty text-right" value="1" oninput="recalculateTotal()">
-        </div>
-        <div>
-          <label class="block text-xs text-gray-500">Unit</label>
-          <input type="text" class="w-full border rounded px-2 itemUnit" placeholder="set">
-        </div>
-        
-      </div>
-<div>
-          <label class="block text-xs text-gray-500">Harga</label>
-          <input type="text" class="w-full border rounded px-2 itemHarga text-right" value="0" oninput="recalculateTotal()">
-        </div>
-      <div class="mt-2">
-        <label class="block text-xs text-gray-500">Sub Total</label>
-        <div class="border rounded px-2 py-1 text-right bg-gray-50 itemTotal">0</div>
+        <textarea class="w-full border rounded px-2 itemDesc" rows="2" placeholder="Deskripsi"></textarea>
       </div>
     </td>
 
-    <!-- Aksi -->
+    <td class="border px-3 py-2 w-[12%] align-top">
+      <input type="number" class="w-full border rounded px-2 itemQty text-right" value="1" oninput="recalculateTotal()">
+    </td>
+
+    <td class="border px-3 py-2 w-[10%] align-top">
+      <input type="text" class="w-full border rounded px-2 itemUnit" placeholder="set">
+    </td>
+
+    <td class="border px-3 py-2 w-[17%] align-top">
+      <input type="text" class="w-full border rounded px-2 itemHarga text-right" value="0" oninput="recalculateTotal()">
+    </td>
+
+    <td class="border px-3 py-2 text-right w-[12%] align-top itemTotal">0</td>
+
     <td class="border px-3 py-2 text-center w-[10%] align-top">
       <div class="flex flex-col items-center justify-center space-y-2">
         <!-- Hapus -->
@@ -398,7 +390,7 @@ async function tambahItem() {
     </td>
   `;
 
-  // Wrapper untuk sub-item
+  // wrapper untuk subItems
   const subWrapper = document.createElement("tr");
   subWrapper.classList.add("subItemWrapper");
   subWrapper.innerHTML = `<td colspan="7" class="p-0"><table class="w-full"></table></td>`;
@@ -406,6 +398,7 @@ async function tambahItem() {
   tbody.appendChild(tr);
   tbody.appendChild(subWrapper);
 
+  // inisialisasi harga dengan formatting rupiah
   setupRupiahFormattingForElement(tr.querySelector(".itemHarga"));
   await loadSubcategories(tr.querySelector(".itemSubcategory"));
 }
@@ -415,53 +408,39 @@ function tambahSubItem(btn) {
   const subWrapper = parentRow.nextElementSibling?.querySelector("table");
 
   if (!subWrapper) return;
-
   const subTr = document.createElement("tr");
   subTr.classList.add("subItemRow", "bg-gray-50", "italic");
-
   subTr.innerHTML = `
-    <!-- No -->
-    <td class="border px-3 py-2 w-[5%] text-center align-middle itemNumber"></td>
-
-    <!-- Deskripsi, Spec, Qty, Unit, Harga, Subtotal -->
-    <td class="border px-3 py-2 align-top">
-      <div class="space-y-2">
-        <div>
-          <label class="block text-xs text-gray-500">Material</label>
-          <input type="text" class="w-full border rounded px-2 subItemMaterial" placeholder="Material">
-        </div>
-
-        <div>
-          <label class="block text-xs text-gray-500">Specification</label>
-          <input type="text" class="w-full border rounded px-2 subItemSpec" placeholder="Spesifikasi">
-        </div>
-
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="block text-xs text-gray-500">Qty</label>
-            <input type="number" class="w-full border rounded px-2 text-right subItemQty" value="1" oninput="recalculateTotal()">
-          </div>
-          <div>
-            <label class="block text-xs text-gray-500">Unit</label>
-            <input type="text" class="w-full border rounded px-2 subItemUnit" placeholder="pcs">
-          </div>
-          
-        </div>
-        <div>
-            <label class="block text-xs text-gray-500">Harga</label>
-            <input type="text" class="w-full border rounded px-2 text-right subItemHarga" value="0" oninput="recalculateTotal()">
-          </div>
-        <div class="mt-2">
-          <label class="block text-xs text-gray-500">Sub Total</label>
-          <div class="border rounded px-2 py-1 text-right bg-gray-100 subItemTotal">0</div>
-        </div>
+    <td class="border px-3 py-2 w-[5%] align-top itemNumber">
+    </td>
+    <td class="border px-3 py-2">
+      <div class="mb-1">
+        <label class="block text-xs text-gray-500">Material</label>
+        <input type="text" class="w-full border rounded px-2 subItemMaterial" placeholder="Material">
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500">Specification</label>
+        <input type="text" class="w-full border rounded px-2 subItemSpec" placeholder="Spesifikasi">
       </div>
     </td>
 
-    <!-- Aksi -->
-    <td class="border px-3 py-2 text-center w-[10%] align-middle">
-      <button onclick="hapusItem(this)"
-        class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition"
+    <td class="border px-3 py-2 w-[12%] align-top">
+      <input type="number" class="w-full border rounded px-2 text-right subItemQty" value="1" oninput="recalculateTotal()">
+    </td>
+
+    <td class="border px-3 py-2 w-[10%] align-top">
+      <input type="text" class="w-full border rounded px-2 subItemUnit" placeholder="pcs">
+    </td>
+
+    <td class="border px-3 py-2 w-[17%] align-top">
+      <input type="text" class="w-full border rounded px-2 text-right subItemHarga" value="0" oninput="recalculateTotal()">
+    </td>
+
+    <td class="border px-3 py-2 text-right w-[12%] align-top subItemTotal">0</td>
+
+    <td class="border px-3 py-2 text-center w-[10%] align-top">
+      <button onclick="hapusItem(this)" 
+        class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition" 
         title="Hapus Sub Item">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />

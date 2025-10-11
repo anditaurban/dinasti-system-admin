@@ -5,8 +5,7 @@
     <div class="flex flex-wrap items-start justify-between mb-4 gap-4">
       <div>
         <h1 id="pageTitle" class="text-2xl font-bold mb-1"></h1>
-        <nav id="breadcrumb"
-          class="text-gray-500 text-sm flex items-center flex-wrap gap-1"></nav>
+        <nav id="breadcrumb" class="text-gray-500 text-sm flex items-center flex-wrap gap-1"></nav>
       </div>
     </div>
 
@@ -14,19 +13,61 @@
     <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 text-sm">
 
       <!-- Search -->
-      <div class="w-full md:w-auto">
-        <input type="text" id="project_name" name="project_name"
-          placeholder="Project Name"
-          class="px-3 py-2 border rounded w-full md:w-96" />
+      <div class="grid grid-cols-2 gap-3 mb-4 text-sm">
+        <!-- Project Name -->
+        <div class="col-span-2">
+          <label class="block text-xs text-gray-500 mb-1">Project Name</label>
+          <input type="text" name="project_name" id="project_name" class="w-full border rounded px-3 py-2 text-sm"
+            placeholder="Nama Project">
+        </div>
+
+        <!-- Tanggal -->
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Tanggal</label>
+          <input type="date" id="tanggal" name="tanggal" class="w-full border px-3 py-2 rounded text-sm" />
+        </div>
+
+        <!-- No Quotation -->
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">No Quotation</label>
+          <div class="flex gap-2">
+            <input type="text" id="no_qtn" name="no_qtn" class="w-full border px-3 py-2 rounded bg-gray-100 text-sm"
+              readonly />
+            <input type="text" id="revision_number" name="revision_number"
+              class="w-20 border px-3 py-2 rounded bg-gray-100 text-center text-sm" placeholder="R0" readonly />
+          </div>
+        </div>
+
+        <!-- Status -->
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Status</label>
+          <input type="text" id="status" name="document_status"
+            class="w-full border px-3 py-2 rounded bg-gray-100 text-sm" readonly />
+        </div>
+
+        <!-- Client -->
+        <div>
+          <label for="client" class="block text-xs text-gray-500 mb-1">Client</label>
+          <select id="client" name="client" class="w-full border px-3 py-2 rounded text-sm">
+            <option value="">-- Pilih Client --</option>
+          </select>
+          <input type="hidden" id="client_id" />
+        </div>
+
+        <!-- PIC Name (Full width) -->
+        <div class="col-span-2">
+          <label class="block text-xs text-gray-500 mb-1">PIC Name</label>
+          <input type="text" id="pic_name" name="pic_name" class="w-full border rounded px-3 py-2 text-sm"
+            placeholder="Nama PIC" />
+        </div>
       </div>
+
+
 
       <!-- Actions -->
       <div class="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto">
-
-        <!-- Sales Type -->
         <div>
-          <select id="type_id" name="type_id" onchange="toggleTambahItemBtn()"
-            class="w-full border px-3 py-2 rounded">
+          <select id="type_id" name="type_id" onchange="toggleTambahItemBtn()" class="w-full border px-3 py-2 rounded">
             <option value="">Pilih Tipe</option>
           </select>
         </div>
@@ -46,150 +87,91 @@
           📄 Download PDF
         </button>
 
-        <button onclick="loadModuleContent('quotation')"
-          class="bg-gray-300 text-sm px-4 py-2 rounded">
+        <button onclick="loadModuleContent('quotation')" class="bg-gray-300 text-sm px-4 py-2 rounded">
           ⬅️ Back
         </button>
       </div>
     </div>
 
     <!-- Main Content -->
-    <div class="grid grid-cols-1 md:grid-cols-10 gap-6">
+    <div class="space-y-6">
 
-      <!-- Left Section: Form (70%) -->
-      <div class="md:col-span-7">
+      <!-- Daftar Item -->
+      <div>
+        <h3 class="text-sm font-semibold mb-2">📦 Daftar Item</h3>
+        <div class="overflow-auto border rounded">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="px-3 py-2 border text-left w-[5%]">No</th>
+                <th class="px-3 py-2 border text-left">Produk</th>
+                <th class="px-3 py-2 border text-center w-[10%]">Aksi</th>
+              </tr>
+            </thead>
 
-        <!-- Daftar Item -->
-        <div>
-          <h3 class="text-sm font-semibold mb-2">📦 Daftar Item</h3>
-          <div class="overflow-auto border rounded">
-            <table class="w-full text-sm">
-              <thead class="bg-gray-100">
-                <tr>
-                  <th class="px-3 py-2 border text-left">No</th>
-                  <th class="px-3 py-2 border text-left">Produk</th>
-                  <th class="px-3 py-2 w-[12%] border text-right">Qty</th>
-                  <th class="px-3 py-2 w-[10%] border text-right">Unit</th>
-                  <th class="px-3 py-2 w-[17%] border text-right">Harga</th>
-                  <th class="px-3 py-2 w-[12%] border text-right">Subtotal</th>
-                  <th class="px-3 py-2 w-[10%] border text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody id="tabelItem" class="bg-white"></tbody>
-              <tfoot>
-                <tr>
-                  <td colspan="2" class="px-3 py-2 border">  
-                    <button id="tambahItembtn" onclick="tambahItem()" class="hidden mt-2 px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
-                      + Tambah Item
-                    </button>
-                  </td>
-                  <td colspan="2" class="px-3 py-2 border text-right">Subtotal (Rp)</td>
-                  <td colspan="3" class="px-3 py-2 border">
-                    <input type="text" id="contract_amount" class="formatNumber w-full border px-3 py-2 rounded bg-gray-100 text-right" value="0" readonly/>
-                  </td>
-                </tr>
-                <tr>
-                  <td colspan="4" class="px-3 py-2 border text-right">Diskon (Rp)</td>
-                  <td colspan="3" class="px-3 py-2 border">
-                    <input type="text" id="discount" class="formatNumber w-full border px-3 py-2 rounded text-right" value="0"/>
-                  </td>
-                </tr>
-                <tr>
-                  <td colspan="4" class="px-3 py-2 border text-right">Tax 11% (Rp)</td>
-                  <td colspan="3" class="px-3 py-2 border">
-                    <input type="text" id="ppn" class="formatNumber w-full border px-3 py-2 rounded bg-gray-100 text-right" value="0" readonly/>
-                  </td>
-                </tr>
-                <tr>
-                  <td colspan="4" class="px-3 py-2 border text-right">TOTAL</td>
-                  <td colspan="3" class="px-3 py-2 border">
-                    <input type="text" id="total" class="formatNumber w-full border px-3 py-2 rounded bg-blue-50 text-right" value="0" readonly/>
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-          <button id="tambahItembtn" onclick="tambahItem()"
-            class="hidden mt-2 px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
-            + Tambah Item
-          </button>
+            <tbody id="tabelItem" class="bg-white"></tbody>
+
+            <tfoot class="bg-gray-50">
+              <tr>
+
+                <td colspan="2" class="px-3 py-2 border text-right font-medium">Subtotal (Rp)</td>
+                <td class="px-3 py-2 border" colspan="2">
+                  <input type="text" id="contract_amount"
+                    class="formatNumber w-full border px-3 py-2 rounded bg-gray-100 text-right" value="0" readonly />
+                </td>
+              </tr>
+              <tr>
+                <td colspan="2" class="px-3 py-2 border text-right font-medium">Diskon (Rp)</td>
+                <td class="px-3 py-2 border" colspan="2">
+                  <input type="text" id="discount" class="formatNumber w-full border px-3 py-2 rounded text-right"
+                    value="0" />
+                </td>
+              </tr>
+              <tr>
+                <td colspan="2" class="px-3 py-2 border text-right font-medium">Tax 11% (Rp)</td>
+                <td class="px-3 py-2 border" colspan="2">
+                  <input type="text" id="ppn"
+                    class="formatNumber w-full border px-3 py-2 rounded bg-gray-100 text-right" value="0" readonly />
+                </td>
+              </tr>
+              <tr>
+                <td colspan="2" class="px-3 py-2 border text-right font-semibold">TOTAL</td>
+                <td class="px-3 py-2 border font-semibold text-blue-700" colspan="2">
+                  <input type="text" id="total"
+                    class="formatNumber w-full border px-3 py-2 rounded bg-blue-50 text-right font-semibold" value="0"
+                    readonly />
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <button id="tambahItembtn" onclick="tambahItem()"
+          class="hidden mt-2 px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+          + Tambah Item
+        </button>
+      </div>
+
+
+
+      <!-- Ringkasan (DIPINDAH KE BAWAH, bentuk HORIZONTAL di desktop) -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded shadow text-sm">
+        <div class="space-y-3">
+          <label class="block font-medium">📝 Catatan</label>
+          <textarea id="catatan" rows="3" class="w-full border rounded px-3 py-2"></textarea>
+        </div>
+
+        <div class="space-y-3">
+          <label class="block font-medium">📌 Syarat & Ketentuan</label>
+          <textarea id="syarat_ketentuan" rows="3" class="w-full border rounded px-3 py-2"></textarea>
+        </div>
+
+        <div class="space-y-3">
+          <label class="block font-medium">💰 Term of Payment</label>
+          <textarea id="term_pembayaran" rows="3" class="w-full border rounded px-3 py-2"></textarea>
         </div>
       </div>
 
-      <!-- Right Section: Ringkasan (30%) -->
-      <div class="md:col-span-3 bg-gray-50 p-4 rounded shadow space-y-4">
-
-        <!-- Tanggal -->
-        <div>
-          <label class="block text-sm font-medium">Tanggal</label>
-          <input type="date" id="tanggal" name="tanggal"
-            class="w-full border px-3 py-2 rounded" />
-        </div>
-
-        <!-- Quotation Info -->
-        <div>
-          <label class="block text-sm font-medium mb-1">No Quotation</label>
-          <div class="flex gap-2">
-            <input type="text" id="no_qtn" name="no_qtn"
-              class="w-full border px-3 py-2 rounded bg-gray-100"
-              placeholder="Nomor" readonly />
-            <input type="text" id="revision_number" name="revision_number"
-              class="w-20 border px-3 py-2 rounded bg-gray-100 text-center"
-              placeholder="R0" readonly />
-          </div>
-        </div>
-
-        <div id="versionInfo"
-          class="hidden bg-blue-50 border border-blue-200 rounded p-2 text-sm flex items-center justify-between mt-2">
-          <button id="btnVersionHistory"
-            class="w-full text-sm text-blue-600 text-center hover:underline mt-2">
-            Lihat versi lainnya di sini
-          </button>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium">Status</label>
-          <input type="text" id="status" name="document_status"
-            class="w-full border px-3 py-2 rounded bg-gray-100"
-            placeholder="Draft" readonly />
-        </div>
-
-        <!-- Client -->
-        <div>
-          <label for="client" class="block text-sm font-medium">Client</label>
-          <select id="client" name="client"
-            class="w-full border px-3 py-2 rounded">
-            <option value="">-- Pilih Client --</option>
-          </select>
-          <input type="hidden" id="client_id" />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium">PIC Name</label>
-          <input type="text" id="pic_name" name="pic_name"
-            class="w-full border px-3 py-2 rounded" />
-        </div>
-
-        <div class="text-sm space-y-2">
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium">📝 Catatan</label>
-              <textarea id="catatan" rows="3"
-                class="w-full border rounded px-3 py-2"></textarea>
-            </div>
-            <div>
-              <label class="block text-sm font-medium">📌 Syarat & Ketentuan</label>
-              <textarea id="syarat_ketentuan" rows="3"
-                class="w-full border rounded px-3 py-2"></textarea>
-            </div>
-            <div>
-              <label class="block text-sm font-medium">💰 Term of Payment</label>
-              <textarea id="term_pembayaran" rows="2"
-                class="w-full border rounded px-3 py-2"></textarea>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </section>
 </div>
