@@ -29,12 +29,12 @@ document.getElementById("logout").addEventListener("click", function () {
 //     welcomeMessageSpan.textContent = `Hi, ${username} 👋`;
 // }
 
-  function renderHeader() {
-    const title = subpagemodule ? subpagemodule : pagemodule;
-    document.getElementById("pageTitle").textContent = title.toUpperCase();
+function renderHeader() {
+  const title = subpagemodule ? subpagemodule : pagemodule;
+  document.getElementById("pageTitle").textContent = title.toUpperCase();
 
-    const breadcrumb = document.getElementById("breadcrumb");
-    let html = `
+  const breadcrumb = document.getElementById("breadcrumb");
+  let html = `
       <span>Home</span>
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -43,18 +43,18 @@ document.getElementById("logout").addEventListener("click", function () {
       <span>${pagemodule}</span>
     `;
 
-    if (subpagemodule) {
-      html += `
+  if (subpagemodule) {
+    html += `
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                 d="M9 5l7 7-7 7" />
         </svg>
         <span>${subpagemodule}</span>
       `;
-    }
-
-    breadcrumb.innerHTML = html;
   }
+
+  breadcrumb.innerHTML = html;
+}
 
 expandSidebar();
 
@@ -107,10 +107,17 @@ const sidebar = document.getElementById("sidebar");
 const mainContent = document.getElementById("mainContent");
 const desktopToggle = document.getElementById("desktopToggle");
 desktopToggle?.addEventListener("click", () => {
+  // Jika di layar kecil (<768px), toggle tampil/sembunyi sidebar
   if (window.innerWidth < 768) {
     sidebar.classList.toggle("hidden");
   } else {
-    sidebar.classList.contains("w-16") ? expandSidebar() : collapseSidebar();
+    // Kalau sidebar sedang lebar, kecilkan
+    if (sidebar.classList.contains("w-64")) {
+      collapseSidebar();
+    } else {
+      // Kalau sidebar sedang kecil, lebarkan
+      expandSidebar();
+    }
   }
 });
 

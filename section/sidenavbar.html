@@ -1,5 +1,5 @@
 <aside id="sidebar"
-  class="hidden md:flex flex-col bg-white shadow-lg h-screen transition-all duration-300 fixed top-0 left-0 z-40 mt-16 w-16 hover:w-64 group">
+  class="hidden md:flex flex-col bg-white shadow-lg h-screen transition-all duration-300 fixed top-0 left-0 z-40 mt-16 w-64 group">
   <nav class="sidebar-menu space-y-1 p-2 overflow-y-auto">
     <!-- Dashboard -->
     <a href="#" data-module="dashboard"
@@ -75,7 +75,7 @@
         </a>
       </div>
     </div>
-      </div>
+    </div>
     </div>
 
     <!-- Project -->
@@ -116,7 +116,8 @@
       </div>
       <div id="financeSubmenu" class="hidden ml-4 pl-4 border-l-2 border-gray-200 flex flex-col space-y-1">
 
-        <a href="#" data-module="expenses" class="text-sm flex items-center gap-3 p-2 rounded-lg hover:bg-blue-100 transition-colors">
+        <a href="#" data-module="expenses"
+          class="text-sm flex items-center gap-3 p-2 rounded-lg hover:bg-blue-100 transition-colors">
           <div class="w-5 h-5 flex items-center justify-center ml-1">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" viewBox="0 0 20 20"
               fill="currentColor">
@@ -128,8 +129,9 @@
           </div>
           <span class="menu-text  text-gray-800">Cashflow</span>
         </a>
-        
-        <a href="#" data-module="payable" class="text-sm flex items-center gap-3 p-2 rounded-lg hover:bg-blue-100 transition-colors">
+
+        <a href="#" data-module="payable"
+          class="text-sm flex items-center gap-3 p-2 rounded-lg hover:bg-blue-100 transition-colors">
           <div class="w-5 h-5 flex items-center justify-center ml-1">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" viewBox="0 0 20 20"
               fill="currentColor">
@@ -141,7 +143,8 @@
           <span class="menu-text  text-gray-800">Account
             Payable</span>
         </a>
-        <a href="#" data-module="receiveable" class="text-sm flex items-center gap-3 p-2 rounded-lg hover:bg-blue-100 transition-colors">
+        <a href="#" data-module="receiveable"
+          class="text-sm flex items-center gap-3 p-2 rounded-lg hover:bg-blue-100 transition-colors">
           <div class="w-5 h-5 flex items-center justify-center ml-1">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" viewBox="0 0 20 20"
               fill="currentColor">
@@ -276,6 +279,7 @@
 </aside>
 
 <script>
+
   function toggleSubMenu(submenuId) {
     const submenu = document.getElementById(submenuId);
     const icon = document.getElementById(submenuId + 'Icon');
