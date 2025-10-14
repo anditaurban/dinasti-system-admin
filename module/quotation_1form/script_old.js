@@ -795,7 +795,7 @@ async function saveInvoice(mode = "create", id = null) {
     );
     formData.append(
       "pelanggan_id",
-      parseInt(document.getElementById("client_id")?.value || 0)
+      parseInt(document.getElementById("client")?.value || 0)
     );
     formData.append(
       "type_id",

@@ -401,7 +401,7 @@ async function tambahItem() {
   // Wrapper untuk sub-item
   const subWrapper = document.createElement("tr");
   subWrapper.classList.add("subItemWrapper");
-  subWrapper.innerHTML = `<td colspan="7" class="p-0"><table class="w-full"></table></td>`;
+  subWrapper.innerHTML = `<td colspan="3" class="p-0"><table class="w-full"></table></td>`;
 
   tbody.appendChild(tr);
   tbody.appendChild(subWrapper);
@@ -801,6 +801,10 @@ async function saveInvoice(mode = "create", id = null) {
     const ppn = parseRupiah(document.getElementById("ppn").value);
     const total = parseRupiah(document.getElementById("total").value);
 
+    console.log("Total baris item ditemukan:", rows.length);
+    console.log("Total item valid:", Object.keys(groupedItems).length);
+    console.log("Contoh groupedItems:", groupedItems);
+
     const formData = new FormData();
     formData.append("owner_id", owner_id);
     formData.append("user_id", user_id);
@@ -873,6 +877,8 @@ async function saveInvoice(mode = "create", id = null) {
     });
 
     const json = await res.json();
+    console.log("Response status:", res.status);
+    console.log("Response JSON:", json);
 
     if (res.ok) {
       Swal.fire(
