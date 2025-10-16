@@ -28,21 +28,29 @@ window.rowTemplate = function (item, index, perPage = 10) {
       <div class="flex flex-col sm:hidden w-full">
         <div class="flex justify-between">
           <span class="font-medium">Sales#</span>
-          <span class="font-medium text-right">${item.no_qtn} ${`R${item.revision_number || 0}`}</span>
+          <span class="font-medium text-right">${item.no_qtn} ${`R${
+    item.revision_number || 0
+  }`}</span>
         </div>
         <div class="flex justify-between mt-1">
           <span></span>
-          <span class="text-gray-300 text-xs text-right">${item.project_type}</span>
+          <span class="text-gray-300 text-xs text-right">${
+            item.project_type
+          }</span>
         </div>
         <div class="flex justify-between mt-1">
           <span></span>
-          <span class="text-gray-300 text-xs text-right">${item.user_nama}</span>
+          <span class="text-gray-300 text-xs text-right">${
+            item.user_nama
+          }</span>
         </div>
       </div>
 
       <!-- Desktop -->
       <div class="hidden sm:block">
-        <div class="font-medium">${item.no_qtn}  ${`R${item.revision_number || 0}`}</div>
+        <div class="font-medium">${item.no_qtn}  ${`R${
+    item.revision_number || 0
+  }`}</div>
         <div class="text-gray-500 text-xs">${item.project_type}</div>
         <div class="text-gray-500 text-xs">PIC : ${item.user_nama}</div>
       </div>
@@ -72,7 +80,9 @@ window.rowTemplate = function (item, index, perPage = 10) {
     <!-- Status + Actions -->
     <td class="px-6 py-4 text-center text-sm text-gray-700 sm:border-0 flex justify-between sm:table-cell">
       <span class="font-medium sm:hidden">Status</span>
-      <span class="${getStatusClass(item.status)} px-2 py-1 rounded-full text-xs font-medium">
+      <span class="${getStatusClass(
+        item.status
+      )} px-2 py-1 rounded-full text-xs font-medium">
         ${item.status}
       </span>
 
@@ -80,7 +90,9 @@ window.rowTemplate = function (item, index, perPage = 10) {
       <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
         <!-- View Order -->
         <button 
-          onclick="event.stopPropagation(); loadModuleContent('quotation_1form', '${item.pesanan_id}', '${item.no_qtn}');"
+          onclick="event.stopPropagation(); loadModuleContent('quotation_1form', '${
+            item.pesanan_id
+          }', '${item.no_qtn}');"
           class="block w-full text-left px-4 py-2 hover:bg-gray-100">
           👁️ View Detail
         </button>
@@ -172,7 +184,9 @@ async function applyFilter() {
     .filter((v) => v !== "")
     .join(" ");
 
-  const url = `${baseUrl}/table/${currentDataType}/${owner_id}/1?search=${encodeURIComponent(searchQuery)}`;
+  const url = `${baseUrl}/table/${currentDataType}/${owner_id}/1?search=${encodeURIComponent(
+    searchQuery
+  )}`;
   try {
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${API_TOKEN}` },
@@ -200,17 +214,18 @@ async function loadStatusFilters() {
       const menu = document.getElementById("dropdownFilterMenu");
 
       // Build dynamic buttons
-      menu.innerHTML = result.data
-        .map(
-          (status) => `
+      menu.innerHTML =
+        result.data
+          .map(
+            (status) => `
           <button onclick="applyFilter('status=${status.status_id}')" 
             class="flex justify-between w-full px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">
             <span>${status.status_sales}</span>
             <span id="status-${status.status_id}" class="font-bold">0</span>
           </button>
         `
-        )
-        .join("") +
+          )
+          .join("") +
         `
         <!-- Reset -->
         <button onclick="applyFilter('')" 
@@ -226,7 +241,6 @@ async function loadStatusFilters() {
 
 // panggil saat halaman load
 loadStatusFilters();
-
 
 function openQuotationDetail(type, pesanan_id, no_qtn) {
   currentPesananId = pesanan_id;
@@ -258,9 +272,9 @@ async function openUpdateStatus(pesananId, statusId) {
   try {
     // 🔹 Ambil list status dari API pakai Bearer Token
     const res = await fetch(`${baseUrl}/status/sales`, {
-      headers: { 
-        "Authorization": `Bearer ${API_TOKEN}` 
-      }
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
     });
 
     if (!res.ok) throw new Error("Gagal ambil list status");
@@ -303,30 +317,39 @@ async function openUpdateStatus(pesananId, statusId) {
       cancelButtonText: "Batal",
       preConfirm: () => {
         const status_id = document.getElementById("statusSelect").value;
-        const revision_status = document.getElementById("revisionInput").value.trim();
+        const revision_status = document
+          .getElementById("revisionInput")
+          .value.trim();
         if (!status_id || !revision_status) {
           Swal.showValidationMessage("Status & komentar wajib diisi");
           return false;
         }
         return { status_id: parseInt(status_id), revision_status };
-      }
+      },
     });
 
     if (!formValues) return;
 
     // 🔹 Kirim update ke API
-    const updateRes = await fetch(`${baseUrl}/update/status_sales/${pesananId}`, {
-      method: "PUT", // ganti ke PUT jika memang API butuh PUT
-      headers: { 
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_TOKEN}`
-      },
-      body: JSON.stringify(formValues)
-    });
+    const updateRes = await fetch(
+      `${baseUrl}/update/status_sales/${pesananId}`,
+      {
+        method: "PUT", // ganti ke PUT jika memang API butuh PUT
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+        body: JSON.stringify(formValues),
+      }
+    );
 
     const result = await updateRes.json();
     if (updateRes.ok && result.response === "200") {
-      Swal.fire("✅ Sukses", result.message || "Status berhasil diupdate", "success");
+      Swal.fire(
+        "✅ Sukses",
+        result.message || "Status berhasil diupdate",
+        "success"
+      );
 
       // kalau mau reload semua
       if (typeof fetchAndUpdateData === "function") {
@@ -334,12 +357,13 @@ async function openUpdateStatus(pesananId, statusId) {
       }
 
       // kalau mau update status di row langsung:
-      const rowStatus = document.querySelector(`#row-${pesananId} .statusLabel`);
+      const rowStatus = document.querySelector(
+        `#row-${pesananId} .statusLabel`
+      );
       if (rowStatus) rowStatus.textContent = result.data.status;
     } else {
       throw new Error(result.message || "Gagal update status");
     }
-
   } catch (err) {
     Swal.fire("❌ Error", err.message, "error");
   }
@@ -376,7 +400,8 @@ async function openInvoiceModal(pesananId) {
     preConfirm: () => {
       const po_number = document.getElementById("po_number").value.trim();
       const invoice_date = document.getElementById("invoice_date").value;
-      const inv_number = document.getElementById("inv_number").value.trim() || "";
+      const inv_number =
+        document.getElementById("inv_number").value.trim() || "";
 
       if (!po_number || !invoice_date) {
         Swal.showValidationMessage("PO Number dan Invoice Date wajib diisi!");
@@ -389,7 +414,7 @@ async function openInvoiceModal(pesananId) {
         inv_number,
         invoice_date,
       };
-    }
+    },
   });
 
   if (formValues) {
@@ -403,7 +428,7 @@ async function openInvoiceModal(pesananId) {
         body: JSON.stringify({
           owner_id,
           user_id,
-          ...formValues
+          ...formValues,
         }),
       });
 
@@ -419,4 +444,48 @@ async function openInvoiceModal(pesananId) {
     }
   }
 }
+
+function showImportQOModal() {
+  Swal.fire({
+    title: "Import Data Quotation Order",
+    html: `
+      <div class="flex flex-col items-start text-left w-full">
+        <label for="qoFile" class="mb-2 font-medium text-gray-700">File Excel / CSV</label>
+        <input 
+          type="file" 
+          id="qoFile" 
+          accept=".xlsx, .xls, .csv" 
+          class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+        <p class="mt-3 text-xs text-gray-500">
+          Belum punya format?
+          <a href="#" onclick="downloadQOTemplate(); return false;" class="text-blue-600 hover:underline font-medium">Download template QO</a>
+        </p>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: "Import",
+    cancelButtonText: "Batal",
+    customClass: {
+      popup: "swal2-sm",
+      confirmButton:
+        "bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium",
+      cancelButton:
+        "bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md font-medium",
+    },
+    preConfirm: () => {
+      const file = document.getElementById("qoFile").files[0];
+      if (!file) {
+        Swal.showValidationMessage("Pilih file terlebih dahulu!");
+        return false;
+      }
+      return file;
+    },
+  }).then((result) => {
+    if (result.isConfirmed) {
+      handleImportQO(result.value);
+    }
+  });
+}
+
 

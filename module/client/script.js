@@ -193,3 +193,137 @@ requiredFields = [
   { field: "website", message: "Website wajib diisi!" },
   { field: "alamat", message: "Alamat wajib diisi!" },
 ];
+
+function showImportModal() {
+  Swal.fire({
+    title: "Import Data Client",
+    html: `
+      <div class="flex flex-col items-start text-left w-full">
+        <label for="excelFile" class="mb-2 font-medium text-gray-700">File Excel</label>
+        <input 
+          type="file" 
+          id="excelFile" 
+          accept=".xlsx, .xls" 
+          class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+        <p class="mt-3 text-xs text-gray-500">
+          Belum punya format? 
+          <a href="#" onclick="downloadClientTemplate(); return false;" class="text-blue-600 hover:underline font-medium">Download template Excel</a>
+        </p>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: "Import",
+    cancelButtonText: "Batal",
+    customClass: {
+      popup: "swal2-sm",
+      confirmButton:
+        "bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium",
+      cancelButton:
+        "bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md font-medium",
+    },
+    preConfirm: () => {
+      const file = document.getElementById("excelFile").files[0];
+      if (!file) {
+        Swal.showValidationMessage("Pilih file Excel terlebih dahulu!");
+        return false;
+      }
+      return file;
+    },
+  }).then((result) => {
+    if (result.isConfirmed) {
+      handleImportExcel(result.value);
+    }
+  });
+}
+
+function downloadClientTemplate() {
+  // Ganti URL di bawah ini dengan lokasi file template kamu di server
+  const fileUrl = "../assets/templates_file/Template_Import_Client.xlsx";
+
+  const link = document.createElement("a");
+  link.href = fileUrl;
+  link.download = "Template_Import_Client.xlsx";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+async function handleImportExcel(file) {
+  try {
+    Swal.fire({
+      title: "Processing...",
+      text: "Sedang membaca dan mengunggah data, harap tunggu...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const row of jsonData) {
+        const payload = {
+          owner_id: user.owner_id,
+          nama: row["nama"],
+          alias: row["alias"],
+          phone: row["phone"],
+          whatsapp: row["whatsapp"],
+          email: row["email"],
+          no_npwp: row["no_npwp"],
+          website: row["website"],
+          city_name: row["city_name"],
+          alamat: row["alamat"],
+        };
+
+        try {
+          const res = await fetch(`${baseUrl}/add/client`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${API_TOKEN}`,
+            },
+            body: JSON.stringify(payload),
+          });
+
+          const result = await res.json();
+          console.log("Response:", result);
+
+          if (result.response === "201" && result.data?.success === true) {
+            successCount++;
+          } else {
+            failCount++;
+          }
+        } catch (err) {
+          console.error("Error kirim data:", err);
+          failCount++;
+        }
+      }
+
+      // 🔽 Popup hasil import
+      Swal.fire({
+        icon: "success",
+        title: "Import Selesai",
+        html: `
+          <p>✅ Berhasil: ${successCount}</p>
+          <p>❌ Gagal: ${failCount}</p>
+        `,
+        confirmButtonColor: "#6C63FF",
+      }).then(() => {
+        // 🔁 Setelah popup ditutup, refresh tabel client
+        fetchAndUpdateData();
+      });
+    };
+
+    reader.readAsArrayBuffer(file);
+  } catch (error) {
+    console.error(error);
+    Swal.fire("Error", "Gagal memproses file Excel", "error");
+  }
+}
