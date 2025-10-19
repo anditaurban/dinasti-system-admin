@@ -88,46 +88,55 @@ window.rowTemplate = function (item, index, perPage = 10) {
 
       <!-- Dropdown -->
       <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
-        <!-- View Order -->
-        <button 
-          onclick="event.stopPropagation(); loadModuleContent('quotation_1form', '${
-            item.pesanan_id
-          }', '${item.no_qtn}');"
-          class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-          👁️ View Detail
-        </button>
-        
-        <!-- Add Invoice (hanya jika WON) -->
-        ${
-          item.status_id === 3 && item.invoice != "yes"
-            ? `<button onclick="openInvoiceModal('${item.pesanan_id}')" 
-                class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-600">
-                ➕ Add Invoice
-              </button>`
-            : ""
-        }
+  <!-- View Order -->
+  <button 
+    onclick="event.stopPropagation(); loadModuleContent('quotation_1form', '${
+      item.pesanan_id
+    }', '${item.no_qtn}');"
+    class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+    👁️ View Detail
+  </button>
 
+  <!-- Add Invoice (hanya jika WON) -->
+  ${
+    item.status_id === 3 && item.invoice != "yes"
+      ? `<button onclick="openInvoiceModal('${item.pesanan_id}')" 
+          class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-600">
+          ➕ Add Invoice
+        </button>`
+      : ""
+  }
 
-
-
-        <!-- Delete Order -->
-        ${
-          item.status_id != 3
-            ? `
-        <!-- Update Status -->
-        <button 
-          onclick="event.stopPropagation(); openUpdateStatus('${item.pesanan_id}', '${item.status_id}')"
+  <!-- Update Approval (hanya jika masih Pending) -->
+  ${
+    item.approval_status === "pending"
+      ? `<button 
+          onclick="event.stopPropagation(); openSalesApproval('${item.pesanan_id}', '${item.approved}')"
           class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600">
-          🔄 Update Status
-        </button>
+          🟢 Update Approval
+        </button>`
+      : ""
+  }
 
-            <button onclick="handleDelete('${item.pesanan_id}')" 
-                class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">
-                🗑 Delete Order
-              </button>`
-            : ""
-        }
-      </div>
+  <!-- Update Status dan Delete Order -->
+  ${
+    item.status_id != 3
+      ? `
+      <!-- Update Status -->
+      <button 
+        onclick="event.stopPropagation(); openUpdateStatus('${item.pesanan_id}', '${item.status_id}')"
+        class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600">
+        🔄 Update Status
+      </button>
+
+      <button onclick="handleDelete('${item.pesanan_id}')" 
+          class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">
+          🗑 Delete Order
+        </button>`
+      : ""
+  }
+</div>
+
     </td>
 
     <!-- Project Name -->
@@ -369,6 +378,93 @@ async function openUpdateStatus(pesananId, statusId) {
   }
 }
 
+async function openSalesApproval(pesananId, currentStatus = "Pending") {
+  try {
+    // 🔹 Popup pilihan approval
+    const { value: formValues } = await Swal.fire({
+      title: "Update Sales Approval",
+      html: `
+        <div class="text-left space-y-3">
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">Pilih Status</label>
+            <select id="approvalSelect" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+              <option value="no" ${
+                currentStatus === "Pending" ? "selected" : ""
+              }>Pending</option>
+              <option value="yes" ${
+                currentStatus === "Approved" ? "selected" : ""
+              }>Approved</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">Catatan</label>
+            <textarea id="commentInput" rows="3" placeholder="Masukkan catatan (opsional)"
+              class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"></textarea>
+          </div>
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: "Update",
+      cancelButtonText: "Batal",
+      preConfirm: () => {
+        const approved = document.getElementById("approvalSelect").value;
+        const comment = document.getElementById("commentInput").value.trim();
+        return { approved, comment };
+      },
+    });
+
+    if (!formValues) return;
+
+    // 🔹 Data dikirim ke API
+    const bodyData = {
+      pesanan_id: pesananId,
+      user_id: 1, // ganti sesuai user login
+      approved: formValues.approved, // yes / no
+    };
+
+    const updateRes = await fetch(
+      `${baseUrl}/update/sales_approval/${pesananId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+        body: JSON.stringify(bodyData),
+      }
+    );
+
+    const result = await updateRes.json();
+
+    if (updateRes.ok && result.response === "200") {
+      Swal.fire(
+        "✅ Sukses",
+        result.message || "Approval berhasil diperbarui",
+        "success"
+      );
+
+      // 🔹 Update tampilan status di tabel
+      const rowStatus = document.querySelector(
+        `#row-${pesananId} .approvalLabel`
+      );
+      if (rowStatus) {
+        rowStatus.textContent =
+          formValues.approved === "yes" ? "Approved" : "Pending";
+      }
+
+      // 🔹 Refresh tabel otomatis jika fungsi ada
+      if (typeof fetchAndUpdateData === "function") {
+        fetchAndUpdateData();
+      }
+    } else {
+      throw new Error(result.message || "Gagal memperbarui approval");
+    }
+  } catch (err) {
+    Swal.fire("❌ Error", err.message, "error");
+  }
+}
+
 async function openInvoiceModal(pesananId) {
   const { value: formValues } = await Swal.fire({
     title: "Add Invoice",
@@ -488,4 +584,120 @@ function showImportQOModal() {
   });
 }
 
+async function handleImportQO(file) {
+  try {
+    const data = await readExcelFile(file);
+    console.log("Data dari Excel:", data);
 
+    if (!data.length) {
+      Swal.fire("Gagal", "File Excel kosong atau tidak terbaca!", "error");
+      return;
+    }
+
+    let sukses = 0;
+    let gagal = 0;
+
+    for (const row of data) {
+      const formData = new FormData();
+
+      // ===== Default field wajib =====
+      formData.append("owner_id", user.owner_id || 1);
+      formData.append("user_id", user.user_id || 1);
+      formData.append("pelanggan_id", 1);
+      formData.append("type_id", 1);
+      formData.append("status_id", 1);
+      formData.append("revision_number", 0);
+      formData.append("revision_status", row["Status"] || "Draft R0");
+      formData.append("revision_update", "no");
+
+      // ===== Data dari Excel =====
+      formData.append("order_date", row["Date"] || "-");
+      formData.append("no_qtn", row["No_Quotation"] || "-");
+      formData.append("project_name", row["Deskripsi"] || "-");
+      formData.append("client", row["Client"] || "-");
+      formData.append("pic_name", row["PIC"] || "-");
+      formData.append("contract_amount", parseFloat(row["Amount"]) || 0);
+      formData.append("disc", 0);
+      formData.append("ppn", 0);
+      formData.append("subtotal", parseFloat(row["Amount"]) || 0);
+      formData.append("total", parseFloat(row["Amount"]) || 0);
+      formData.append("catatan", row["Approval"] || "-");
+      formData.append("syarat_ketentuan", "-");
+      formData.append("term_pembayaran", "-");
+
+      // ===== Default items valid =====
+      const defaultItems = [
+        {
+          product_id: 1, // pastikan valid di DB
+          product: "Default Item",
+          sub_category_id: 1, // pastikan valid di DB
+          sub_category: "DEFAULT CATEGORY",
+          description: "-",
+          qty: 0,
+          unit: "-",
+          unit_price: 0,
+          total: 0,
+          materials: [
+            {
+              material_id: 1,
+              subItemMaterial: "Default Material",
+              subItemSpec: "-",
+              subItemQty: 0,
+              subItemUnit: "-",
+              subItemHarga: 0,
+              subItemTotal: 0,
+            },
+          ],
+        },
+      ];
+
+      // ✅ Kirim sebagai string JSON (1x stringify)
+      formData.append("items", JSON.stringify(defaultItems));
+      formData.append("files", JSON.stringify([]));
+
+      console.log("Payload FormData sebelum kirim:");
+      for (let [k, v] of formData.entries()) console.log(`${k}:`, v);
+
+      // ===== Kirim ke endpoint =====
+      const res = await fetch(`${baseUrl}/add/sales`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${API_TOKEN}` },
+        body: formData,
+      });
+
+      const result = await res.json();
+      console.log("Response QO:", result);
+
+      if (res.ok) sukses++;
+      else gagal++;
+    }
+
+    Swal.fire(
+      "Import Selesai",
+      `✅ Berhasil import ${sukses} data, ❌ gagal ${gagal}.`,
+      "success"
+    );
+    loadModuleContent("quotation");
+  } catch (err) {
+    console.error("Error import:", err);
+    Swal.fire("Error", err.message || "Gagal import data!", "error");
+  }
+}
+
+// =========================================================
+// Fungsi baca file Excel
+// =========================================================
+async function readExcelFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      resolve(json);
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
