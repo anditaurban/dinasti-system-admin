@@ -396,11 +396,6 @@ async function openSalesApproval(pesananId, currentStatus = "Pending") {
               }>Approved</option>
             </select>
           </div>
-          <div>
-            <label class="block text-sm text-gray-600 mb-1">Catatan</label>
-            <textarea id="commentInput" rows="3" placeholder="Masukkan catatan (opsional)"
-              class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"></textarea>
-          </div>
         </div>
       `,
       focusConfirm: false,
@@ -409,20 +404,24 @@ async function openSalesApproval(pesananId, currentStatus = "Pending") {
       cancelButtonText: "Batal",
       preConfirm: () => {
         const approved = document.getElementById("approvalSelect").value;
-        const comment = document.getElementById("commentInput").value.trim();
-        return { approved, comment };
+        if (!approved) {
+          Swal.showValidationMessage("Silakan pilih status approval");
+          return false;
+        }
+        return { approved };
       },
     });
 
     if (!formValues) return;
 
-    // 🔹 Data dikirim ke API
+    // 🔹 Data untuk API
     const bodyData = {
       pesanan_id: pesananId,
-      user_id: 1, // ganti sesuai user login
+      user_id: user.user_id, // ganti sesuai user login
       approved: formValues.approved, // yes / no
     };
 
+    // 🔹 Kirim request ke API
     const updateRes = await fetch(
       `${baseUrl}/update/sales_approval/${pesananId}`,
       {
@@ -444,7 +443,7 @@ async function openSalesApproval(pesananId, currentStatus = "Pending") {
         "success"
       );
 
-      // 🔹 Update tampilan status di tabel
+      // 🔹 Update tampilan langsung di tabel
       const rowStatus = document.querySelector(
         `#row-${pesananId} .approvalLabel`
       );
@@ -453,7 +452,7 @@ async function openSalesApproval(pesananId, currentStatus = "Pending") {
           formValues.approved === "yes" ? "Approved" : "Pending";
       }
 
-      // 🔹 Refresh tabel otomatis jika fungsi ada
+      // 🔹 Auto-refresh data tabel
       if (typeof fetchAndUpdateData === "function") {
         fetchAndUpdateData();
       }
