@@ -113,36 +113,47 @@
 
             <tfoot class="bg-gray-50">
               <tr>
+                <td colspan="4" class="px-3 py-2 border">
+                  <div class="grid grid-cols-2 gap-2 items-center">
+                    <label class="font-medium text-right">Subtotal (Rp)</label>
+                    <input type="text" id="contract_amount"
+                      class="formatNumber w-full border px-3 py-2 rounded bg-gray-100 text-right" value="0" readonly />
+                  </div>
+                </td>
+              </tr>
 
-                <td colspan="2" class="px-3 py-2 border text-right font-medium">Subtotal (Rp)</td>
-                <td class="px-3 py-2 border" colspan="2">
-                  <input type="text" id="contract_amount"
-                    class="formatNumber w-full border px-3 py-2 rounded bg-gray-100 text-right" value="0" readonly />
+              <tr>
+                <td colspan="4" class="px-3 py-2 border">
+                  <div class="grid grid-cols-2 gap-2 items-center">
+                    <label class="font-medium text-right">Diskon (Rp)</label>
+                    <input type="text" id="discount" class="formatNumber w-full border px-3 py-2 rounded text-right"
+                      value="0" />
+                  </div>
                 </td>
               </tr>
+
               <tr>
-                <td colspan="2" class="px-3 py-2 border text-right font-medium">Diskon (Rp)</td>
-                <td class="px-3 py-2 border" colspan="2">
-                  <input type="text" id="discount" class="formatNumber w-full border px-3 py-2 rounded text-right"
-                    value="0" />
+                <td colspan="4" class="px-3 py-2 border">
+                  <div class="grid grid-cols-2 gap-2 items-center">
+                    <label class="font-medium text-right">Tax 11% (Rp)</label>
+                    <input type="text" id="ppn"
+                      class="formatNumber w-full border px-3 py-2 rounded bg-gray-100 text-right" value="0" readonly />
+                  </div>
                 </td>
               </tr>
+
               <tr>
-                <td colspan="2" class="px-3 py-2 border text-right font-medium">Tax 11% (Rp)</td>
-                <td class="px-3 py-2 border" colspan="2">
-                  <input type="text" id="ppn"
-                    class="formatNumber w-full border px-3 py-2 rounded bg-gray-100 text-right" value="0" readonly />
-                </td>
-              </tr>
-              <tr>
-                <td colspan="2" class="px-3 py-2 border text-right font-semibold">TOTAL</td>
-                <td class="px-3 py-2 border font-semibold text-blue-700" colspan="2">
-                  <input type="text" id="total"
-                    class="formatNumber w-full border px-3 py-2 rounded bg-blue-50 text-right font-semibold" value="0"
-                    readonly />
+                <td colspan="4" class="px-3 py-2 border">
+                  <div class="grid grid-cols-2 gap-2 items-center">
+                    <label class="font-semibold text-right">TOTAL</label>
+                    <input type="text" id="total"
+                      class="formatNumber w-full border px-3 py-2 rounded bg-blue-50 text-right font-semibold text-blue-700"
+                      value="0" readonly />
+                  </div>
                 </td>
               </tr>
             </tfoot>
+
           </table>
         </div>
 
