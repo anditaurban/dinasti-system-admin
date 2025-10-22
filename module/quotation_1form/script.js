@@ -290,9 +290,19 @@ async function printInvoice(pesanan_id) {
 }
 
 async function tryGenerateNoQtn() {
+  const noQtnField = document.getElementById("no_qtn");
+  const currentNoQtn = noQtnField.value?.trim();
+
+  // 🚫 Jika sudah ada nomor QTN, jangan generate ulang
+  if (currentNoQtn && currentNoQtn !== "[no_qtn kosong]") {
+    console.log("No QTN sudah ada, tidak di-generate ulang.");
+    return;
+  }
+
   const order_date = document.getElementById("tanggal").value;
   const type_id = document.getElementById("type_id").value;
 
+  // Cek apakah field wajib sudah diisi
   if (!order_date || !type_id) return;
 
   try {
@@ -311,11 +321,9 @@ async function tryGenerateNoQtn() {
     });
 
     const result = await response.json();
-    // console.log("Hasil generate:", result);
 
-    // ambil dari result.data.no_qtn_content
-    document.getElementById("no_qtn").value =
-      result.data?.no_qtn_content || "[no_qtn kosong]";
+    noQtnField.value = result.data?.no_qtn_content || "[no_qtn kosong]";
+    console.log("✅ No QTN berhasil digenerate:", noQtnField.value);
   } catch (error) {
     console.error("Gagal generate no_qtn:", error);
   }
