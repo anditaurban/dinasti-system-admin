@@ -486,6 +486,12 @@ async function openInvoiceModal(pesananId) {
             class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500" 
             required />
         </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Purchase Order Date</label>
+          <input type="date" id="po_date"
+            class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500" 
+            required />
+        </div>
       </form>
     `,
     focusConfirm: false,

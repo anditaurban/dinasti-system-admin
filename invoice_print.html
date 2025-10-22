@@ -263,7 +263,7 @@
           <td class="text-center text-gray-700 border border-black">${globalIndex++}</td>
           <td colspan="2" class="p-1 text-black border border-black">
             ${item.product || '-'}
-            ${item.description ? `<div class="text-xs text-gray-500">
+            ${item.description ? `<div class="text-xs text-black">
             ${item.description && item.description.trim() !== "" && item.description !== "-"
                   ? item.description
                     .split(/\r?\n|-/) // pisahkan berdasarkan newline atau tanda '-'
@@ -448,11 +448,15 @@
       </tr>
       <tr>
         <td class="px-2  font-medium">Tanggal</td>
-        <td class="px-2 ">: ${data.invoice_date_ymd || '-'}</td>
+        <td class="px-2 ">: ${data.invoice_date || '-'}</td>
       </tr>
       <tr>
         <td class="px-2  font-medium">No PO</td>
         <td class="px-2 ">:  ${data.po_number || '-'}</td>
+      </tr>
+      <tr>
+        <td class="px-2  font-medium">Tanggal PO</td>
+        <td class="px-2 ">:  ${data.po_date || '-'}</td>
       </tr>
       
     </table>
