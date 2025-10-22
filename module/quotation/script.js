@@ -501,6 +501,7 @@ async function openInvoiceModal(pesananId) {
     preConfirm: () => {
       const po_number = document.getElementById("po_number").value.trim();
       const invoice_date = document.getElementById("invoice_date").value;
+      const po_date = document.getElementById("po_date").value;
       const inv_number =
         document.getElementById("inv_number").value.trim() || "";
 
@@ -514,6 +515,7 @@ async function openInvoiceModal(pesananId) {
         po_number,
         inv_number,
         invoice_date,
+        po_date,
       };
     },
   });
