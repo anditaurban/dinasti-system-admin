@@ -8,24 +8,26 @@
     </div>
 
     <!-- Arrow button with circle around it -->
+    <!-- Tombol toggle sidebar -->
     <button id="desktopToggle"
-      class="inline-flex md:inline-flex p-1 rounded-full hover:bg-gray-100 transition-colors border border-gray-300">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+      class="inline-flex p-1 rounded-full hover:bg-gray-100 transition-colors border border-gray-300"
+      onclick="toggleSidebar()">
+      <svg id="toggleIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform duration-300"
+        viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd"
           d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
           clip-rule="evenodd" />
       </svg>
     </button>
 
+
     <a id="devmode" class="text-green-400 bg-gray-800 px-3 py-1 rounded-full text-xs font-medium hidden"></a>
   </div>
 
   <div class="flex items-center gap-4">
     <div class="relative">
-      <button id="notificationToggle"
-        class="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700" viewBox="0 0 20 20"
-          fill="currentColor">
+      <button id="notificationToggle" class="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700" viewBox="0 0 20 20" fill="currentColor">
           <path
             d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
         </svg>
@@ -36,7 +38,8 @@
         class="hidden absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
         <div class="p-4 text-sm text-gray-700 border-b border-gray-200">Belum ada notifikasi baru.</div>
         <div class="px-4 py-2 bg-gray-50">
-          <button id="markAsReadBtn" class="text-xs text-blue-600 hover:underline font-medium">Tandai telah dibaca</button>
+          <button id="markAsReadBtn" class="text-xs text-blue-600 hover:underline font-medium">Tandai telah
+            dibaca</button>
         </div>
       </div>
     </div>
@@ -85,8 +88,7 @@
 
     <!-- Mobile Menu -->
     <div class="relative md:hidden">
-      <button id="mobileMenuToggle"
-        class="p-1 rounded-full hover:bg-gray-100 transition-colors border border-gray-300">
+      <button id="mobileMenuToggle" class="p-1 rounded-full hover:bg-gray-100 transition-colors border border-gray-300">
         <div class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium text-sm">
           <span id="mobileNameUser">A</span>
         </div>

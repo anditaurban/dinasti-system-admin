@@ -505,8 +505,10 @@ async function openInvoiceModal(pesananId) {
       const inv_number =
         document.getElementById("inv_number").value.trim() || "";
 
-      if (!po_number || !invoice_date) {
-        Swal.showValidationMessage("PO Number dan Invoice Date wajib diisi!");
+      if (!po_number || !invoice_date || !po_date) {
+        Swal.showValidationMessage(
+          "PO Number, PO Date dan Invoice Date wajib diisi!"
+        );
         return false;
       }
 

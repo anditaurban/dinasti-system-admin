@@ -1,4 +1,7 @@
-document.getElementById("logout").addEventListener("click", function () {
+// =============================
+// 🔹 LOGOUT HANDLER
+// =============================
+document.getElementById("logout")?.addEventListener("click", function () {
   Swal.fire({
     title: "Yakin ingin logout?",
     text: "Anda harus login kembali untuk mengakses aplikasi.",
@@ -24,44 +27,43 @@ document.getElementById("logout").addEventListener("click", function () {
   });
 });
 
-// if (owner_id || user_id || level || username) {
-//     const welcomeMessageSpan = document.getElementById('nameUser');
-//     welcomeMessageSpan.textContent = `Hi, ${username} 👋`;
-// }
-
+// =============================
+// 🔹 HEADER & BREADCRUMB
+// =============================
 function renderHeader() {
   const title = subpagemodule ? subpagemodule : pagemodule;
   document.getElementById("pageTitle").textContent = title.toUpperCase();
 
   const breadcrumb = document.getElementById("breadcrumb");
   let html = `
-      <span>Home</span>
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-              d="M9 5l7 7-7 7" />
-      </svg>
-      <span>${pagemodule}</span>
-    `;
+    <span>Home</span>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+    </svg>
+    <span>${pagemodule}</span>
+  `;
 
   if (subpagemodule) {
     html += `
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                d="M9 5l7 7-7 7" />
-        </svg>
-        <span>${subpagemodule}</span>
-      `;
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      </svg>
+      <span>${subpagemodule}</span>
+    `;
   }
 
   breadcrumb.innerHTML = html;
 }
 
-expandSidebar();
+// =============================
+// 🔹 SIDEBAR HANDLER
+// =============================
+const sidebar = document.getElementById("sidebar");
+const mainContent = document.getElementById("mainContent");
+const desktopToggle = document.getElementById("desktopToggle");
+const toggleIcon = document.getElementById("toggleIcon");
 
 function collapseSidebar() {
-  const sidebar = document.getElementById("sidebar");
-  const mainContent = document.getElementById("mainContent");
-
   document
     .querySelectorAll("#sidebar .menu-text")
     .forEach((el) => el.classList.add("hidden"));
@@ -69,12 +71,12 @@ function collapseSidebar() {
   sidebar.classList.remove("w-64");
   mainContent.classList.add("md:ml-16");
   mainContent.classList.remove("md:ml-64");
+
+  // Panah ke kanan
+  if (toggleIcon) toggleIcon.style.transform = "rotate(180deg)";
 }
 
 function expandSidebar() {
-  const sidebar = document.getElementById("sidebar");
-  const mainContent = document.getElementById("mainContent");
-
   document
     .querySelectorAll("#sidebar .menu-text")
     .forEach((el) => el.classList.remove("hidden"));
@@ -82,8 +84,29 @@ function expandSidebar() {
   sidebar.classList.add("w-64");
   mainContent.classList.remove("md:ml-16");
   mainContent.classList.add("md:ml-64");
+
+  // Panah ke kiri
+  if (toggleIcon) toggleIcon.style.transform = "rotate(0deg)";
 }
 
+// 🔁 Default tampil (sidebar terbuka)
+expandSidebar();
+
+// 🔘 Tombol toggle desktop
+desktopToggle?.addEventListener("click", () => {
+  if (window.innerWidth < 768) {
+    // Mobile mode
+    sidebar.classList.toggle("hidden");
+  } else {
+    // Desktop mode
+    if (sidebar.classList.contains("w-64")) collapseSidebar();
+    else expandSidebar();
+  }
+});
+
+// =============================
+// 🔹 DARK MODE TOGGLE
+// =============================
 function toggleDarkMode() {
   document.body.classList.toggle("dark");
   document.body.classList.toggle("bg-gray-900");
@@ -103,24 +126,6 @@ function toggleDarkMode() {
   localStorage.setItem("theme", mode);
 }
 
-const sidebar = document.getElementById("sidebar");
-const mainContent = document.getElementById("mainContent");
-const desktopToggle = document.getElementById("desktopToggle");
-desktopToggle?.addEventListener("click", () => {
-  // Jika di layar kecil (<768px), toggle tampil/sembunyi sidebar
-  if (window.innerWidth < 768) {
-    sidebar.classList.toggle("hidden");
-  } else {
-    // Kalau sidebar sedang lebar, kecilkan
-    if (sidebar.classList.contains("w-64")) {
-      collapseSidebar();
-    } else {
-      // Kalau sidebar sedang kecil, lebarkan
-      expandSidebar();
-    }
-  }
-});
-
 document
   .getElementById("toggleTheme")
   ?.addEventListener("click", toggleDarkMode);
@@ -128,19 +133,20 @@ document
   .getElementById("mobileToggleTheme")
   ?.addEventListener("click", toggleDarkMode);
 
-// Dropdown header
+// =============================
+// 🔹 HEADER DROPDOWN (USER & NOTIF)
+// =============================
 const userToggle = document.getElementById("userDropdownToggle");
 const userDropdown = document.getElementById("userDropdown");
 const notifToggle = document.getElementById("notificationToggle");
 const notifDropdown = document.getElementById("notificationDropdown");
 
-userToggle?.addEventListener("click", () => {
-  userDropdown?.classList.toggle("hidden");
-});
-
-notifToggle?.addEventListener("click", () => {
-  notifDropdown?.classList.toggle("hidden");
-});
+userToggle?.addEventListener("click", () =>
+  userDropdown?.classList.toggle("hidden")
+);
+notifToggle?.addEventListener("click", () =>
+  notifDropdown?.classList.toggle("hidden")
+);
 
 document.addEventListener("click", (e) => {
   if (!userToggle?.contains(e.target) && !userDropdown?.contains(e.target)) {
@@ -151,7 +157,9 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// Mobile menu dropdown
+// =============================
+// 🔹 MOBILE MENU
+// =============================
 const mobileMenuToggle = document.getElementById("mobileMenuToggle");
 const mobileMenuDropdown = document.getElementById("mobileMenuDropdown");
 
