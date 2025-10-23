@@ -486,6 +486,12 @@ async function openInvoiceModal(pesananId) {
             class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500" 
             required />
         </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Purchase Order Date</label>
+          <input type="date" id="po_date"
+            class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500" 
+            required />
+        </div>
       </form>
     `,
     focusConfirm: false,
@@ -495,11 +501,14 @@ async function openInvoiceModal(pesananId) {
     preConfirm: () => {
       const po_number = document.getElementById("po_number").value.trim();
       const invoice_date = document.getElementById("invoice_date").value;
+      const po_date = document.getElementById("po_date").value;
       const inv_number =
         document.getElementById("inv_number").value.trim() || "";
 
-      if (!po_number || !invoice_date) {
-        Swal.showValidationMessage("PO Number dan Invoice Date wajib diisi!");
+      if (!po_number || !invoice_date || !po_date) {
+        Swal.showValidationMessage(
+          "PO Number, PO Date dan Invoice Date wajib diisi!"
+        );
         return false;
       }
 
@@ -508,6 +517,7 @@ async function openInvoiceModal(pesananId) {
         po_number,
         inv_number,
         invoice_date,
+        po_date,
       };
     },
   });
