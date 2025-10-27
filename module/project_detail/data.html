@@ -1,97 +1,196 @@
-<div class="bg-white p-6 rounded-lg shadow">
+<div class="bg-white p-4 md:p-6 rounded-lg shadow max-w-7xl mx-auto">
   <section class="space-y-6">
 
     <!-- Header -->
     <div class="flex flex-wrap items-start justify-between mb-4 gap-4">
       <div>
-        <h1 id="pageTitle" class="text-2xl font-bold mb-1"></h1>
-        <nav id="breadcrumb" class="text-gray-500 text-sm flex items-center flex-wrap gap-1"></nav>
+        <h1 id="pageTitle" class="text-2xl font-bold mb-1">Project Costing</h1>
+        <nav id="breadcrumb" class="text-gray-500 text-sm flex items-center flex-wrap gap-1">
+          <span>Home</span> /
+          <span>Project</span> /
+          <span>Project Costing</span>
+        </nav>
       </div>
     </div>
 
     <!-- Search + Filter -->
     <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 text-sm">
-
       <!-- Search -->
       <div class="w-full md:w-auto">
-        <input type="text" id="project_name" name="project_name"
-          placeholder="Project Name"
-          class="hidden px-3 py-2 border rounded w-full md:w-96" />
+        <span class="text-lg font-semibold" id="projectNameDisplay">Demo Project - Site A</span>
       </div>
 
       <!-- Actions -->
       <div class="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto">
-        <button id="downloadBtn" onclick="printInvoice(detail_id)"
-          class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded text-sm">
+        <button id="downloadBtn" class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded text-sm">
           📄 Download PDF
         </button>
 
-        <button onclick="loadModuleContent('invoice')"
-          class="bg-gray-300 text-sm px-4 py-2 rounded">
+        <button class="bg-gray-300 text-sm px-4 py-2 rounded">
           ⬅️ Back
         </button>
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- Tab Navigation -->
+    <div class="flex border-b mb-4">
+      <button id="tab1Btn" class="px-4 py-2 font-semibold border-b-2 border-blue-600 text-blue-600 focus:outline-none">
+        Costing
+      </button>
+      <button id="tab2Btn" class="px-4 py-2 font-semibold text-gray-500 hover:text-gray-700 focus:outline-none">
+        Real Calculation
+      </button>
+    </div>
 
-      <!-- Project Value -->
-      <div class="bg-white rounded-xl shadow p-5">
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-lg font-semibold">Project Value</span>
+    <!-- ================= TAB 1 (Default Terlihat) ================= -->
+    <div id="tab1" class="tab-content">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+        <!-- Project Value -->
+        <div class="bg-white rounded-xl shadow p-5 border border-gray-200">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-lg font-semibold">Project Value</span>
+          </div>
+          <div id="projectAmount" class="text-3xl text-right font-bold tracking-wider mb-3 text-blue-600">---</div>
         </div>
-        <div id="projectAmount" class="text-3xl text-right font-bold tracking-wider mb-3">---</div>
+
+        <!-- Plan Costing -->
+        <div class="bg-white rounded-xl shadow p-5 border border-gray-200">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-gray-800 font-semibold">Plan Costing</span>
+          </div>
+          <div id="plan_costing" class="text-2xl text-right font-bold text-gray-800 mb-2">---</div>
+        </div>
+
+        <!-- Actual Costing -->
+        <div class="bg-white rounded-xl shadow p-5 border border-gray-200">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-gray-800 font-semibold">Actual Costing</span>
+          </div>
+          <div id="actual_costing" class="text-2xl text-right font-bold text-red-600 mb-2">---</div>
+        </div>
+
+        <!-- Margin -->
+        <div class="bg-white rounded-xl shadow p-5 border border-gray-200">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-gray-800 font-semibold">Margin</span>
+          </div>
+          <div id="margin" class="text-3xl text-right font-bold tracking-wider mb-3">---</div>
+        </div>
       </div>
 
-      <!-- Plan Costing -->
-      <div class="bg-white rounded-xl shadow p-5">
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-gray-800 font-semibold">Plan Costing</span>
+      <!-- Informasi Detail Project Baru -->
+      <div class="mt-6 bg-white p-4 rounded-lg shadow border border-gray-200">
+        <h3 class="text-lg font-semibold mb-3 border-b pb-2">Detail Informasi Project</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div>
+            <span class="text-gray-500 block">NO QO</span>
+            <span id="detailNoQO" class="font-semibold">---</span>
+          </div>
+          <div>
+            <span class="text-gray-500 block">NO INV</span>
+            <span id="detailNoInv" class="font-semibold">---</span>
+          </div>
+          <div>
+            <span class="text-gray-500 block">No PO</span>
+            <span id="detailNoPO" class="font-semibold">---</span>
+          </div>
+          <div>
+            <span class="text-gray-500 block">PIC / PM</span>
+            <span id="detailPIC" class="font-semibold">---</span>
+          </div>
         </div>
-        <div id="plan_costing" class="text-2xl text-right font-bold text-gray-800 mb-2">---</div>
       </div>
 
-      <!-- Actual Costing -->
-      <div class="bg-white rounded-xl shadow p-5">
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-gray-800 font-semibold">Actual Costing</span>
-        </div>
-        <div id="actual_costing" class="text-2xl text-right font-bold text-gray-800 mb-2">---</div>
-      </div>
+      <br>
 
-      <!-- Margin -->
-      <div class="bg-white rounded-xl shadow p-5">
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-gray-800 font-semibold">Margin</span>
-        </div>
-        <div id="margin" class="text-3xl text-right font-bold tracking-wider mb-3">---</div>
+      <!-- Table -->
+      <div>
+        <section>
+          <div class="overflow-auto border rounded">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="px-3 py-2 w-[3%] border text-center">No</th>
+                  <th class="px-3 py-2 border text-left">Produk</th>
+                  <th class="px-3 py-2 w-[5%] border text-right">Qty</th>
+                  <th class="px-3 py-2 w-[5%] border text-right">Unit</th>
+                  <th class="px-3 py-2 w-[10%] border text-right">Harga</th>
+                  <th class="px-3 py-2 w-[10%] border text-right">Subtotal</th>
+                  <th class="px-3 py-2 w-[15%] border text-right">Plan Costing</th>
+                  <th class="px-3 py-2 w-[15%] border text-right">Actual Costing</th>
+                  <th class="px-3 py-2 w-[10%] border text-right">Payment</th>
+                  <th class="px-3 py-2 w-[5%] border text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="tabelItem" class="bg-white"></tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </div>
 
-    <!-- Table -->
-    <div>
-      <section>
-        <div class="overflow-auto border rounded">
-          <table class="w-full text-sm">
-            <thead class="bg-gray-100">
-              <tr>
-                <th class="px-3 py-2 w-[3%] border text-center">No</th>
-                <th class="px-3 py-2 border text-left">Produk</th>
-                <th class="px-3 py-2 w-[5%] border text-right">Qty</th>
-                <th class="px-3 py-2 w-[5%] border text-right">Unit</th>
-                <th class="px-3 py-2 w-[5%] border text-right">Harga</th>
-                <th class="px-3 py-2 w-[5%] border text-right">Subtotal</th>
-                <th class="px-3 py-2 w-[10%] border text-right">Costing</th>
-                <th class="px-3 py-2 w-[10%] border text-right">Actual</th>
-                <th class="px-3 py-2 w-[10%] border text-right">Payment</th>
-                <th class="px-3 py-2 w-[5%] border text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody id="tabelItem" class="bg-white"></tbody>
-          </table>
-        </div>
-      </section>
+    <!-- ================= TAB 2 (Default Tersembunyi) ================= -->
+    <div id="tab2" class="hidden tab-content">
+
+      <!-- Form Input Detail -->
+      <div class="bg-gray-50 p-4 rounded-lg border shadow-sm mb-6">
+        <h3 class="text-lg font-semibold mb-3">Input Detail Pengeluaran</h3>
+        <form id="realCalcForm" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+          <div>
+            <label for="calcTanggal" class="block text-sm font-medium text-gray-700">Tanggal</label>
+            <input type="date" id="calcTanggal" name="calcTanggal" required
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+          </div>
+          <div>
+            <label for="calcProduct" class="block text-sm font-medium text-gray-700">Product / Item</label>
+            <input type="text" id="calcProduct" name="calcProduct" placeholder="Cth: Kabel PINK" required
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+          </div>
+          <div>
+            <label for="calcKorelasi" class="block text-sm font-medium text-gray-700">Korelasi (Pekerjaan)</label>
+            <select id="calcKorelasi" name="calcKorelasi" required
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+              <option value="">-- Pilih Pekerjaan --</option>
+            </select>
+          </div>
+          <div>
+            <label for="calcHarga" class="block text-sm font-medium text-gray-700">Harga (Rp)</label>
+            <input type="number" id="calcHarga" name="calcHarga" placeholder="50000000" required
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+          </div>
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm h-10">
+            + Tambah Data
+          </button>
+        </form>
+      </div>
+
+      <!-- Tabel Detail -->
+      <h3 class="text-lg font-semibold mb-3">Real Calculation Details</h3>
+      <div class="overflow-auto border rounded">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="px-3 py-2 border text-left">Tanggal</th>
+              <th class="px-3 py-2 border text-left">Product</th>
+              <th class="px-3 py-2 border text-left">Korelasi</th>
+              <th class="px-3 py-2 border text-right">Harga</th>
+            </tr>
+          </thead>
+          <tbody id="realCalcBody" class="bg-white">
+            <tr>
+              <td colspan="4" class="text-center italic text-gray-500 py-3">Belum ada data</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
   </section>
+</div>
+
+<!-- Simple Notification -->
+<div id="notification"
+  class="hidden fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transition-opacity duration-300">
+  Data berhasil disimpan!
 </div>

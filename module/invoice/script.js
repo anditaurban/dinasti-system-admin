@@ -14,13 +14,18 @@ window.rowTemplate = function (item, index, perPage = 10) {
   <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50">
   
     <td class="px-6 py-4 text-sm border-b sm:border-0 flex justify-between sm:table-cell bg-gray-800 text-white sm:bg-transparent sm:text-gray-700">
-      <span class="font-medium sm:hidden">Tanggal</span>
+      <span class="font-medium sm:hidden">Tanggal Inv</span>
       ${item.invoice_date}
     </td>
   
     <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
       <span class="font-medium sm:hidden">No. Invoice</span>
       ${item.inv_number}
+    </td>
+
+    <td class="px-6 py-4 text-sm border-b sm:border-0 flex justify-between sm:table-cell bg-gray-800 text-white sm:bg-transparent sm:text-gray-700">
+      <span class="font-medium sm:hidden">Tanggal PO</span>
+      ${item.po_date}
     </td>
 
     <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
@@ -60,29 +65,37 @@ window.rowTemplate = function (item, index, perPage = 10) {
 
       <button 
     onclick="event.stopPropagation(); 
-      loadModuleContent('invoice_detail', '${item.invoice_id}', '${item.inv_number}');
+      loadModuleContent('invoice_detail', '${item.invoice_id}', '${
+    item.inv_number
+  }');
       ;"
     class="block w-full text-left px-4 py-2 hover:bg-gray-100">
     👁️ View Detail
   </button>
         
       ${
-      (item.project === 'yes')
-        ? `<button 
+        item.project === "yes"
+          ? `<button 
           onclick="openCreateProject('${item.pesanan_id}', '${item.nilai_kontrak}')"
           class="block w-full text-left px-4 py-2 hover:bg-gray-100">
           📝 Create Project
         </button>
     `
-        : ""
-    }
+          : ""
+      }
       </div>
 
 
   </tr>`;
 };
 
-async function openSalesReceiptModal(pesananId, pelangganId, totalInvoice, sisaBayar, invoiceDP) {
+async function openSalesReceiptModal(
+  pesananId,
+  pelangganId,
+  totalInvoice,
+  sisaBayar,
+  invoiceDP
+) {
   const totalOrder = totalInvoice;
   const remainingAmount = sisaBayar;
   // console.log('data invoice DP: ', invoiceDP)
@@ -123,17 +136,21 @@ async function openSalesReceiptModal(pesananId, pelangganId, totalInvoice, sisaB
       .map((dp) => {
         const disabled = dp.status_payment === "paid" ? "disabled" : "";
 
-      // ⬇️ simpan semua data dalam value radio (stringify JSON)
-      const value = encodeURIComponent(JSON.stringify({
-        reference_type: "dp",
-        reference_id: dp.invoiceDP_id,
-        nominal: dp.nominal_invoiceDP,
-        description: dp.description || "",
-        status_payment: dp.status_payment
-      }))
+        // ⬇️ simpan semua data dalam value radio (stringify JSON)
+        const value = encodeURIComponent(
+          JSON.stringify({
+            reference_type: "dp",
+            reference_id: dp.invoiceDP_id,
+            nominal: dp.nominal_invoiceDP,
+            description: dp.description || "",
+            status_payment: dp.status_payment,
+          })
+        );
 
         return `
-        <label class="flex items-center space-x-2 border rounded p-2 hover:bg-gray-50 cursor-pointer ${disabled && "opacity-50"}">
+        <label class="flex items-center space-x-2 border rounded p-2 hover:bg-gray-50 cursor-pointer ${
+          disabled && "opacity-50"
+        }">
           <input type="radio" name="reference_radio" 
                  value="${value}"
                  data-nominal="${dp.nominal_invoiceDP}" 
@@ -174,7 +191,9 @@ async function openSalesReceiptModal(pesananId, pelangganId, totalInvoice, sisaB
           <div class="space-y-2">
             <label class="flex items-center space-x-2 border rounded p-2 hover:bg-gray-50 cursor-pointer">
               <input type="radio" name="reference_radio" value="main" data-nominal="${remainingAmount}" class="form-radio" checked>
-              <span class="text-sm">Invoice Utama (Total: ${formatRupiah(totalOrder)}, Sisa: ${formatRupiah(remainingAmount)})</span>
+              <span class="text-sm">Invoice Utama (Total: ${formatRupiah(
+                totalOrder
+              )}, Sisa: ${formatRupiah(remainingAmount)})</span>
             </label>
             ${dpOptions}
           </div>
@@ -217,50 +236,65 @@ async function openSalesReceiptModal(pesananId, pelangganId, totalInvoice, sisaB
     didOpen: () => {
       // 🔹 Auto isi nominal saat radio dipilih
       setTodayDate();
-      document.querySelectorAll("input[name='reference_radio']").forEach((radio) => {
-        radio.addEventListener("change", (e) => {
-          const nominal = e.target.dataset.nominal || 0;
-          const desc = e.target.dataset.description || "";
-          document.getElementById("sr_nominal").value = formatRupiah(nominal);
-          if (desc) {
-            document.getElementById("keterangan").value = desc;
-          } else {
-            document.getElementById("keterangan").value = "Pembayaran Invoice Utama";
-          }
+      document
+        .querySelectorAll("input[name='reference_radio']")
+        .forEach((radio) => {
+          radio.addEventListener("change", (e) => {
+            const nominal = e.target.dataset.nominal || 0;
+            const desc = e.target.dataset.description || "";
+            document.getElementById("sr_nominal").value = formatRupiah(nominal);
+            if (desc) {
+              document.getElementById("keterangan").value = desc;
+            } else {
+              document.getElementById("keterangan").value =
+                "Pembayaran Invoice Utama";
+            }
+          });
         });
-      });
 
       // Set default nominal = sisa invoice utama
-      document.getElementById("sr_nominal").value = formatRupiah(remainingAmount);
+      document.getElementById("sr_nominal").value =
+        formatRupiah(remainingAmount);
       document.getElementById("keterangan").value = "Pembayaran Invoice Utama";
     },
     focusConfirm: false,
     showCancelButton: true,
     confirmButtonText: "Simpan",
     cancelButtonText: "Batal",
-preConfirm: () => {
-  const refRadio = document.querySelector("input[name='reference_radio']:checked").value;
-  let refData;
+    preConfirm: () => {
+      const refRadio = document.querySelector(
+        "input[name='reference_radio']:checked"
+      ).value;
+      let refData;
 
-  try {
-    refData = JSON.parse(decodeURIComponent(refRadio));
-  } catch {
-    // default untuk invoice utama
-    refData = {
-      reference_type: "main",
-      reference_id: pesananId,
-      nominal: remainingAmount,
-      description: "Pembayaran invoice utama",
-    };
-  }
+      try {
+        refData = JSON.parse(decodeURIComponent(refRadio));
+      } catch {
+        // default untuk invoice utama
+        refData = {
+          reference_type: "main",
+          reference_id: pesananId,
+          nominal: remainingAmount,
+          description: "Pembayaran invoice utama",
+        };
+      }
 
-return {
+      return {
         pesanan_id: pesananId,
         owner_id: 1,
         user_id: 1,
-        tanggal_transaksi: document.getElementById("tanggal")?.value || new Date().toISOString().split("T")[0],
-        nominal: parseInt((document.getElementById("sr_nominal").value || "").replace(/\D/g, "")) || refData.nominal,
-        keterangan: document.getElementById("keterangan").value || refData.description,
+        tanggal_transaksi:
+          document.getElementById("tanggal")?.value ||
+          new Date().toISOString().split("T")[0],
+        nominal:
+          parseInt(
+            (document.getElementById("sr_nominal").value || "").replace(
+              /\D/g,
+              ""
+            )
+          ) || refData.nominal,
+        keterangan:
+          document.getElementById("keterangan").value || refData.description,
         akun_id: document.getElementById("akun_select").value,
         pelanggan_id: pelangganId || "",
         branch_id: 1,
@@ -268,7 +302,7 @@ return {
         reference_type: refData.reference_type,
         reference_id: refData.reference_id,
       };
-    }
+    },
   }).then(async (result) => {
     if (result.isConfirmed && result.value) {
       const formValues = result.value;
@@ -294,9 +328,17 @@ return {
         // console.log("📌 Response API:", data);
 
         if (res.ok) {
-          Swal.fire("Success", "Sales receipt berhasil ditambahkan!", "success");
+          Swal.fire(
+            "Success",
+            "Sales receipt berhasil ditambahkan!",
+            "success"
+          );
         } else {
-          Swal.fire("Error", data.message || "Gagal menambahkan receipt", "error");
+          Swal.fire(
+            "Error",
+            data.message || "Gagal menambahkan receipt",
+            "error"
+          );
         }
       } catch (err) {
         console.error("❌ Error:", err);
@@ -311,14 +353,17 @@ async function openCreateProject(pesanan_id, nilai_kontrak) {
   let pmOptions = "";
   try {
     const res = await fetch(`${baseUrl}/list/project_manager/${owner_id}`, {
-      headers: { "Authorization": `Bearer ${API_TOKEN}` }
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
     });
     const data = await res.json();
 
     if (data.listData && data.listData.length > 0) {
-      pmOptions = data.listData.map(pm => 
-        `<option value="${pm.employee_id}">${pm.name} (${pm.alias})</option>`
-      ).join("");
+      pmOptions = data.listData
+        .map(
+          (pm) =>
+            `<option value="${pm.employee_id}">${pm.name} (${pm.alias})</option>`
+        )
+        .join("");
     }
   } catch (err) {
     console.error("Gagal ambil PM:", err);
@@ -349,7 +394,8 @@ async function openCreateProject(pesanan_id, nilai_kontrak) {
     confirmButtonText: "Simpan",
     cancelButtonText: "Batal",
     preConfirm: async () => {
-      const project_manager_id = document.getElementById("project_manager_id").value;
+      const project_manager_id =
+        document.getElementById("project_manager_id").value;
       const plan_costing = document.getElementById("plan_costing").value;
       const start_date = document.getElementById("start_date").value;
       const finish_date = document.getElementById("finish_date").value;
@@ -359,30 +405,35 @@ async function openCreateProject(pesanan_id, nilai_kontrak) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${API_TOKEN}`
+            Authorization: `Bearer ${API_TOKEN}`,
           },
           body: JSON.stringify({
             pesanan_id,
             project_manager_id: Number(project_manager_id),
             plan_costing: Number(plan_costing),
             start_date,
-            finish_date
-          })
+            finish_date,
+          }),
         });
 
         const data = await res.json();
         if (data.data.success === true) {
-          Swal.fire("Sukses", data.data.message || "Project berhasil dibuat", "success");
+          Swal.fire(
+            "Sukses",
+            data.data.message || "Project berhasil dibuat",
+            "success"
+          );
         } else {
-          Swal.fire("Gagal", data.data.message || "Gagal membuat project", "error");
+          Swal.fire(
+            "Gagal",
+            data.data.message || "Gagal membuat project",
+            "error"
+          );
         }
       } catch (err) {
         console.error("Error create project:", err);
         Swal.fire("Error", "Terjadi kesalahan server", "error");
       }
-    }
+    },
   });
 }
-
-
-

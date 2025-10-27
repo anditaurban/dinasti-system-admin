@@ -52,18 +52,21 @@ window.rowTemplate = function (item, index, perPage = 10) {
       <!-- Status & Actions -->
       <td class="px-6 py-4 text-sm border-b sm:border-0 text-center">
         <span class="font-medium sm:hidden">Status</span>
-        <span class="${getStatusClass(item.status)} px-2 py-1 rounded-full text-xs font-medium">
+        <span class="${getStatusClass(
+          item.status
+        )} px-2 py-1 rounded-full text-xs font-medium">
           ${item.status}
         </span>
 
         <!-- Dropdown Menu -->
         <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
           <!-- View Project -->
-          <button 
-            onclick="event.stopPropagation(); loadModuleContent('project_detail', '${item.project_id}');" 
-            class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-            👁️ View Project
-          </button>
+         <button 
+  onclick="event.stopPropagation(); loadModuleContent('project_detail', 'dummy');" 
+  class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+  👁️ View Project
+</button>
+
 
           <!-- Delete Project -->
           <button 
@@ -77,5 +80,3 @@ window.rowTemplate = function (item, index, perPage = 10) {
     </tr>
   `;
 };
-
-

@@ -2,7 +2,7 @@ pagemodule = "Invoice";
 subpagemodule = "Invoice Detail";
 renderHeader();
 
-loadDetailSales(window.detail_id, window.detail_desc)
+loadDetailSales(window.detail_id, window.detail_desc);
 // =====================
 // Render Detail Invoice
 // =====================
@@ -29,39 +29,56 @@ async function loadDetailSales(Id, Detail) {
     if (!data) throw new Error("Invalid API response structure");
 
     document.getElementById("project_name").innerHTML = data.project_name || "";
-    document.getElementById("tanggal").innerHTML = data.invoice_date_ymd || "";
+    document.getElementById("tanggal_po").innerHTML = data.po_date || "";
+    document.getElementById("tanggal_inv").innerHTML = data.invoice_date                                                                                                                        || "";
     document.getElementById("type_sales").innerHTML = data.project_type || "";
     document.getElementById("no_qtn").innerHTML = data.inv_number || "";
     document.getElementById("no_po").innerHTML = data.po_number || "";
-    document.getElementById("client_name").innerHTML = data.pelanggan_nama || "";
+    document.getElementById("client_name").innerHTML =
+      data.pelanggan_nama || "";
 
-    document.getElementById("contract_amount").innerHTML = finance(data.subtotal) || "";
+    document.getElementById("contract_amount").innerHTML =
+      finance(data.subtotal) || "";
     document.getElementById("diskon").innerHTML = finance(data.disc) || "";
     document.getElementById("ppn").innerHTML = finance(data.ppn) || "";
     document.getElementById("total").innerHTML = finance(data.total) || "";
 
     const paymentEl = document.getElementById("payment");
     paymentEl.textContent = formatNumber(data.total_paid || "0");
-    if (data.total_paid <= 0) paymentEl.className = "float-right text-red-600 font-bold";
-    else if (data.total_paid < data.contract_amount) paymentEl.className = "float-right text-orange-500 font-bold";
+    if (data.total_paid <= 0)
+      paymentEl.className = "float-right text-red-600 font-bold";
+    else if (data.total_paid < data.contract_amount)
+      paymentEl.className = "float-right text-orange-500 font-bold";
     else paymentEl.className = "float-right text-green-600 font-bold";
 
     const outstandingEl = document.getElementById("outstanding");
     outstandingEl.textContent = formatNumber(data.remaining_balance || "0");
-    if (data.remaining_balance > 0 && data.total_paid === 0) outstandingEl.className = "float-right text-red-600 font-bold";
-    else if (data.remaining_balance > 0) outstandingEl.className = "float-right text-orange-500 font-bold";
+    if (data.remaining_balance > 0 && data.total_paid === 0)
+      outstandingEl.className = "float-right text-red-600 font-bold";
+    else if (data.remaining_balance > 0)
+      outstandingEl.className = "float-right text-orange-500 font-bold";
     else outstandingEl.className = "float-right text-green-600 font-bold";
 
     const statusEl = document.getElementById("status");
     statusEl.textContent = data.status || "Unpaid";
-    if (data.invoice_status_id === 1) statusEl.className = "float-right text-red-600 font-bold";
-    else if (data.invoice_status_id === 2) statusEl.className = "float-right text-orange-500 font-bold";
-    else if (data.invoice_status_id === 3) statusEl.className = "float-right text-green-600 font-bold";
+    if (data.invoice_status_id === 1)
+      statusEl.className = "float-right text-red-600 font-bold";
+    else if (data.invoice_status_id === 2)
+      statusEl.className = "float-right text-orange-500 font-bold";
+    else if (data.invoice_status_id === 3)
+      statusEl.className = "float-right text-green-600 font-bold";
 
     // 📝 Catatan / syarat / top
-    document.getElementById("catatanSection").innerHTML = data.catatan ? `<div>${data.catatan}</div>` : `<div class="text-gray-500 italic">-</div>`;
-    document.getElementById("syaratKetentuanSection").innerHTML = data.syarat_ketentuan ? `<div>${data.syarat_ketentuan}</div>` : `<div class="text-gray-500 italic">-</div>`;
-    document.getElementById("topSection").innerHTML = data.term_pembayaran ? `<div>${data.term_pembayaran}</div>` : `<div class="text-gray-500 italic">-</div>`;
+    document.getElementById("catatanSection").innerHTML = data.catatan
+      ? `<div>${data.catatan}</div>`
+      : `<div class="text-gray-500 italic">-</div>`;
+    document.getElementById("syaratKetentuanSection").innerHTML =
+      data.syarat_ketentuan
+        ? `<div>${data.syarat_ketentuan}</div>`
+        : `<div class="text-gray-500 italic">-</div>`;
+    document.getElementById("topSection").innerHTML = data.term_pembayaran
+      ? `<div>${data.term_pembayaran}</div>`
+      : `<div class="text-gray-500 italic">-</div>`;
 
     // ===========================
     // 🔹 Render Items as Document
@@ -69,32 +86,32 @@ async function loadDetailSales(Id, Detail) {
     const tbody = document.getElementById("tabelItem");
     tbody.innerHTML = "";
 
-if (data.items?.length) {
-  // --- Grouping berdasarkan sub_category ---
-  const groups = {};
-  data.items.forEach(item => {
-    if (!groups[item.sub_category]) groups[item.sub_category] = [];
-    groups[item.sub_category].push(item);
-  });
+    if (data.items?.length) {
+      // --- Grouping berdasarkan sub_category ---
+      const groups = {};
+      data.items.forEach((item) => {
+        if (!groups[item.sub_category]) groups[item.sub_category] = [];
+        groups[item.sub_category].push(item);
+      });
 
-  let nomor = 1;
+      let nomor = 1;
 
-  // --- Render per group ---
-  Object.keys(groups).forEach(subCat => {
-    // Baris header sub_category
-    const trHeader = document.createElement("tr");
-    trHeader.className = "bg-gray-200 font-semibold";
-    trHeader.innerHTML = `
+      // --- Render per group ---
+      Object.keys(groups).forEach((subCat) => {
+        // Baris header sub_category
+        const trHeader = document.createElement("tr");
+        trHeader.className = "bg-gray-200 font-semibold";
+        trHeader.innerHTML = `
       <td colspan="6" class="px-3 py-2 uppercase">${subCat || "-"}</td>
     `;
-    tbody.appendChild(trHeader);
+        tbody.appendChild(trHeader);
 
-    groups[subCat].forEach(item => {
-      // Baris produk utama
-      const tr = document.createElement("tr");
-      tr.className = "border-b bg-gray-50";
+        groups[subCat].forEach((item) => {
+          // Baris produk utama
+          const tr = document.createElement("tr");
+          tr.className = "border-b bg-gray-50";
 
-      tr.innerHTML = `
+          tr.innerHTML = `
         <td class="px-3 py-2 align-top text-sm font-semibold">${nomor++}</td>
         <td class="px-3 py-2 align-top">
           <div class="font-medium">${item.product || "-"}</div>
@@ -108,39 +125,47 @@ if (data.items?.length) {
             `
             : `
               <td class="px-3 py-2 text-right align-top">${item.qty || 0}</td>
-              <td class="px-3 py-2 text-center align-top">${item.unit || ""}</td>
-              <td class="px-3 py-2 text-right align-top">${formatNumber(item.unit_price || 0)}</td>
-              <td class="px-3 py-2 text-right align-top">${formatNumber(item.total || item.qty * item.unit_price)}</td>
+              <td class="px-3 py-2 text-center align-top">${
+                item.unit || ""
+              }</td>
+              <td class="px-3 py-2 text-right align-top">${formatNumber(
+                item.unit_price || 0
+              )}</td>
+              <td class="px-3 py-2 text-right align-top">${formatNumber(
+                item.total || item.qty * item.unit_price
+              )}</td>
             `
         }
       `;
-      tbody.appendChild(tr);
+          tbody.appendChild(tr);
 
-      // Baris subItem / materials (kalau ada)
-      if (item.materials?.length) {
-        item.materials.forEach((m, mIdx) => {
-          const subTr = document.createElement("tr");
-          subTr.className = "border-b bg-gray-50 text-sm";
+          // Baris subItem / materials (kalau ada)
+          if (item.materials?.length) {
+            item.materials.forEach((m, mIdx) => {
+              const subTr = document.createElement("tr");
+              subTr.className = "border-b bg-gray-50 text-sm";
 
-          subTr.innerHTML = `
+              subTr.innerHTML = `
             <td class="px-3 py-1"></td> <!-- kosong untuk nomor -->
-            <td class="px-3 py-1 italic">${mIdx + 1}. ${m.name || ""} - ${m.specification || ""}</td>
+            <td class="px-3 py-1 italic">${mIdx + 1}. ${m.name || ""} - ${
+                m.specification || ""
+              }</td>
             <td class="px-3 py-1 text-right">${m.qty || 0}</td>
             <td class="px-3 py-1 text-center">${m.unit || ""}</td>
-            <td class="px-3 py-1 text-right">${formatNumber(m.unit_price || 0)}</td>
+            <td class="px-3 py-1 text-right">${formatNumber(
+              m.unit_price || 0
+            )}</td>
             <td class="px-3 py-1 text-right">${formatNumber(m.total || 0)}</td>
           `;
 
-          tbody.appendChild(subTr);
+              tbody.appendChild(subTr);
+            });
+          }
         });
-      }
-    });
-  });
-} else {
-  tbody.innerHTML = `<tr><td colspan="6" class="text-center text-gray-500 italic py-3">Tidak ada item</td></tr>`;
-}
-
-
+      });
+    } else {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-gray-500 italic py-3">Tidak ada item</td></tr>`;
+    }
 
     // ===========================
     // 🔹 Render Pembayaran
@@ -154,7 +179,9 @@ if (data.items?.length) {
         div.innerHTML = `
           <div class="flex justify-between">
             <span>💳 ${p.description || "Pembayaran"}</span>
-            <span class="font-medium text-green-700">${formatNumber(p.amount || 0)}</span>
+            <span class="font-medium text-green-700">${formatNumber(
+              p.amount || 0
+            )}</span>
           </div>
           <div class="flex justify-between text-xs text-gray-500 mt-1">
             <span>📅 ${p.payment_date || "-"}</span>
@@ -167,13 +194,14 @@ if (data.items?.length) {
     }
 
     // console.log('DP: ', data.down_payments);
-const dpString = encodeURIComponent(JSON.stringify(data.down_payments || []));
-document.getElementById("pembayaranbutton").innerHTML = `
+    const dpString = encodeURIComponent(
+      JSON.stringify(data.down_payments || [])
+    );
+    document.getElementById("pembayaranbutton").innerHTML = `
   <button onclick="openSalesReceiptModal('${data.pesanan_id}', '${data.pelanggan_id}', '${data.total}', '${data.remaining_balance}', '${dpString}')"  
     class="w-full py-1 px-2 border rounded bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs">
     ➕ Add Payment Receipt
   </button>`;
-    
 
     // ===========================
     // 🔹 File Pendukung
@@ -183,9 +211,14 @@ document.getElementById("pembayaranbutton").innerHTML = `
     if (data.supporting_files?.length) {
       data.supporting_files.forEach((f) => {
         const div = document.createElement("div");
-        div.className = "flex items-center justify-between border p-2 rounded bg-gray-50";
+        div.className =
+          "flex items-center justify-between border p-2 rounded bg-gray-50";
         div.innerHTML = `
-          <a href="${baseUrl.replace("/api", "")}/${f.file_path}" target="_blank" class="text-blue-600 hover:underline">📄 ${f.file_name}</a>
+          <a href="${baseUrl.replace("/api", "")}/${
+          f.file_path
+        }" target="_blank" class="text-blue-600 hover:underline">📄 ${
+          f.file_name
+        }</a>
           <span class="text-xs text-gray-500">${f.uploaded_at}</span>`;
         fileSection.appendChild(div);
       });
@@ -193,23 +226,25 @@ document.getElementById("pembayaranbutton").innerHTML = `
       fileSection.innerHTML = `<div class="text-gray-500 italic">-</div>`;
     }
 
-// ===========================
-// 🔹 Invoice Uang Muka
-// ===========================
-const uangMukaSection = document.getElementById("uangMukaSection");
-uangMukaSection.innerHTML = "";
+    // ===========================
+    // 🔹 Invoice Uang Muka
+    // ===========================
+    const uangMukaSection = document.getElementById("uangMukaSection");
+    uangMukaSection.innerHTML = "";
 
-if (data.down_payments?.length) {
-  data.down_payments.forEach((dp) => {
-    const div = document.createElement("div");
-    div.className = "border p-2 rounded bg-gray-50 text-sm mb-2";
+    if (data.down_payments?.length) {
+      data.down_payments.forEach((dp) => {
+        const div = document.createElement("div");
+        div.className = "border p-2 rounded bg-gray-50 text-sm mb-2";
 
-    div.innerHTML = `
+        div.innerHTML = `
       <div class="flex justify-between items-start">
         <div>
           <div class="flex justify-between">
             <span>${dp.dp_number || "DP"}</span>
-            <span class="font-medium text-green-700">${formatNumber(dp.amount || 0)}</span>
+            <span class="font-medium text-green-700">${formatNumber(
+              dp.amount || 0
+            )}</span>
           </div>
           <div class="flex justify-between text-xs text-gray-500 mt-1">
             <span>${dp.description || "-"}</span>
@@ -229,25 +264,22 @@ if (data.down_payments?.length) {
         </div>
       </div>
     `;
-    uangMukaSection.appendChild(div);
-  });
-} else {
-  uangMukaSection.innerHTML = `<div class="text-gray-500 italic">-</div>`;
-}
+        uangMukaSection.appendChild(div);
+      });
+    } else {
+      uangMukaSection.innerHTML = `<div class="text-gray-500 italic">-</div>`;
+    }
 
-document.getElementById("invoiceDPbutton").innerHTML = `
+    document.getElementById("invoiceDPbutton").innerHTML = `
   <button onclick="tambahUangMuka('${data.pesanan_id}', '${data.contract_amount}')" 
     class="w-full py-1 px-2 border rounded bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs">
     ➕ Add Invoice DP/Progress
   </button>`;
 
-
     window.dataLoaded = true;
-
 
     // ✅ Tutup loading
     Swal.close();
-
   } catch (err) {
     console.error("Gagal load detail:", err);
     Swal.fire("Error", err.message || "Gagal memuat detail penjualan", "error");
@@ -304,7 +336,7 @@ async function tambahUangMuka(pesananId) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${API_TOKEN}`, // 🔑 pastikan token selalu dipakai
+          Authorization: `Bearer ${API_TOKEN}`, // 🔑 pastikan token selalu dipakai
         },
         body: JSON.stringify({
           pesanan_id: pesananId,
@@ -329,9 +361,8 @@ async function tambahUangMuka(pesananId) {
       });
 
       // TODO: refresh tabel / data di UI setelah berhasil
-      loadModuleContent('invoice_detail', window.detail_id, window.detail_desc);
+      loadModuleContent("invoice_detail", window.detail_id, window.detail_desc);
       console.log("✅ DP berhasil ditambahkan:", result);
-
     } catch (err) {
       Swal.fire({
         icon: "error",
@@ -344,12 +375,15 @@ async function tambahUangMuka(pesananId) {
 
 async function printInvoice(pesanan_id) {
   try {
-    const response = await fetch(`${baseUrl}/detail/sales_invoice/${pesanan_id}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${API_TOKEN}`,
-      },
-    });
+    const response = await fetch(
+      `${baseUrl}/detail/sales_invoice/${pesanan_id}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+      }
+    );
 
     const result = await response.json();
     const detail = result?.detail;
@@ -369,7 +403,6 @@ async function printInvoice(pesanan_id) {
       window.open(`invoice_print.html?id=${pesanan_id}`, "_blank");
     }
     // Jika Cancel → Swal otomatis close, tidak perlu aksi tambahan
-
   } catch (error) {
     Swal.fire({
       title: "Gagal",
@@ -406,7 +439,6 @@ async function printInvoiceDP(pesanan_id) {
       window.open(`invoiceDP_print.html?id=${pesanan_id}`, "_blank");
     }
     // Jika Cancel → Swal otomatis close, tidak perlu aksi tambahan
-
   } catch (error) {
     Swal.fire({
       title: "Gagal",
@@ -416,10 +448,16 @@ async function printInvoiceDP(pesanan_id) {
   }
 }
 
-async function openSalesReceiptModal(pesananId, pelangganId, totalInvoice, sisaBayar, invoiceDP) {
+async function openSalesReceiptModal(
+  pesananId,
+  pelangganId,
+  totalInvoice,
+  sisaBayar,
+  invoiceDP
+) {
   const totalOrder = totalInvoice;
   const remainingAmount = sisaBayar;
-  console.log('data invoice DP: ', invoiceDP)
+  console.log("data invoice DP: ", invoiceDP);
   let parsedDP = [];
   try {
     parsedDP = JSON.parse(decodeURIComponent(invoiceDP));
@@ -457,24 +495,30 @@ async function openSalesReceiptModal(pesananId, pelangganId, totalInvoice, sisaB
       .map((dp) => {
         const disabled = dp.status_payment === "paid" ? "disabled" : "";
 
-      // ⬇️ simpan semua data dalam value radio (stringify JSON)
-      const value = encodeURIComponent(JSON.stringify({
-        reference_type: "dp",
-        reference_id: dp.dp_id,
-        nominal: dp.remaining_balance,
-        description: dp.description || "",
-        status_payment: dp.status_payment
-      }))
+        // ⬇️ simpan semua data dalam value radio (stringify JSON)
+        const value = encodeURIComponent(
+          JSON.stringify({
+            reference_type: "dp",
+            reference_id: dp.dp_id,
+            nominal: dp.remaining_balance,
+            description: dp.description || "",
+            status_payment: dp.status_payment,
+          })
+        );
 
         return `
-        <label class="flex items-center space-x-2 border rounded p-2 hover:bg-gray-50 cursor-pointer ${disabled && "opacity-50"}">
+        <label class="flex items-center space-x-2 border rounded p-2 hover:bg-gray-50 cursor-pointer ${
+          disabled && "opacity-50"
+        }">
           <input type="radio" name="reference_radio" 
                  value="${value}"
                  data-nominal="${dp.remaining_balance}" 
                  data-description="${dp.description || ""}"
                  class="form-radio" ${disabled}>
           <span class="text-sm">
-            ${dp.dp_number} - (Total: ${formatRupiah(dp.amount)}, Sisa: ${formatRupiah(dp.remaining_balance)} 
+            ${dp.dp_number} - (Total: ${formatRupiah(
+          dp.amount
+        )}, Sisa: ${formatRupiah(dp.remaining_balance)} 
             (${dp.status_payment}) ${dp.description}
           </span>
         </label>
@@ -508,7 +552,9 @@ async function openSalesReceiptModal(pesananId, pelangganId, totalInvoice, sisaB
           <div class="space-y-2">
             <label class="flex items-center space-x-2 border rounded p-2 hover:bg-gray-50 cursor-pointer">
               <input type="radio" name="reference_radio" value="main" data-nominal="${remainingAmount}" class="form-radio" checked>
-              <span class="text-sm">Invoice Utama (Total: ${formatRupiah(totalOrder)}, Sisa: ${formatRupiah(remainingAmount)})</span>
+              <span class="text-sm">Invoice Utama (Total: ${formatRupiah(
+                totalOrder
+              )}, Sisa: ${formatRupiah(remainingAmount)})</span>
             </label>
             ${dpOptions}
           </div>
@@ -551,50 +597,65 @@ async function openSalesReceiptModal(pesananId, pelangganId, totalInvoice, sisaB
     didOpen: () => {
       // 🔹 Auto isi nominal saat radio dipilih
       setTodayDate();
-      document.querySelectorAll("input[name='reference_radio']").forEach((radio) => {
-        radio.addEventListener("change", (e) => {
-          const nominal = e.target.dataset.nominal || 0;
-          const desc = e.target.dataset.description || "";
-          document.getElementById("sr_nominal").value = formatRupiah(nominal);
-          if (desc) {
-            document.getElementById("keterangan").value = desc;
-          } else {
-            document.getElementById("keterangan").value = "Pembayaran Invoice Utama";
-          }
+      document
+        .querySelectorAll("input[name='reference_radio']")
+        .forEach((radio) => {
+          radio.addEventListener("change", (e) => {
+            const nominal = e.target.dataset.nominal || 0;
+            const desc = e.target.dataset.description || "";
+            document.getElementById("sr_nominal").value = formatRupiah(nominal);
+            if (desc) {
+              document.getElementById("keterangan").value = desc;
+            } else {
+              document.getElementById("keterangan").value =
+                "Pembayaran Invoice Utama";
+            }
+          });
         });
-      });
 
       // Set default nominal = sisa invoice utama
-      document.getElementById("sr_nominal").value = formatRupiah(remainingAmount);
+      document.getElementById("sr_nominal").value =
+        formatRupiah(remainingAmount);
       document.getElementById("keterangan").value = "Pembayaran Invoice Utama";
     },
     focusConfirm: false,
     showCancelButton: true,
     confirmButtonText: "Simpan",
     cancelButtonText: "Batal",
-preConfirm: () => {
-  const refRadio = document.querySelector("input[name='reference_radio']:checked").value;
-  let refData;
+    preConfirm: () => {
+      const refRadio = document.querySelector(
+        "input[name='reference_radio']:checked"
+      ).value;
+      let refData;
 
-  try {
-    refData = JSON.parse(decodeURIComponent(refRadio));
-  } catch {
-    // default untuk invoice utama
-    refData = {
-      reference_type: "main",
-      reference_id: pesananId,
-      nominal: remainingAmount,
-      description: "Pembayaran invoice utama",
-    };
-  }
+      try {
+        refData = JSON.parse(decodeURIComponent(refRadio));
+      } catch {
+        // default untuk invoice utama
+        refData = {
+          reference_type: "main",
+          reference_id: pesananId,
+          nominal: remainingAmount,
+          description: "Pembayaran invoice utama",
+        };
+      }
 
-return {
+      return {
         pesanan_id: pesananId,
         owner_id: 1,
         user_id: 1,
-        tanggal_transaksi: document.getElementById("tanggal")?.value || new Date().toISOString().split("T")[0],
-        nominal: parseInt((document.getElementById("sr_nominal").value || "").replace(/\D/g, "")) || refData.nominal,
-        keterangan: document.getElementById("keterangan").value || refData.description,
+        tanggal_transaksi:
+          document.getElementById("tanggal")?.value ||
+          new Date().toISOString().split("T")[0],
+        nominal:
+          parseInt(
+            (document.getElementById("sr_nominal").value || "").replace(
+              /\D/g,
+              ""
+            )
+          ) || refData.nominal,
+        keterangan:
+          document.getElementById("keterangan").value || refData.description,
         akun_id: document.getElementById("akun_select").value,
         pelanggan_id: pelangganId || "",
         branch_id: 1,
@@ -602,7 +663,7 @@ return {
         reference_type: refData.reference_type,
         reference_id: refData.reference_id,
       };
-    }
+    },
   }).then(async (result) => {
     if (result.isConfirmed && result.value) {
       const formValues = result.value;
@@ -629,9 +690,17 @@ return {
 
         if (res.ok) {
           loadDetailSales(window.detail_id, window.detail_desc);
-          Swal.fire("Success", "Sales receipt berhasil ditambahkan!", "success");
+          Swal.fire(
+            "Success",
+            "Sales receipt berhasil ditambahkan!",
+            "success"
+          );
         } else {
-          Swal.fire("Error", data.message || "Gagal menambahkan receipt", "error");
+          Swal.fire(
+            "Error",
+            data.message || "Gagal menambahkan receipt",
+            "error"
+          );
         }
       } catch (err) {
         console.error("❌ Error:", err);

@@ -14,8 +14,7 @@
 
       <!-- Search -->
       <div class="w-full md:w-auto">
-        <input type="text" id="project_name" name="project_name"
-          placeholder="Project Name"
+        <input type="text" id="project_name" name="project_name" placeholder="Project Name"
           class="hidden px-3 py-2 border rounded w-full md:w-96" />
       </div>
 
@@ -27,8 +26,7 @@
           📄 Download PDF
         </button>
 
-        <button onclick="loadModuleContent('invoice')"
-          class="bg-gray-300 text-sm px-4 py-2 rounded">
+        <button onclick="loadModuleContent('invoice')" class="bg-gray-300 text-sm px-4 py-2 rounded">
           ⬅️ Back
         </button>
       </div>
@@ -63,24 +61,31 @@
 
         <!-- Collapsible Template -->
         <div class="border rounded bg-white text-sm">
-          <button onclick="toggleSection('projectinfoSection')" 
-                  class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
+          <button onclick="toggleSection('projectinfoSection')"
+            class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
             📁 Project Info
             <span id="icon-projectinfoSection">▼</span>
           </button>
           <div id="projectinfoSection" class="px-4 py-3 space-y-3 text-sm text-gray-700">
             <div class="flex justify-between"><span id="project_name" class="font-medium">Project</span></div>
-            <div class="flex justify-between"><span class="font-medium">No Invoice</span><span id="no_qtn" class="text-gray-600">-</span></div>
-            <div class="flex justify-between"><span class="font-medium">References</span><span id="no_po" class="text-gray-600">-</span></div>
-            <div class="flex justify-between"><span class="font-medium">Tanggal</span><span id="tanggal" class="text-gray-600">-</span></div>
-            <div class="flex justify-between"><span class="font-medium">Sales Type</span><span id="type_sales" class="text-gray-600">-</span></div>
-            <div class="flex justify-between"><span class="font-medium">Client</span><span id="client_name" class="text-gray-600">-</span></div>
+            <div class="flex justify-between"><span class="font-medium">No Invoice</span><span id="no_qtn"
+                class="text-gray-600">-</span></div>
+            <div class="flex justify-between"><span class="font-medium">References</span><span id="no_po"
+                class="text-gray-600">-</span></div>
+            <div class="flex justify-between"><span class="font-medium">Tanggal Inv</span><span id="tanggal_inv"
+                class="text-gray-600">-</span></div>
+            <div class="flex justify-between"><span class="font-medium">Tanggal PO</span><span id="tanggal_po"
+                class="text-gray-600">-</span></div>
+            <div class="flex justify-between"><span class="font-medium">Sales Type</span><span id="type_sales"
+                class="text-gray-600">-</span></div>
+            <div class="flex justify-between"><span class="font-medium">Client</span><span id="client_name"
+                class="text-gray-600">-</span></div>
           </div>
         </div>
 
         <div class="border rounded bg-white text-sm">
-          <button onclick="toggleSection('ringkasanSection')" 
-                  class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
+          <button onclick="toggleSection('ringkasanSection')"
+            class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
             💡 Ringkasan
             <span id="icon-ringkasanSection">▼</span>
           </button>
@@ -97,8 +102,8 @@
         </div>
 
         <div class="border rounded bg-white text-sm">
-          <button onclick="toggleSection('pembayaranSection')" 
-                  class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
+          <button onclick="toggleSection('pembayaranSection')"
+            class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
             💳 Daftar Pembayaran
             <span id="icon-pembayaranSection">▼</span>
           </button>
@@ -109,8 +114,8 @@
         </div>
 
         <div class="border rounded bg-white text-sm">
-          <button onclick="toggleSection('fileSection')" 
-                  class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
+          <button onclick="toggleSection('fileSection')"
+            class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
             📂 File Pendukung
             <span id="icon-fileSection">▼</span>
           </button>
@@ -119,16 +124,16 @@
           </div>
           <div class="border-t p-3 flex flex-col gap-2">
             <input type="file" id="files" name="files" multiple class="border rounded px-2 py-1 text-sm">
-            <button type="button" onclick="editProjectWithFile()" 
-                    class="w-full py-1 px-2 border rounded bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs">
+            <button type="button" onclick="editProjectWithFile()"
+              class="w-full py-1 px-2 border rounded bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs">
               ✏️ Upload File
             </button>
           </div>
         </div>
 
         <div class="border rounded bg-white text-sm">
-          <button onclick="toggleSection('uangMukaSection')" 
-                  class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
+          <button onclick="toggleSection('uangMukaSection')"
+            class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
             💰 Invoice Uang Muka
             <span id="icon-uangMukaSection">▼</span>
           </button>
@@ -139,8 +144,8 @@
         </div>
 
         <div class="border rounded bg-white text-sm">
-          <button onclick="toggleSection('catatanSection')" 
-                  class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
+          <button onclick="toggleSection('catatanSection')"
+            class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
             📝 Catatan
             <span id="icon-catatanSection">▼</span>
           </button>
@@ -150,8 +155,8 @@
         </div>
 
         <div class="border rounded bg-white text-sm">
-          <button onclick="toggleSection('syaratKetentuanSection')" 
-                  class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
+          <button onclick="toggleSection('syaratKetentuanSection')"
+            class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
             📌 Syarat & Ketentuan
             <span id="icon-syaratKetentuanSection">▼</span>
           </button>
@@ -161,8 +166,8 @@
         </div>
 
         <div class="border rounded bg-white text-sm">
-          <button onclick="toggleSection('topSection')" 
-                  class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
+          <button onclick="toggleSection('topSection')"
+            class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
             💰 Term of Payment
             <span id="icon-topSection">▼</span>
           </button>
