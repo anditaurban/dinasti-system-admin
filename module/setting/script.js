@@ -9,26 +9,25 @@ loadTermCondition();
 loadNotes();
 loadUpdateLog();
 
+function switchSection(btn, section) {
+  // reset button style
+  document.querySelectorAll(".setting-btn").forEach((b) => {
+    b.classList.remove("bg-gray-100", "dark:bg-gray-700", "font-semibold");
+  });
+  btn.classList.add("bg-gray-100", "dark:bg-gray-700", "font-semibold");
 
-  function switchSection(btn, section) {
-    // reset button style
-    document.querySelectorAll('.setting-btn').forEach(b => {
-      b.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'font-semibold');
-    });
-    btn.classList.add('bg-gray-100', 'dark:bg-gray-700', 'font-semibold');
+  // hide all sections
+  document
+    .querySelectorAll(".setting-section")
+    .forEach((sec) => sec.classList.add("hidden"));
+  // show target
+  document.getElementById("section-" + section).classList.remove("hidden");
+}
 
-    // hide all sections
-    document.querySelectorAll('.setting-section').forEach(sec => sec.classList.add('hidden'));
-    // show target
-    document.getElementById('section-' + section).classList.remove('hidden');
-  }
-
-  // set default (Billing aktif)
-  window.onload = () => {
-    document.querySelector('.setting-btn').click();
-    
-  }
-
+// set default (Billing aktif)
+window.onload = () => {
+  document.querySelector(".setting-btn").click();
+};
 
 async function loadAccounts() {
   const container = document.getElementById("payment-methods-container");
@@ -45,14 +44,17 @@ async function loadAccounts() {
   // kasih delay 10 detik sebelum fetch data
   setTimeout(async () => {
     try {
-      const res = await fetch(`${baseUrl}/table/finance_account_payment/${owner_id}/1`, {
-        headers: { "Authorization": `Bearer ${API_TOKEN}` }
-      });
+      const res = await fetch(
+        `${baseUrl}/table/finance_account_payment/${owner_id}/1`,
+        {
+          headers: { Authorization: `Bearer ${API_TOKEN}` },
+        }
+      );
       const data = await res.json();
 
       if (data.tableData && data.tableData.length > 0) {
         container.innerHTML = "";
-        data.tableData.forEach(acc => {
+        data.tableData.forEach((acc) => {
           container.innerHTML += `
             <div class="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-600 last:border-b-0">
               <div class="flex items-center">
@@ -68,10 +70,16 @@ async function loadAccounts() {
                 </div>
               </div>
               <div class="flex gap-x-3">
-                <button onclick="handleEditAccounts(${acc.akun_id}, '${acc.account_id}', '${acc.owner_account}', '${acc.number_account}', '${acc.tag}', '${acc.status}')" class="text-primary-500 hover:text-primary-600 text-sm font-medium">
+                <button onclick="handleEditAccounts(${acc.akun_id}, '${
+            acc.account_id
+          }', '${acc.owner_account}', '${acc.number_account}', '${acc.tag}', '${
+            acc.status
+          }')" class="text-primary-500 hover:text-primary-600 text-sm font-medium">
                   Edit
                 </button>
-                <button onclick="handleDeleteAccounts(${acc.akun_id})" class="text-red-500 hover:text-red-600 text-sm font-medium">
+                <button onclick="handleDeleteAccounts(${
+                  acc.akun_id
+                })" class="text-red-500 hover:text-red-600 text-sm font-medium">
                   Hapus
                 </button>
               </div>
@@ -104,7 +112,7 @@ async function handleAddAccounts() {
   try {
     // Ambil list akun dari API
     const resList = await fetch(`${baseUrl}/list/finance_account/${owner_id}`, {
-      headers: { Authorization: `Bearer ${API_TOKEN}` }
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
     });
     const listData = await resList.json();
 
@@ -114,13 +122,16 @@ async function handleAddAccounts() {
     }
 
     // Buat dropdown option
-    const options = listData.listData.map(acc => 
-      `<option value="${acc.akun_id}">${acc.nama_akun} (${acc.tipe})</option>`
-    ).join("");
+    const options = listData.listData
+      .map(
+        (acc) =>
+          `<option value="${acc.akun_id}">${acc.nama_akun} (${acc.tipe})</option>`
+      )
+      .join("");
 
     Swal.fire({
       title: "Tambah Akun Pembayaran",
-html: `
+      html: `
   <div class="space-y-3 text-left">
     <div>
       <label for="account_id" class="block text-sm font-medium text-gray-700 mb-1">Pilih Bank</label>
@@ -148,8 +159,8 @@ html: `
 `,
       focusConfirm: false,
       showCancelButton: true,
-      confirmButtonText: "Simpan"
-    }).then(async result => {
+      confirmButtonText: "Simpan",
+    }).then(async (result) => {
       if (result.isConfirmed) {
         const payload = {
           owner_id: owner_id,
@@ -157,22 +168,26 @@ html: `
           owner_account: document.getElementById("owner_account").value,
           number_account: document.getElementById("number_account").value,
           status: "on",
-          tag: document.getElementById("tag").value
+          tag: document.getElementById("tag").value,
         };
 
         try {
           const res = await fetch(`${baseUrl}/add/finance_account_payment`, {
             method: "POST",
             headers: {
-              "Authorization": `Bearer ${API_TOKEN}`,
-              "Content-Type": "application/json"
+              Authorization: `Bearer ${API_TOKEN}`,
+              "Content-Type": "application/json",
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
           });
 
           const data = await res.json();
           if (res.ok) {
-            Swal.fire("Sukses", "Akun pembayaran berhasil ditambahkan", "success");
+            Swal.fire(
+              "Sukses",
+              "Akun pembayaran berhasil ditambahkan",
+              "success"
+            );
             loadAccounts();
           } else {
             Swal.fire("Gagal", data.message || "Terjadi kesalahan", "error");
@@ -182,22 +197,28 @@ html: `
         }
       }
     });
-
   } catch (err) {
     Swal.fire("Error", "Tidak dapat memuat data akun", "error");
   }
 }
 
-async function handleEditAccounts(id, idAccount, ownerAccount, numberAccount, tag, statusAccount) {
+async function handleEditAccounts(
+  id,
+  idAccount,
+  ownerAccount,
+  numberAccount,
+  tag,
+  statusAccount
+) {
   try {
     // ambil list bank (account_id)
     const listRes = await fetch(`${baseUrl}/list/finance_account/${owner_id}`, {
-      headers: { Authorization: `Bearer ${API_TOKEN}` }
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
     });
     const listData = await listRes.json();
 
     const options = listData.listData
-      .map(acc => {
+      .map((acc) => {
         const selected = acc.akun_id == idAccount ? "selected" : "";
         return `<option value="${acc.akun_id}" ${selected}>${acc.nama_akun}</option>`;
       })
@@ -217,24 +238,34 @@ async function handleEditAccounts(id, idAccount, ownerAccount, numberAccount, ta
     </div>
     <div>
       <label for="owner_account" class="block text-sm font-medium text-gray-700 mb-1">Pemilik Akun</label>
-      <input id="owner_account" type="text" placeholder="Nama Pemilik Akun"  value="${ownerAccount || ""}"
+      <input id="owner_account" type="text" placeholder="Nama Pemilik Akun"  value="${
+        ownerAccount || ""
+      }"
         class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
     </div>
     <div>
       <label for="number_account" class="block text-sm font-medium text-gray-700 mb-1">Nomor Akun</label>
-      <input id="number_account" type="text" placeholder="Nomor Rekening" value="${numberAccount || ""}"
+      <input id="number_account" type="text" placeholder="Nomor Rekening" value="${
+        numberAccount || ""
+      }"
         class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
     </div>
     <div>
       <label for="tag" class="block text-sm font-medium text-gray-700 mb-1">Tag (Opsional)</label>
-      <input id="tag" type="text" placeholder="Keterangan tambahan" value="${tag || ""}"
+      <input id="tag" type="text" placeholder="Keterangan tambahan" value="${
+        tag || ""
+      }"
         class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
     </div>
     <div>
       <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
             <select id="status" class="w-full border px-3 py-2 rounded">
-          <option value="on" ${statusAccount === "on" ? "selected" : ""}>Aktif</option>
-          <option value="off" ${statusAccount === "off" ? "selected" : ""}>Nonaktif</option>
+          <option value="on" ${
+            statusAccount === "on" ? "selected" : ""
+          }>Aktif</option>
+          <option value="off" ${
+            statusAccount === "off" ? "selected" : ""
+          }>Nonaktif</option>
         </select>
     </div>
   </div>
@@ -250,20 +281,23 @@ async function handleEditAccounts(id, idAccount, ownerAccount, numberAccount, ta
           owner_account: document.getElementById("owner_account").value,
           number_account: document.getElementById("number_account").value,
           tag: document.getElementById("tag").value,
-          status: document.getElementById("status").value
+          status: document.getElementById("status").value,
         };
-      }
+      },
     });
 
     if (formValues) {
-      const res = await fetch(`${baseUrl}/update/finance_account_payment/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${API_TOKEN}`
-        },
-        body: JSON.stringify(formValues)
-      });
+      const res = await fetch(
+        `${baseUrl}/update/finance_account_payment/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${API_TOKEN}`,
+          },
+          body: JSON.stringify(formValues),
+        }
+      );
 
       const data = await res.json();
       if (res.ok && data.response === "200") {
@@ -288,26 +322,33 @@ async function handleDeleteAccounts(akunId) {
     confirmButtonColor: "#d33",
     cancelButtonColor: "#6b7280",
     confirmButtonText: "Ya, hapus",
-    cancelButtonText: "Batal"
+    cancelButtonText: "Batal",
   });
 
   if (confirm.isConfirmed) {
     try {
-      const res = await fetch(`${baseUrl}/delete/finance_account_payment/${akunId}`, {
-        method: "PUT",
-        headers: {
-          "Authorization": `Bearer ${API_TOKEN}`,
-          "Content-Type": "application/json"
+      const res = await fetch(
+        `${baseUrl}/delete/finance_account_payment/${akunId}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${API_TOKEN}`,
+            "Content-Type": "application/json",
+          },
         }
-      });
+      );
 
       const data = await res.json();
 
       if (data.response === "200" && data.data.success) {
         Swal.fire("Terhapus!", data.data.message, "success");
-         loadAccounts();
+        loadAccounts();
       } else {
-        Swal.fire("Gagal!", data.data?.message || "Gagal menghapus data", "error");
+        Swal.fire(
+          "Gagal!",
+          data.data?.message || "Gagal menghapus data",
+          "error"
+        );
       }
     } catch (error) {
       console.error("Error:", error);
@@ -325,15 +366,17 @@ async function loadUpdateLog() {
     const logs = await res.json();
 
     container.innerHTML = "";
-    logs.forEach(log => {
+    logs.forEach((log) => {
       container.innerHTML += `
         <div class="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm">
           <div class="flex items-center justify-between mb-2">
-            <h2 class="text-lg font-semibold text-primary-600">Versi ${log.version}</h2>
+            <h2 class="text-lg font-semibold text-primary-600">Versi ${
+              log.version
+            }</h2>
             <span class="text-sm text-gray-500">${log.date}</span>
           </div>
           <ul class="list-disc pl-5 text-gray-700 dark:text-gray-300 space-y-1">
-            ${log.changes.map(change => `<li>${change}</li>`).join("")}
+            ${log.changes.map((change) => `<li>${change}</li>`).join("")}
           </ul>
         </div>
       `;
@@ -355,10 +398,10 @@ async function loadProfile(user_id) {
     document.getElementById("profile_role").value = "Loading...";
 
     // delay 10 detik sebelum fetch
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise((resolve) => setTimeout(resolve, 5000));
 
     const res = await fetch(`${baseUrl}/detail/user/${user_id}`, {
-      headers: { "Authorization": `Bearer ${API_TOKEN}` }
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
     });
     const data = await res.json();
 
@@ -386,7 +429,7 @@ async function updateProfile() {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_TOKEN}`
+        Authorization: `Bearer ${API_TOKEN}`,
       },
       body: JSON.stringify({
         owner_id: owner_id,
@@ -394,8 +437,8 @@ async function updateProfile() {
         email: email,
         level: level,
         role: role,
-        phone: phone
-      })
+        phone: phone,
+      }),
     });
 
     const data = await res.json();
@@ -404,7 +447,11 @@ async function updateProfile() {
       Swal.fire("Sukses", "Profil berhasil diperbarui", "success");
       loadProfile(user_id);
     } else {
-      Swal.fire("Gagal", (data.data && data.data.message) || "Gagal update profil", "error");
+      Swal.fire(
+        "Gagal",
+        (data.data && data.data.message) || "Gagal update profil",
+        "error"
+      );
     }
   } catch (err) {
     Swal.fire("Error", "Terjadi kesalahan koneksi", "error");
@@ -428,9 +475,9 @@ async function getCompanyDetail() {
     document.getElementById("company_facebook").value = "Loading...";
 
     // delay 10 detik sebelum fetch
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise((resolve) => setTimeout(resolve, 5000));
     const res = await fetch(`${baseUrl}/detail/company/${owner_id}`, {
-      headers: { "Authorization": `Bearer ${API_TOKEN}` }
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
     });
     const json = await res.json();
     const data = json.detail;
@@ -447,7 +494,6 @@ async function getCompanyDetail() {
     document.getElementById("company_facebook").value = data.facebook || "";
 
     loadLogoWithAuth(data.logo_url);
-
 
     // preview logo kalau ada
     if (data.logo_url) {
@@ -469,9 +515,18 @@ async function saveCompanySetting() {
   formData.append("phone", document.getElementById("company_phone").value);
   formData.append("email", document.getElementById("company_email").value);
   formData.append("website", document.getElementById("company_website").value);
-  formData.append("instagram", document.getElementById("company_instagram").value);
-  formData.append("linkedin", document.getElementById("company_linkedin").value);
-  formData.append("facebook", document.getElementById("company_facebook").value);
+  formData.append(
+    "instagram",
+    document.getElementById("company_instagram").value
+  );
+  formData.append(
+    "linkedin",
+    document.getElementById("company_linkedin").value
+  );
+  formData.append(
+    "facebook",
+    document.getElementById("company_facebook").value
+  );
 
   // file logo (optional)
   const fileInput = document.getElementById("company_logo");
@@ -486,14 +541,14 @@ async function saveCompanySetting() {
     icon: "question",
     showCancelButton: true,
     confirmButtonText: "Ya, simpan",
-    cancelButtonText: "Batal"
+    cancelButtonText: "Batal",
   }).then(async (result) => {
     if (result.isConfirmed) {
       try {
         const res = await fetch(`${baseUrl}/update/company/1`, {
           method: "PUT",
           headers: {
-            "Authorization": `Bearer ${API_TOKEN}` // ⚠️ jangan pakai Content-Type, biar FormData jalan
+            Authorization: `Bearer ${API_TOKEN}`, // ⚠️ jangan pakai Content-Type, biar FormData jalan
           },
           body: formData,
         });
@@ -504,7 +559,7 @@ async function saveCompanySetting() {
         Swal.fire({
           icon: "success",
           title: "Berhasil",
-          text: "Data perusahaan berhasil diperbarui!"
+          text: "Data perusahaan berhasil diperbarui!",
         });
 
         getCompanyDetail();
@@ -513,83 +568,128 @@ async function saveCompanySetting() {
         Swal.fire({
           icon: "error",
           title: "Gagal",
-          text: "Terjadi kesalahan saat update data."
+          text: "Terjadi kesalahan saat update data.",
         });
       }
     }
   });
 }
 
-async function loadTermOfPayment() {
-  try {
-    document.getElementById("note_top").value = "Loading...";
+/**
+ * Memuat data Term of Payment dari API dan menampilkannya
+ * di elemen textarea mana pun berdasarkan ID-nya.
+ * @param {string} targetElementId - ID dari elemen <textarea> yang akan diisi.
+ */
+async function loadTermOfPayment(targetElementId) {
+  const textarea = document.getElementById(targetElementId);
+  if (!textarea) {
+    console.error(
+      `Error: Element dengan ID "${targetElementId}" tidak ditemukan.`
+    );
+    return;
+  }
 
-    await new Promise(resolve => setTimeout(resolve, 5000));
+  try {
+    textarea.value = "Loading...";
+
+    // Hapus delay 5 detik ini jika sudah tidak diperlukan untuk testing
+    await new Promise((resolve) => setTimeout(resolve, 5000));
 
     const res = await fetch(`${baseUrl}/list/term_of_payment/${owner_id}`, {
-      headers: { "Authorization": `Bearer ${API_TOKEN}` }
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
     });
     const data = await res.json();
 
     if (data.success && data.listData.length > 0) {
       const top = data.listData[0]; // ambil 1 record (default)
-      document.getElementById("note_top").value = top.pretext || "";
+      textarea.value = top.pretext || "";
     } else {
-      document.getElementById("note_top").value = "";
+      textarea.value = "";
     }
   } catch (err) {
     console.error("Gagal load Term of Payment:", err);
+    textarea.value = "Gagal memuat data."; // Beri feedback error
   }
 }
 
-async function loadTermCondition() {
-  try {
-    document.getElementById("note_tnc").value = "Loading...";
+/**
+ * Memuat data Term & Condition dari API dan menampilkannya
+ * di elemen textarea mana pun berdasarkan ID-nya.
+ * @param {string} targetElementId - ID dari elemen <textarea> yang akan diisi.
+ */
+async function loadTermCondition(targetElementId) {
+  const textarea = document.getElementById(targetElementId);
+  if (!textarea) {
+    console.error(
+      `Error: Element dengan ID "${targetElementId}" tidak ditemukan.`
+    );
+    return;
+  }
 
-    await new Promise(resolve => setTimeout(resolve, 5000));
+  try {
+    textarea.value = "Loading...";
+
+    // Hapus delay 5 detik ini jika sudah tidak diperlukan untuk testing
+    await new Promise((resolve) => setTimeout(resolve, 5000));
 
     const res = await fetch(`${baseUrl}/list/terms/${owner_id}`, {
-      headers: { "Authorization": `Bearer ${API_TOKEN}` }
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
     });
     const data = await res.json();
 
     if (data.success && data.listData.length > 0) {
       const top = data.listData[0]; // ambil 1 record (default)
-      document.getElementById("note_tnc").value = top.pretext || "";
+      textarea.value = top.pretext || "";
     } else {
-      document.getElementById("note_tnc").value = "";
+      textarea.value = "";
     }
   } catch (err) {
-    console.error("Gagal load Term of Payment:", err);
+    console.error("Gagal load Term Condition:", err);
+    textarea.value = "Gagal memuat data."; // Beri feedback error
   }
 }
 
-async function loadNotes() {
-  try {
-    document.getElementById("note_catatan").value = "Loading...";
+/**
+ * Memuat data Notes dari API dan menampilkannya
+ * di elemen textarea mana pun berdasarkan ID-nya.
+ * @param {string} targetElementId - ID dari elemen <textarea> yang akan diisi.
+ */
+async function loadNotes(targetElementId) {
+  const textarea = document.getElementById(targetElementId);
+  if (!textarea) {
+    console.error(
+      `Error: Element dengan ID "${targetElementId}" tidak ditemukan.`
+    );
+    return;
+  }
 
-    await new Promise(resolve => setTimeout(resolve, 5000));
+  try {
+    textarea.value = "Loading...";
+
+    // Hapus delay 5 detik ini jika sudah tidak diperlukan untuk testing
+    await new Promise((resolve) => setTimeout(resolve, 5000));
 
     const res = await fetch(`${baseUrl}/list/notes/${owner_id}`, {
-      headers: { "Authorization": `Bearer ${API_TOKEN}` }
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
     });
     const data = await res.json();
 
     if (data.success && data.listData.length > 0) {
       const top = data.listData[0]; // ambil 1 record (default)
-      document.getElementById("note_catatan").value = top.pretext || "";
+      textarea.value = top.pretext || "";
     } else {
-      document.getElementById("note_catatan").value = "";
+      textarea.value = "";
     }
   } catch (err) {
     console.error("Gagal load Catatan:", err);
+    textarea.value = "Gagal memuat data."; // Beri feedback error
   }
 }
 
 async function updateTermOfPayment() {
   const textarea = document.getElementById("note_top");
   const instruction = textarea.value.trim();
-  console.log('instruction = ', instruction);
+  console.log("instruction = ", instruction);
 
   if (!instruction) {
     Swal.fire("Oops", "Isi Term of Payment tidak boleh kosong", "warning");
@@ -597,27 +697,35 @@ async function updateTermOfPayment() {
   }
 
   const payload = JSON.stringify({
-        owner_id: owner_id,
-        pretext: instruction
-      })
-  console.log ('Data = ', payload);
+    owner_id: owner_id,
+    pretext: instruction,
+  });
+  console.log("Data = ", payload);
 
   try {
     const res = await fetch(`${baseUrl}/update/term_of_payment/3`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_TOKEN}`
+        Authorization: `Bearer ${API_TOKEN}`,
       },
-      body: payload
+      body: payload,
     });
 
     const result = await res.json();
     const data = result.data; // ambil isi dari "data"
     if (data && data.success) {
-      Swal.fire("Sukses", data.message || "Term of Payment berhasil diperbarui", "success");
+      Swal.fire(
+        "Sukses",
+        data.message || "Term of Payment berhasil diperbarui",
+        "success"
+      );
     } else {
-      Swal.fire("Gagal", data.message || "Gagal memperbarui Term of Payment", "error");
+      Swal.fire(
+        "Gagal",
+        data.message || "Gagal memperbarui Term of Payment",
+        "error"
+      );
     }
   } catch (err) {
     console.error("Error update Term of Payment:", err);
@@ -639,20 +747,28 @@ async function updateTermCondition() {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_TOKEN}`
+        Authorization: `Bearer ${API_TOKEN}`,
       },
       body: JSON.stringify({
         owner_id: owner_id,
-        pretext: instruction
-      })
+        pretext: instruction,
+      }),
     });
 
     const result = await res.json();
     const data = result.data; // ambil isi dari "data"
     if (data && data.success) {
-      Swal.fire("Sukses", data.message || "Term Condition berhasil diperbarui", "success");
+      Swal.fire(
+        "Sukses",
+        data.message || "Term Condition berhasil diperbarui",
+        "success"
+      );
     } else {
-      Swal.fire("Gagal", data.message || "Gagal memperbarui Term Condition", "error");
+      Swal.fire(
+        "Gagal",
+        data.message || "Gagal memperbarui Term Condition",
+        "error"
+      );
     }
   } catch (err) {
     console.error("Error update Term Condition:", err);
@@ -674,18 +790,22 @@ async function updateNotes() {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_TOKEN}`
+        Authorization: `Bearer ${API_TOKEN}`,
       },
       body: JSON.stringify({
         owner_id: owner_id,
-        pretext: instruction
-      })
+        pretext: instruction,
+      }),
     });
 
     const result = await res.json();
     const data = result.data; // ambil isi dari "data"
     if (data && data.success) {
-      Swal.fire("Sukses", data.message || "Notes berhasil diperbarui", "success");
+      Swal.fire(
+        "Sukses",
+        data.message || "Notes berhasil diperbarui",
+        "success"
+      );
     } else {
       Swal.fire("Gagal", data.message || "Gagal memperbarui Notes", "error");
     }
@@ -694,5 +814,3 @@ async function updateNotes() {
     Swal.fire("Error", "Terjadi kesalahan server", "error");
   }
 }
-
-

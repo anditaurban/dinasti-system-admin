@@ -552,19 +552,19 @@ async function openInvoiceModal(pesananId) {
 
 function showImportQOModal() {
   Swal.fire({
-    title: "Import Data Quotation Order",
+    title: "Import Data QO",
     html: `
       <div class="flex flex-col items-start text-left w-full">
-        <label for="qoFile" class="mb-2 font-medium text-gray-700">File Excel / CSV</label>
+        <label for="excelFileQO" class="mb-2 font-medium text-gray-700">File Excel</label>
         <input 
           type="file" 
-          id="qoFile" 
-          accept=".xlsx, .xls, .csv" 
+          id="excelFileQO" 
+          accept=".xlsx, .xls" 
           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
         <p class="mt-3 text-xs text-gray-500">
-          Belum punya format?
-          <a href="#" onclick="downloadQOTemplate(); return false;" class="text-blue-600 hover:underline font-medium">Download template QO</a>
+          Belum punya format? 
+          <a href="#" onclick="downloadQOTemplate(); return false;" class="text-blue-600 hover:underline font-medium">Download template Excel</a>
         </p>
       </div>
     `,
@@ -579,9 +579,9 @@ function showImportQOModal() {
         "bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md font-medium",
     },
     preConfirm: () => {
-      const file = document.getElementById("qoFile").files[0];
+      const file = document.getElementById("excelFileQO").files[0];
       if (!file) {
-        Swal.showValidationMessage("Pilih file terlebih dahulu!");
+        Swal.showValidationMessage("Pilih file Excel terlebih dahulu!");
         return false;
       }
       return file;
@@ -593,8 +593,64 @@ function showImportQOModal() {
   });
 }
 
+// =========================================================
+// BARU: Fungsi untuk Download Template Excel
+// =========================================================
+function downloadQOTemplate() {
+  try {
+    // 1. Tentukan header kolom (ini akan menjadi baris pertama di Excel)
+    // Nama header ini akan digunakan untuk mapping di `handleImportQO`
+    const headers = [
+      "order_date",
+      "no_qtn",
+      "project_type",
+      "project_name",
+      "client",
+      "pic_name",
+      "amount",
+      "ppn",
+    ];
+
+    // 2. Buat contoh data (opsional, tapi membantu pengguna)
+    const sampleData = [
+      {
+        order_date: "2025-10-28",
+        no_qtn: "QO-001",
+        project_type: "Material",
+        project_name: "Proyek Gedung A",
+        client: "PT Maju Jaya",
+        pic_name: "Bapak Budi",
+        amount: 10000000,
+        ppn: 1100000,
+      },
+    ];
+
+    // 3. Buat Workbook dan Worksheet
+    const wb = XLSX.utils.book_new();
+    // Gunakan {header: headers} untuk memastikan urutan kolom sesuai
+    const ws = XLSX.utils.json_to_sheet(sampleData, { header: headers });
+
+    // 4. Tambahkan sheet ke workbook
+    XLSX.utils.book_append_sheet(wb, ws, "Template Import QO");
+
+    // 5. Download file
+    XLSX.writeFile(wb, "Template_Import_QO.xlsx");
+  } catch (err) {
+    console.error("Gagal membuat template:", err);
+    Swal.fire(
+      "Error",
+      "Gagal membuat template. Pastikan library XLSX sudah dimuat.",
+      "error"
+    );
+  }
+}
+
+// =========================================================
+// DIMODIFIKASI: Fungsi Handler Import
+// =========================================================
 async function handleImportQO(file) {
   try {
+    // 1. Baca file (tidak berubah)
     const data = await readExcelFile(file);
     console.log("Data dari Excel:", data);
 
@@ -604,74 +660,43 @@ async function handleImportQO(file) {
     }
 
     let sukses = 0;
-    let gagal = 0;
+    let gagal = 0; // 2. Looping data dari Excel
 
     for (const row of data) {
-      const formData = new FormData();
+      // 3. Buat payload JSON
+      const payload = {
+        // Ambil data user dari global scope (sesuai kode lama Anda)
+        owner_id: user.owner_id || 1,
+        user_id: user.user_id || 1, // Mapping dari header Excel (template) ke key JSON
 
-      // ===== Default field wajib =====
-      formData.append("owner_id", user.owner_id || 1);
-      formData.append("user_id", user.user_id || 1);
-      formData.append("pelanggan_id", 1);
-      formData.append("type_id", 1);
-      formData.append("status_id", 1);
-      formData.append("revision_number", 0);
-      formData.append("revision_status", row["Status"] || "Draft R0");
-      formData.append("revision_update", "no");
+        // Pastikan nama di "row[...]" SAMA PERSIS dengan header di template
+        order_date: row["order_date"] || "",
+        no_qtn: row["no_qtn"] || "",
+        project_type: row["project_type"] || "",
+        project_name: row["project_name"] || "",
+        client: row["client"] || "",
+        pic_name: row["pic_name"] || "",
+        amount: parseFloat(row["amount"]) || 0,
+        ppn: parseFloat(row["ppn"]) || 0,
+      };
 
-      // ===== Data dari Excel =====
-      formData.append("order_date", row["Date"] || "-");
-      formData.append("no_qtn", row["No_Quotation"] || "-");
-      formData.append("project_name", row["Deskripsi"] || "-");
-      formData.append("client", row["Client"] || "-");
-      formData.append("pic_name", row["PIC"] || "-");
-      formData.append("contract_amount", parseFloat(row["Amount"]) || 0);
-      formData.append("disc", 0);
-      formData.append("ppn", 0);
-      formData.append("subtotal", parseFloat(row["Amount"]) || 0);
-      formData.append("total", parseFloat(row["Amount"]) || 0);
-      formData.append("catatan", row["Approval"] || "-");
-      formData.append("syarat_ketentuan", "-");
-      formData.append("term_pembayaran", "-");
+      // Validasi sederhana: Jika tidak ada No QO, lewati baris
+      if (!payload.no_qtn) {
+        console.warn("Melewatkan baris, 'no_qtn' kosong:", row);
+        gagal++;
+        continue;
+      }
 
-      // ===== Default items valid =====
-      const defaultItems = [
-        {
-          product_id: 1, // pastikan valid di DB
-          product: "Default Item",
-          sub_category_id: 1, // pastikan valid di DB
-          sub_category: "DEFAULT CATEGORY",
-          description: "-",
-          qty: 0,
-          unit: "-",
-          unit_price: 0,
-          total: 0,
-          materials: [
-            {
-              material_id: 1,
-              subItemMaterial: "Default Material",
-              subItemSpec: "-",
-              subItemQty: 0,
-              subItemUnit: "-",
-              subItemHarga: 0,
-              subItemTotal: 0,
-            },
-          ],
-        },
-      ];
+      console.log("Mengirim payload:", payload); // 4. Kirim ke endpoint BARU
 
-      // ✅ Kirim sebagai string JSON (1x stringify)
-      formData.append("items", JSON.stringify(defaultItems));
-      formData.append("files", JSON.stringify([]));
-
-      console.log("Payload FormData sebelum kirim:");
-      for (let [k, v] of formData.entries()) console.log(`${k}:`, v);
-
-      // ===== Kirim ke endpoint =====
-      const res = await fetch(`${baseUrl}/add/sales`, {
+      const res = await fetch(`${baseUrl}/add/sales_import`, {
+        // <-- ENDPOINT BARU
         method: "POST",
-        headers: { Authorization: `Bearer ${API_TOKEN}` },
-        body: formData,
+        headers: {
+          Authorization: `Bearer ${API_TOKEN}`,
+          "Content-Type": "application/json", // <-- PENTING: Ubah ke JSON
+        },
+        body: JSON.stringify(payload), // <-- Kirim sebagai string JSON
       });
 
       const result = await res.json();
@@ -679,14 +704,14 @@ async function handleImportQO(file) {
 
       if (res.ok) sukses++;
       else gagal++;
-    }
+    } // 5. Tampilkan hasil (tidak berubah)
 
     Swal.fire(
       "Import Selesai",
       `✅ Berhasil import ${sukses} data, ❌ gagal ${gagal}.`,
       "success"
     );
-    loadModuleContent("quotation");
+    loadModuleContent("quotation"); // Refresh list
   } catch (err) {
     console.error("Error import:", err);
     Swal.fire("Error", err.message || "Gagal import data!", "error");
@@ -694,7 +719,7 @@ async function handleImportQO(file) {
 }
 
 // =========================================================
-// Fungsi baca file Excel
+// Fungsi baca file Excel (TIDAK BERUBAH)
 // =========================================================
 async function readExcelFile(file) {
   return new Promise((resolve, reject) => {
@@ -702,7 +727,7 @@ async function readExcelFile(file) {
     reader.onload = (e) => {
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: "array" });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const sheet = workbook.Sheets[workbook.SheetNames[0]]; // defval: "" memastikan sel kosong dibaca sebagai string kosong
       const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
       resolve(json);
     };

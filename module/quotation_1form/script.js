@@ -13,11 +13,17 @@ if (window.detail_id && window.detail_desc) {
 } else {
   setTodayDate();
   loadSalesType();
+  loadPretextFromLocal();
   loadCustomerList(owner_id);
   loadStatusOptions();
+
   document.getElementById("status").value = "Draft";
-  document.getElementById("tanggal").addEventListener("change", tryGenerateNoQtn);
-  document.getElementById("type_id").addEventListener("change", tryGenerateNoQtn);
+  document
+    .getElementById("tanggal")
+    .addEventListener("change", tryGenerateNoQtn);
+  document
+    .getElementById("type_id")
+    .addEventListener("change", tryGenerateNoQtn);
 }
 
 // document.getElementById("tanggal").addEventListener("change", tryGenerateNoQtn);
@@ -146,22 +152,29 @@ document.addEventListener("input", function (e) {
 });
 
 function parseRupiah(rupiah) {
-  if (!rupiah) return 0;
-  // Hapus semua karakter non-digit termasuk titik
-  return parseInt(rupiah.replace(/[^\d]/g, "")) || 0;
+  if (!rupiah || typeof rupiah !== "string") return 0;
+  const isNegative = rupiah.trim().startsWith("-");
+  const angkaString = rupiah.replace(/[^\d]/g, "");
+  let angka = parseInt(angkaString) || 0;
+  return isNegative ? -angka : angka;
 }
 
+// GANTI EVENT LISTENER LAMA DENGAN INI
 document.addEventListener("input", function (e) {
-  const id = e.target.id;
-  const isRelevant = ["discount"].includes(id);
-
   if (e.target.classList.contains("finance")) {
-    const angka = e.target.value.replace(/[^\d]/g, "");
-    e.target.value = finance(angka);
-  }
+    const value = e.target.value;
 
-  if (isRelevant) {
-    calculateTotals();
+    // Simpan status negatif
+    const isNegative = value.trim().startsWith("-");
+
+    // Hapus semua karakter non-digit
+    const angka = value.replace(/[^\d]/g, "");
+
+    // Format angkanya
+    let formatted = finance(angka); // Asumsi finance() bisa format "20000" -> "20.000"
+
+    // Tambahkan kembali tanda minus jika ada
+    e.target.value = isNegative ? "-" + formatted : formatted;
   }
 });
 
@@ -331,11 +344,10 @@ async function tambahItem() {
   tr.classList.add("itemRow");
   const index = document.querySelectorAll("#tabelItem tr.itemRow").length + 1;
 
+  // GANTI BAGIAN tr.innerHTML DI FUNGSI tambahItem() DENGAN INI:
   tr.innerHTML = `
-    <!-- No -->
     <td class="border px-3 py-2 w-[5%] align-top">${index}</td>
 
-    <!-- Produk -->
     <td class="border px-5 py-2 w-[55%] align-top">
       <div class="mb-1">
         <label class="block text-xs text-gray-500">Type</label>
@@ -350,7 +362,22 @@ async function tambahItem() {
         <textarea class="w-full border rounded px-2 itemDesc" rows="3" placeholder="Deskripsi"></textarea>
       </div>
 
-      <div class="grid grid-cols-2 gap-2">
+      <div class="grid grid-cols-3 gap-2 p-2 border rounded bg-gray-50 my-2">
+        <div>
+          <label class="block text-xs text-gray-500">HPP (Modal)</label>
+          <input type="text" class="w-full border rounded px-2 itemHpp text-right finance" value="0" oninput="recalculateHarga(this, 'hpp')">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500">Markup (Nominal)</label>
+          <input type="text" class="w-full border rounded px-2 itemMarkupNominal text-right finance" value="0" oninput="recalculateHarga(this, 'nominal')">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500">Markup (%)</label>
+          <input type="number" class="w-full border rounded px-2 itemMarkupPersen text-right" value="0" oninput="recalculateHarga(this, 'persen')">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-4 gap-2">
         <div>
           <label class="block text-xs text-gray-500">Qty</label>
           <input type="number" class="w-full border rounded px-2 itemQty text-right" value="1" oninput="recalculateTotal()">
@@ -359,22 +386,20 @@ async function tambahItem() {
           <label class="block text-xs text-gray-500">Unit</label>
           <input type="text" class="w-full border rounded px-2 itemUnit" placeholder="set">
         </div>
-        
-      </div>
-<div>
-          <label class="block text-xs text-gray-500">Harga</label>
-          <input type="text" class="w-full border rounded px-2 itemHarga text-right" value="0" oninput="recalculateTotal()">
+        <div class="col-span-2">
+          <label class="block text-xs text-gray-500">Harga (Jual)</label>
+          <input type="text" class="w-full border rounded px-2 itemHarga text-right bg-gray-100" value="0" readonly>
         </div>
+      </div>
+      
       <div class="mt-2">
         <label class="block text-xs text-gray-500">Sub Total</label>
         <div class="border rounded px-2 py-1 text-right bg-gray-50 itemTotal">0</div>
       </div>
     </td>
 
-    <!-- Aksi -->
     <td class="border px-3 py-2 text-center w-[10%] align-top">
       <div class="flex flex-col items-center justify-center space-y-2">
-        <!-- Hapus -->
         <button onclick="hapusItem(this)" 
           class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition" 
           title="Hapus Item">
@@ -383,7 +408,6 @@ async function tambahItem() {
           </svg>
         </button>
 
-        <!-- Tambah Sub Item -->
         ${
           typeId == 3
             ? `
@@ -421,11 +445,10 @@ function tambahSubItem(btn) {
   const subTr = document.createElement("tr");
   subTr.classList.add("subItemRow", "bg-gray-50", "italic");
 
+  // GANTI BAGIAN subTr.innerHTML DI FUNGSI tambahSubItem() DENGAN INI:
   subTr.innerHTML = `
-    <!-- No -->
     <td class="border px-3 py-2 w-[5%] text-center align-middle itemNumber"></td>
 
-    <!-- Deskripsi, Spec, Qty, Unit, Harga, Subtotal -->
     <td class="border px-3 py-2 align-top">
       <div class="space-y-2">
         <div>
@@ -438,7 +461,22 @@ function tambahSubItem(btn) {
           <input type="text" class="w-full border rounded px-2 subItemSpec" placeholder="Spesifikasi">
         </div>
 
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid grid-cols-3 gap-2 p-2 border rounded bg-white my-2">
+          <div>
+            <label class="block text-xs text-gray-500">HPP (Modal)</label>
+            <input type="text" class="w-full border rounded px-2 subItemHpp text-right finance" value="0" oninput="recalculateHarga(this, 'hpp')">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500">Markup (Nominal)</label>
+            <input type="text" class="w-full border rounded px-2 subItemMarkupNominal text-right finance" value="0" oninput="recalculateHarga(this, 'nominal')">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500">Markup (%)</label>
+            <input type="number" class="w-full border rounded px-2 subItemMarkupPersen text-right" value="0" oninput="recalculateHarga(this, 'persen')">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-4 gap-2">
           <div>
             <label class="block text-xs text-gray-500">Qty</label>
             <input type="number" class="w-full border rounded px-2 text-right subItemQty" value="1" oninput="recalculateTotal()">
@@ -447,12 +485,12 @@ function tambahSubItem(btn) {
             <label class="block text-xs text-gray-500">Unit</label>
             <input type="text" class="w-full border rounded px-2 subItemUnit" placeholder="pcs">
           </div>
-          
-        </div>
-        <div>
-            <label class="block text-xs text-gray-500">Harga</label>
-            <input type="text" class="w-full border rounded px-2 text-right subItemHarga" value="0" oninput="recalculateTotal()">
+          <div class="col-span-2">
+            <label class="block text-xs text-gray-500">Harga (Jual)</label>
+            <input type="text" class="w-full border rounded px-2 text-right subItemHarga bg-gray-100" value="0" readonly>
           </div>
+        </div>
+        
         <div class="mt-2">
           <label class="block text-xs text-gray-500">Sub Total</label>
           <div class="border rounded px-2 py-1 text-right bg-gray-100 subItemTotal">0</div>
@@ -460,7 +498,6 @@ function tambahSubItem(btn) {
       </div>
     </td>
 
-    <!-- Aksi -->
     <td class="border px-3 py-2 text-center w-[10%] align-middle">
       <button onclick="hapusItem(this)"
         class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition"
@@ -697,6 +734,79 @@ function calculateTotals() {
   document.getElementById("contract_amount").value = finance(subtotal);
   document.getElementById("ppn").value = finance(ppn);
   document.getElementById("total").value = finance(total);
+}
+
+function recalculateHarga(element, inputType) {
+  const row = element.closest(".itemRow, .subItemRow");
+  if (!row) return;
+
+  const isSubItem = row.classList.contains("subItemRow");
+  const prefix = isSubItem ? ".subItem" : ".item";
+
+  const hppEl = row.querySelector(`${prefix}Hpp`);
+  const nominalEl = row.querySelector(`${prefix}MarkupNominal`);
+  const persenEl = row.querySelector(`${prefix}MarkupPersen`);
+  const hargaEl = row.querySelector(`${prefix}Harga`); // Ini target output kita
+
+  let hpp = parseRupiah(hppEl.value) || 0;
+  let nominal = parseRupiah(nominalEl.value) || 0;
+  let persen = parseFloat(persenEl.value) || 0;
+
+  if (inputType === "hpp" || inputType === "nominal") {
+    // Jika HPP atau Nominal diubah, hitung Persen
+    nominal = parseRupiah(nominalEl.value) || 0; // parseRupiah baru kita sudah benar
+    if (hpp !== 0) {
+      persen = (nominal / hpp) * 100;
+      persenEl.value = persen.toFixed(2); // Tampilkan 2 angka desimal
+    } else {
+      persenEl.value = 0;
+    }
+  } else if (inputType === "persen") {
+    // Jika Persen diubah, hitung Nominal
+    persen = parseFloat(persenEl.value) || 0;
+    nominal = hpp * (persen / 100);
+
+    // --- REVISI DI SINI ---
+    // Format output nominal agar bisa menampilkan minus
+    let nominalStr = String(Math.abs(Math.round(nominal))); // Bulatkan & ambil angkanya saja
+    nominalEl.value =
+      nominal < 0 ? "-" + finance(nominalStr) : finance(nominalStr);
+  }
+
+  // Hitung Harga Jual akhir
+  const hargaJual = hpp + nominal;
+
+  // --- REVISI DI SINI ---
+  // Format hargaJual juga, jaga tanda minus
+  let hargaJualStr = String(Math.abs(Math.round(hargaJual))); // Bulatkan & ambil angkanya saja
+  hargaEl.value =
+    hargaJual < 0 ? "-" + finance(hargaJualStr) : finance(hargaJualStr);
+
+  // Panggil recalculateTotal() untuk update Sub Total baris dan Total keseluruhan
+  recalculateTotal();
+}
+
+// Fungsi ini sudah ada di kode Anda, pastikan key-nya benar
+function loadPretextFromLocal() {
+  try {
+    // ⬇️ GANTI "KEY_YANG_BENAR" DENGAN KEY YANG ANDA TEMUKAN DI DEVTOOLS
+    const userData = JSON.parse(localStorage.getItem("user"));
+
+    if (!userData) {
+      console.warn(
+        "Data user tidak ditemukan di localStorage dengan key tersebut."
+      );
+      return;
+    }
+
+    // Set isi textarea
+    document.getElementById("catatan").value = userData.sales_note || "";
+    document.getElementById("syarat_ketentuan").value =
+      userData.sales_snk || "";
+    document.getElementById("term_pembayaran").value = userData.sales_top || "";
+  } catch (err) {
+    console.error("Gagal memuat pretext dari localStorage:", err);
+  }
 }
 
 async function saveInvoice(mode = "create", id = null) {
