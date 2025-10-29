@@ -187,11 +187,15 @@ function renderProjectData() {
             <td class="px-3 py-2 text-right align-top">${item.qty || 0}</td>
             <td class="px-3 py-2 text-left align-top">${item.unit || ""}</td>
             <td class="px-3 py-2 text-right align-top">${formatNumber(
-              0
-            )}</td> <td class="px-3 py-2 text-right align-top">${formatNumber(
-            item_project_value
-          )}</td> <td class="px-3 py-2 text-center align-top">
-              <input class="plancosting text-right border rounded px-2 py-1 w-full" type="number" placeholder="0" value="${item_plan_costing}">
+              item.unit_price
+            )}</td> 
+            <td class="px-3 py-2 text-right align-top">${formatNumber(
+              item.item_total
+            )}</td>
+            <td class="px-3 py-2 text-center align-top">
+              <input class="plancosting text-right border rounded px-2 py-1 w-full" type="number" placeholder="0" value="${
+                item.plan_total
+              }">
             </td>
             
             <td class="px-3 py-2 text-right font-bold text-red-600 align-top">
