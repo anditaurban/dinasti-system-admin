@@ -6,19 +6,19 @@ subpagemodule = "Project Costing";
 // VARIABEL GLOBAL (PENGGANTI MOCK DATA)
 // ================================================================
 // Variabel ini akan diisi oleh data dari API saat load
-let projectDetailData = null;
+projectDetailData = null;
 // Variabel ini akan dibangun dari data API, lalu bisa ditambah/dimodifikasi
-let realCalculationData = [];
+realCalculationData = [];
 
 // ================================================================
 // PENGATURAN TAB (LOGIKA UNTUK 3 TAB)
 // ================================================================
-const tab1 = document.getElementById("tab1");
-const tab2 = document.getElementById("tab2");
-const tab3 = document.getElementById("tab3");
-const tab1Btn = document.getElementById("tab1Btn");
-const tab2Btn = document.getElementById("tab2Btn");
-const tab3Btn = document.getElementById("tab3Btn");
+tab1 = document.getElementById("tab1");
+tab2 = document.getElementById("tab2");
+tab3 = document.getElementById("tab3");
+tab1Btn = document.getElementById("tab1Btn");
+tab2Btn = document.getElementById("tab2Btn");
+tab3Btn = document.getElementById("tab3Btn");
 
 function switchTab(activeTab, activeBtn) {
   [tab1, tab2, tab3].forEach((tab) => tab.classList.add("hidden"));
