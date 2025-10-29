@@ -383,10 +383,10 @@ async function openCreateProject(pesanan_id, nilai_kontrak) {
         <input id="plan_costing" type="number" value="${nilai_kontrak}" class="w-full p-2 border rounded-lg">
 
         <label class="block text-sm font-medium text-gray-700">Start Date</label>
-        <input id="start_date" type="date" value="2025-09-10" class="w-full p-2 border rounded-lg">
+        <input id="start_date" type="date" class="w-full p-2 border rounded-lg">
 
         <label class="block text-sm font-medium text-gray-700">Finish Date</label>
-        <input id="finish_date" type="date" value="2025-12-31" class="w-full p-2 border rounded-lg">
+        <input id="finish_date" type="date" class="w-full p-2 border rounded-lg">
       </div>
     `,
     focusConfirm: false,
