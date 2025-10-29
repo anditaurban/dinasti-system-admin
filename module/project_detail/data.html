@@ -1,7 +1,6 @@
 <div class="bg-white p-4 md:p-6 rounded-lg shadow max-w-7xl mx-auto">
   <section class="space-y-6">
 
-    <!-- Header -->
     <div class="flex flex-wrap items-start justify-between mb-4 gap-4">
       <div>
         <h1 id="pageTitle" class="text-2xl font-bold mb-1">Project Costing</h1>
@@ -13,14 +12,11 @@
       </div>
     </div>
 
-    <!-- Search + Filter -->
     <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 text-sm">
-      <!-- Search -->
       <div class="w-full md:w-auto">
         <span class="text-lg font-semibold" id="projectNameDisplay">Demo Project - Site A</span>
       </div>
 
-      <!-- Actions -->
       <div class="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto">
         <button id="downloadBtn" class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded text-sm">
           📄 Download PDF
@@ -32,7 +28,6 @@
       </div>
     </div>
 
-    <!-- Tab Navigation -->
     <div class="flex border-b mb-4">
       <button id="tab1Btn" class="px-4 py-2 font-semibold border-b-2 border-blue-600 text-blue-600 focus:outline-none">
         Costing
@@ -40,13 +35,14 @@
       <button id="tab2Btn" class="px-4 py-2 font-semibold text-gray-500 hover:text-gray-700 focus:outline-none">
         Real Calculation
       </button>
+      <button id="tab3Btn" class="px-4 py-2 font-semibold text-gray-500 hover:text-gray-700 focus:outline-none">
+        Buat Project Baru
+      </button>
     </div>
 
-    <!-- ================= TAB 1 (Default Terlihat) ================= -->
     <div id="tab1" class="tab-content">
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
-        <!-- Project Value -->
         <div class="bg-white rounded-xl shadow p-5 border border-gray-200">
           <div class="flex items-center justify-between mb-2">
             <span class="text-lg font-semibold">Project Value</span>
@@ -54,7 +50,6 @@
           <div id="projectAmount" class="text-3xl text-right font-bold tracking-wider mb-3 text-blue-600">---</div>
         </div>
 
-        <!-- Plan Costing -->
         <div class="bg-white rounded-xl shadow p-5 border border-gray-200">
           <div class="flex items-center justify-between mb-2">
             <span class="text-gray-800 font-semibold">Plan Costing</span>
@@ -62,7 +57,6 @@
           <div id="plan_costing" class="text-2xl text-right font-bold text-gray-800 mb-2">---</div>
         </div>
 
-        <!-- Actual Costing -->
         <div class="bg-white rounded-xl shadow p-5 border border-gray-200">
           <div class="flex items-center justify-between mb-2">
             <span class="text-gray-800 font-semibold">Actual Costing</span>
@@ -70,7 +64,6 @@
           <div id="actual_costing" class="text-2xl text-right font-bold text-red-600 mb-2">---</div>
         </div>
 
-        <!-- Margin -->
         <div class="bg-white rounded-xl shadow p-5 border border-gray-200">
           <div class="flex items-center justify-between mb-2">
             <span class="text-gray-800 font-semibold">Margin</span>
@@ -79,7 +72,6 @@
         </div>
       </div>
 
-      <!-- Informasi Detail Project Baru -->
       <div class="mt-6 bg-white p-4 rounded-lg shadow border border-gray-200">
         <h3 class="text-lg font-semibold mb-3 border-b pb-2">Detail Informasi Project</h3>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -104,7 +96,6 @@
 
       <br>
 
-      <!-- Table -->
       <div>
         <section>
           <div class="overflow-auto border rounded">
@@ -130,10 +121,8 @@
       </div>
     </div>
 
-    <!-- ================= TAB 2 (Default Tersembunyi) ================= -->
     <div id="tab2" class="hidden tab-content">
 
-      <!-- Form Input Detail -->
       <div class="bg-gray-50 p-4 rounded-lg border shadow-sm mb-6">
         <h3 class="text-lg font-semibold mb-3">Input Detail Pengeluaran</h3>
         <form id="realCalcForm" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
@@ -165,7 +154,6 @@
         </form>
       </div>
 
-      <!-- Tabel Detail -->
       <h3 class="text-lg font-semibold mb-3">Real Calculation Details</h3>
       <div class="overflow-auto border rounded">
         <table class="w-full text-sm">
@@ -186,10 +174,53 @@
       </div>
     </div>
 
+    <div id="tab3" class="hidden tab-content">
+      <div class="max-w-2xl mx-auto">
+        <h3 class="text-lg font-semibold mb-3">Buat Project Baru</h3>
+        <p class="text-sm text-gray-600 mb-4">Buat project baru terlebih dahulu sebelum membuat Quotation atau Invoice.
+        </p>
+
+        <div class="grid grid-cols-1 gap-4 mb-4 text-sm">
+
+          <div>
+            <label for="new_project_name" class="block text-xs text-gray-500 mb-1">Project Name <span
+                class="text-red-500">*</span></label>
+            <input type="text" name="new_project_name" id="new_project_name"
+              class="w-full border rounded px-3 py-2 text-sm" placeholder="Nama Project">
+          </div>
+
+          <div>
+            <label for="new_client" class="block text-xs text-gray-500 mb-1">Client <span
+                class="text-red-500">*</span></label>
+            <select id="new_client" name="new_client" class="w-full border px-3 py-2 rounded text-sm">
+              <option value="">-- Pilih Client --</option>
+            </select>
+            <input type="hidden" id="new_client_id" />
+          </div>
+
+          <div>
+            <label for="new_pic_name" class="block text-xs text-gray-500 mb-1">PIC Name</label>
+            <input type="text" id="new_pic_name" name="new_pic_name" class="w-full border rounded px-3 py-2 text-sm"
+              placeholder="Nama PIC">
+          </div>
+
+          <div>
+            <label for="new_tanggal" class="block text-xs text-gray-500 mb-1">Tanggal Mulai</label>
+            <input type="date" id="new_tanggal" name="new_tanggal" class="w-full border px-3 py-2 rounded text-sm" />
+          </div>
+
+        </div>
+
+        <div class="flex items-center justify-end gap-2 mt-6">
+          <button id="saveProjectBtn" class="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded text-sm">
+            💾 Simpan Project
+          </button>
+        </div>
+      </div>
+    </div>
   </section>
 </div>
 
-<!-- Simple Notification -->
 <div id="notification"
   class="hidden fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transition-opacity duration-300">
   Data berhasil disimpan!

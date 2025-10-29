@@ -144,12 +144,12 @@ function filterProdukDropdownCustom(inputEl) {
   dropdown.classList.remove("hidden");
 }
 
-document.addEventListener("input", function (e) {
-  if (e.target.classList.contains("finance")) {
-    const angka = e.target.value.replace(/[^\d]/g, "");
-    e.target.value = finance(angka);
-  }
-});
+// document.addEventListener("input", function (e) {
+//   if (e.target.classList.contains("finance")) {
+//     const angka = e.target.value.replace(/[^\d]/g, "");
+//     e.target.value = finance(angka);
+//   }
+// });
 
 function parseRupiah(rupiah) {
   if (!rupiah || typeof rupiah !== "string") return 0;
@@ -160,7 +160,12 @@ function parseRupiah(rupiah) {
 }
 
 // GANTI EVENT LISTENER LAMA DENGAN INI
+// ...DENGAN BLOK YANG SUDAH DIPERBARUI INI:
 document.addEventListener("input", function (e) {
+  const id = e.target.id;
+  const isRelevant = ["discount"].includes(id); // Tetap simpan ini
+
+  // Logika baru untuk format .finance
   if (e.target.classList.contains("finance")) {
     const value = e.target.value;
 
@@ -170,11 +175,16 @@ document.addEventListener("input", function (e) {
     // Hapus semua karakter non-digit
     const angka = value.replace(/[^\d]/g, "");
 
-    // Format angkanya
-    let formatted = finance(angka); // Asumsi finance() bisa format "20000" -> "20.000"
+    // Asumsi Anda punya fungsi finance() untuk format "20000" -> "20.000"
+    let formatted = finance(angka);
 
     // Tambahkan kembali tanda minus jika ada
     e.target.value = isNegative ? "-" + formatted : formatted;
+  }
+
+  // Tetap panggil calculateTotals jika relevan
+  if (isRelevant) {
+    calculateTotals();
   }
 });
 
@@ -519,6 +529,7 @@ function hapusItem(button) {
   calculateTotals();
 }
 
+// GANTI SELURUH FUNGSI ANDA DENGAN INI
 async function loadDetailSales(Id, Detail) {
   window.detail_id = Id;
   window.detail_desc = Detail;
@@ -654,6 +665,16 @@ async function loadDetailSales(Id, Detail) {
               item.unit_price || 0
             );
 
+            // <-- BARU: Isi data HPP untuk Item Utama -->
+            // Asumsi key dari API adalah: hpp, markup_nominal, markup_percent
+            row.querySelector(".itemHpp").value = finance(item.hpp || 0);
+            row.querySelector(".itemMarkupNominal").value = finance(
+              item.markup_nominal || 0
+            );
+            row.querySelector(".itemMarkupPersen").value =
+              item.markup_percent || 0;
+            // <-- AKHIR BARU -->
+
             if (item.materials?.length) {
               for (const material of item.materials) {
                 tambahSubItem(row.querySelector(".btnTambahSubItem"));
@@ -673,6 +694,19 @@ async function loadDetailSales(Id, Detail) {
                   subTr.querySelector(".subItemHarga").value = finance(
                     material.unit_price || 0
                   );
+
+                  // <-- BARU: Isi data HPP untuk Sub-Item -->
+                  // Asumsi key dari API adalah: hpp, markup_nominal, markup_percent
+                  subTr.querySelector(".subItemHpp").value = finance(
+                    material.hpp || 0
+                  );
+                  subTr.querySelector(".subItemMarkupNominal").value = finance(
+                    material.markup_nominal || 0
+                  );
+                  subTr.querySelector(".subItemMarkupPersen").value =
+                    material.markup_percent || 0;
+                  // <-- AKHIR BARU -->
+
                   subTr.querySelector(".subItemTotal").innerText = finance(
                     material.total || material.qty * material.unit_price
                   );
@@ -757,7 +791,8 @@ function recalculateHarga(element, inputType) {
     nominal = parseRupiah(nominalEl.value) || 0; // parseRupiah baru kita sudah benar
     if (hpp !== 0) {
       persen = (nominal / hpp) * 100;
-      persenEl.value = persen.toFixed(2); // Tampilkan 2 angka desimal
+      // UBAH MENJADI INI:
+      persenEl.value = Math.round(persen); // Dibulatkan tanpa koma // Tampilkan 2 angka desimal
     } else {
       persenEl.value = 0;
     }
@@ -809,6 +844,7 @@ function loadPretextFromLocal() {
   }
 }
 
+// GANTI DENGAN FUNGSI INI (TYPO SUDAH DIPERBAIKI)
 async function saveInvoice(mode = "create", id = null) {
   try {
     calculateTotals();
@@ -847,6 +883,7 @@ async function saveInvoice(mode = "create", id = null) {
       const row = rows[i];
       if (!row.querySelector(".itemProduct")) continue;
 
+      // --- AMBIL DATA ITEM (TERMASUK HPP) ---
       const sub_category_id = parseInt(
         row.querySelector(".itemSubcategory")?.value || 0
       );
@@ -857,9 +894,18 @@ async function saveInvoice(mode = "create", id = null) {
       const unit_price = parseRupiah(
         row.querySelector(".itemHarga")?.value || 0
       );
+      // --- TAMBAHAN DATA HPP ---
+      const hpp = parseRupiah(row.querySelector(".itemHpp")?.value || 0);
+      const markup_nominal = parseRupiah(
+        row.querySelector(".itemMarkupNominal")?.value || 0
+      );
+      const markup_percent = parseFloat(
+        row.querySelector(".itemMarkupPersen")?.value || 0
+      );
 
       const key = `${sub_category_id}-${product}`;
       if (!groupedItems[key]) {
+        // --- MASUKKAN DATA ITEM (TERMASUK HPP) ---
         groupedItems[key] = {
           product,
           sub_category_id,
@@ -867,6 +913,9 @@ async function saveInvoice(mode = "create", id = null) {
           qty,
           unit,
           unit_price,
+          hpp,
+          markup_nominal,
+          markup_percent,
           materials: [],
         };
       }
@@ -875,6 +924,7 @@ async function saveInvoice(mode = "create", id = null) {
       if (subWrapper && subWrapper.classList.contains("subItemWrapper")) {
         const subItems = subWrapper.querySelectorAll(".subItemRow");
         subItems.forEach((sub) => {
+          // --- AMBIL DATA SUB-ITEM (TERMASUK HPP) ---
           const subItemMaterial =
             sub.querySelector(".subItemMaterial")?.value.trim() || "";
           const subItemSpec =
@@ -887,13 +937,30 @@ async function saveInvoice(mode = "create", id = null) {
           const subItemHarga = parseRupiah(
             sub.querySelector(".subItemHarga")?.value || 0
           );
+          // --- TAMBAHAN DATA HPP SUB-ITEM ---
+          const subItemHpp = parseRupiah(
+            sub.querySelector(".subItemHpp")?.value || 0
+          );
+          const subItemMarkupNominal = parseRupiah(
+            sub.querySelector(".subItemMarkupNominal")?.value || 0
+          );
 
+          // --- INI BARIS YANG DIPERBAIKI ---
+          // Sebelumnya ".subItemMarkupPercent" (salah, pakai 't')
+          const subItemMarkupPercent = parseFloat(
+            sub.querySelector(".subItemMarkupPersen")?.value || 0
+          ); // <-- BENAR (pakai 's')
+
+          // --- MASUKKAN DATA SUB-ITEM (TERMASUK HPP) ---
           groupedItems[key].materials.push({
             subItemMaterial,
             subItemSpec,
             subItemQty,
             subItemUnit,
             subItemHarga,
+            subItemHpp,
+            subItemMarkupNominal,
+            subItemMarkupPercent,
           });
         });
       }
@@ -915,7 +982,7 @@ async function saveInvoice(mode = "create", id = null) {
 
     console.log("Total baris item ditemukan:", rows.length);
     console.log("Total item valid:", Object.keys(groupedItems).length);
-    console.log("Contoh groupedItems:", groupedItems);
+    console.log("Contoh groupedItems (sudah ada HPP):", groupedItems);
 
     const formData = new FormData();
     formData.append("owner_id", owner_id);
@@ -952,7 +1019,7 @@ async function saveInvoice(mode = "create", id = null) {
       "revision_status",
       document.getElementById("revision_number").value
     );
-    formData.append("revision_update", revisionUpdate); // ✅ ditambahkan
+    formData.append("revision_update", revisionUpdate);
     formData.append("items", JSON.stringify(items));
     formData.append(
       "catatan",

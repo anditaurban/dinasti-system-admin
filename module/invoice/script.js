@@ -74,7 +74,7 @@ window.rowTemplate = function (item, index, perPage = 10) {
   </button>
         
       ${
-        item.project === "yes"
+        item.project === "no"
           ? `<button 
           onclick="openCreateProject('${item.pesanan_id}', '${item.nilai_kontrak}')"
           class="block w-full text-left px-4 py-2 hover:bg-gray-100">

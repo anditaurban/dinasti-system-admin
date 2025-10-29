@@ -1,127 +1,125 @@
 pagemodule = "Project";
 subpagemodule = "Project Costing";
-// renderHeader(); // Diasumsikan sudah ada di file lain
+// renderHeader(); // Diasumsikan sudah ada dari file lain
 
 // ================================================================
-// DATA JSON SEMENTARA
+// VARIABEL GLOBAL (PENGGANTI MOCK DATA)
 // ================================================================
-const projectData = {
-  detail: {
-    project_value: 38295000,
-    plan_costing: 12000000, // Initial plan cost (8jt + 4jt)
-    actual_cost: 10750000,
-    margin: 27545000,
-    no_qo: "QO/2025/09/123",
-    no_inv: "INV/2025/09/456",
-    no_po: "PO-789XYZ",
-    pic_pm: "Budi Santoso",
-    items: [
-      {
-        id: 101,
-        sub_category: "JASA",
-        product: "Ganti Kabel",
-        description: "Termasuk pengerjaan glow in the dark",
-        qty: 1,
-        unit: "set",
-        unit_price: 10300000,
-        total: 10300000,
-        plan_costing: 8000000,
-        actual_costing: 7000000,
-        payment_date: "2025-09-12",
-      },
-      {
-        id: 102,
-        sub_category: "MOB/DEMOB",
-        product: "Drop Team",
-        description: "Mobilisasi tim ke lokasi",
-        qty: 2,
-        unit: "Person",
-        unit_price: 2900000,
-        total: 5800000,
-        plan_costing: 4000000,
-        actual_costing: 3750000,
-        payment_date: "2025-09-14",
-      },
-    ],
-  },
-};
-
-const realCalculationData = [
-  {
-    id: 1,
-    tanggal: "2025-09-01",
-    product: "Kabel Ungu",
-    korelasi: "Ganti Kabel",
-    harga: 2000000,
-  },
-  {
-    id: 2,
-    tanggal: "2025-09-12",
-    product: "Kabel PINK",
-    korelasi: "Ganti Kabel",
-    harga: 5000000,
-  },
-  {
-    id: 3,
-    tanggal: "2025-09-13",
-    product: "Tiket Pesawat Agus",
-    korelasi: "Drop Team",
-    harga: 2000000,
-  },
-  {
-    id: 4,
-    tanggal: "2025-09-14",
-    product: "Tiket Pesawat Nandar",
-    korelasi: "Drop Team",
-    harga: 1750000,
-  },
-];
+// Variabel ini akan diisi oleh data dari API saat load
+let projectDetailData = null;
+// Variabel ini akan dibangun dari data API, lalu bisa ditambah/dimodifikasi
+let realCalculationData = [];
 
 // ================================================================
-// PENGATURAN TAB
+// PENGATURAN TAB (LOGIKA UNTUK 3 TAB)
 // ================================================================
 const tab1 = document.getElementById("tab1");
 const tab2 = document.getElementById("tab2");
+const tab3 = document.getElementById("tab3");
 const tab1Btn = document.getElementById("tab1Btn");
 const tab2Btn = document.getElementById("tab2Btn");
+const tab3Btn = document.getElementById("tab3Btn");
 
-tab1Btn.addEventListener("click", () => {
-  tab1.classList.remove("hidden");
-  tab2.classList.add("hidden");
-  tab1Btn.classList.add("border-blue-600", "text-blue-600");
-  tab2Btn.classList.remove("border-blue-600", "text-blue-600");
-});
+function switchTab(activeTab, activeBtn) {
+  [tab1, tab2, tab3].forEach((tab) => tab.classList.add("hidden"));
+  [tab1Btn, tab2Btn, tab3Btn].forEach((btn) => {
+    btn.classList.remove("border-blue-600", "text-blue-600");
+    btn.classList.add("text-gray-500");
+  });
+  activeTab.classList.remove("hidden");
+  activeBtn.classList.add("border-blue-600", "text-blue-600");
+  activeBtn.classList.remove("text-gray-500");
+}
 
-tab2Btn.addEventListener("click", () => {
-  tab2.classList.remove("hidden");
-  tab1.classList.add("hidden");
-  tab2Btn.classList.add("border-blue-600", "text-blue-600");
-  tab1Btn.classList.remove("border-blue-600", "text-blue-600");
-});
+tab1Btn.addEventListener("click", () => switchTab(tab1, tab1Btn));
+tab2Btn.addEventListener("click", () => switchTab(tab2, tab2Btn));
+tab3Btn.addEventListener("click", () => switchTab(tab3, tab3Btn));
 
 // ================================================================
-// FUNGSI RENDER UTAMA
+// FUNGSI LOAD DATA UTAMA (MENGGUNAKAN API)
 // ================================================================
-function loadDetailProject() {
+async function loadDetailProject() {
+  // Ambil ID dari window (diasumsikan di-set oleh skrip global)
+  // Fallback ke '5' sesuai contoh endpoint Anda untuk testing
+  const projectId = window.detail_id || 5;
+
+  if (!projectId) {
+    alert("Project ID tidak ditemukan.");
+    return;
+  }
+
+  // Asumsi baseUrl dan API_TOKEN tersedia secara global
+  if (typeof baseUrl === "undefined" || typeof API_TOKEN === "undefined") {
+    console.error("baseUrl atau API_TOKEN tidak terdefinisi.");
+    alert("Konfigurasi API tidak ditemukan.");
+    return;
+  }
+
   try {
-    const data = projectData.detail;
-    if (!data) throw new Error("Struktur JSON tidak valid");
+    const res = await fetch(`${baseUrl}/detail/project/${projectId}`, {
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+    });
 
-    // --- Kalkulasi Ulang Total Sebelum Render ---
-    // Total Plan Costing berdasarkan nilai di setiap item
-    data.plan_costing = data.items.reduce(
-      (sum, item) => sum + (item.plan_costing || 0),
-      0
-    );
-    // Total Actual Costing berdasarkan nilai di setiap item
-    data.actual_cost = data.items.reduce(
-      (sum, item) => sum + (item.actual_costing || 0),
-      0
-    );
-    // Margin
-    data.margin = data.project_value - data.actual_cost;
+    if (!res.ok) {
+      throw new Error(`Gagal mengambil data project: ${res.statusText}`);
+    }
 
-    // --- Update Kartu Ringkasan Atas ---
+    const response = await res.json();
+    if (!response.success || !response.detail) {
+      throw new Error(response.message || "Struktur data API tidak valid");
+    }
+
+    // Simpan data API ke variabel global
+    projectDetailData = response.detail;
+
+    // Panggil fungsi render yang sekarang terpisah
+    renderProjectData();
+  } catch (err) {
+    console.error("Gagal memuat detail:", err);
+    Swal.fire("Error", err.message || "Gagal memuat detail project", "error");
+  }
+}
+
+// ================================================================
+// FUNGSI RENDER (MENGGUNAKAN DATA DARI VARIABEL GLOBAL)
+// ================================================================
+function renderProjectData() {
+  try {
+    const data = projectDetailData; // Baca dari variabel global
+    if (!data) throw new Error("Data project belum dimuat");
+
+    // 1. (RE)BUILD ARRAY REAL CALCULATION
+    // Ini penting agar modal & Tab 2 selalu update
+    realCalculationData = []; // Kosongkan array global
+    if (data.items) {
+      data.items.forEach((item) => {
+        if (item.materials && item.materials.length > 0) {
+          // Jika item punya material, ambil dari material
+          item.materials.forEach((mat) => {
+            realCalculationData.push({
+              id: mat.project_materials_id,
+              tanggal: mat.payment_date || data.start_date || "N/A",
+              product: mat.name,
+              korelasi: item.product, // Korelasi ke nama item induk
+              harga: mat.actual_total || 0,
+            });
+          });
+        } else if (item.actual_total > 0) {
+          // Jika item tidak punya material tapi punya nilai, item itu sendiri adalah biayanya
+          realCalculationData.push({
+            id: item.project_item_id,
+            tanggal: item.payment_date || data.start_date || "N/A",
+            product: item.product,
+            korelasi: item.product, // Korelasi ke dirinya sendiri
+            harga: item.actual_total || 0,
+          });
+        }
+      });
+    }
+
+    // 2. UPDATE KARTU RINGKASAN ATAS
+    document.getElementById("projectNameDisplay").textContent =
+      data.project_name || "Project Detail";
     document.getElementById("projectAmount").innerHTML = formatNumber(
       data.project_value
     );
@@ -133,13 +131,15 @@ function loadDetailProject() {
     );
     document.getElementById("margin").innerHTML = formatNumber(data.margin);
 
-    // --- Update Info Detail Project ---
-    document.getElementById("detailNoQO").textContent = data.no_qo || "---";
-    document.getElementById("detailNoInv").textContent = data.no_inv || "---";
-    document.getElementById("detailNoPO").textContent = data.no_po || "---";
-    document.getElementById("detailPIC").textContent = data.pic_pm || "---";
+    // 3. UPDATE INFO DETAIL PROJECT
+    document.getElementById("detailNoQO").textContent = "---"; // API tidak menyediakan
+    document.getElementById("detailNoInv").textContent = "---"; // API tidak menyediakan
+    document.getElementById("detailNoPO").textContent =
+      data.project_number || "---";
+    document.getElementById("detailPIC").textContent =
+      data.project_manager_name || "---";
 
-    // --- Render Tabel Item di Tab 1 ---
+    // 4. RENDER TABEL ITEM DI TAB 1
     const tbody = document.getElementById("tabelItem");
     tbody.innerHTML = "";
 
@@ -159,9 +159,25 @@ function loadDetailProject() {
         groups[subCat].forEach((item) => {
           const tr = document.createElement("tr");
           tr.className = "border-b";
-          tr.dataset.itemId = item.id; // Penting untuk update
+          tr.dataset.itemId = item.project_item_id; // Gunakan ID dari API
 
-          // --- MODIFIKASI: Mengganti Plan Costing menjadi input ---
+          // Hitung total plan dan actual per item (dari material atau dari item itu sendiri)
+          const item_plan_costing =
+            item.temp_plan_costing !== undefined
+              ? item.temp_plan_costing // Gunakan nilai yg diedit jika ada
+              : item.materials.reduce((s, m) => s + (m.costing || 0), 0) ||
+                item.costing ||
+                0;
+
+          const item_actual_costing =
+            item.materials.reduce((s, m) => s + (m.actual_total || 0), 0) ||
+            item.actual_total ||
+            0;
+          const item_project_value =
+            item.materials.reduce((s, m) => s + (m.total || 0), 0) ||
+            item.total ||
+            0;
+
           tr.innerHTML = `
             <td class="px-3 py-2 text-center align-top">${nomor++}</td>
             <td class="px-3 py-2 align-top">
@@ -171,22 +187,28 @@ function loadDetailProject() {
             <td class="px-3 py-2 text-right align-top">${item.qty || 0}</td>
             <td class="px-3 py-2 text-left align-top">${item.unit || ""}</td>
             <td class="px-3 py-2 text-right align-top">${formatNumber(
-              item.unit_price || 0
-            )}</td>
-            <td class="px-3 py-2 text-right align-top">${formatNumber(
-              item.total || 0
-            )}</td>
-            <td class="px-3 py-2 text-center align-top">
-              <input class="plancosting text-right border rounded px-2 py-1 w-full" type="number" placeholder="0" value="${
-                item.plan_costing || 0
-              }">
+              0
+            )}</td> <td class="px-3 py-2 text-right align-top">${formatNumber(
+            item_project_value
+          )}</td> <td class="px-3 py-2 text-center align-top">
+              <input class="plancosting text-right border rounded px-2 py-1 w-full" type="number" placeholder="0" value="${item_plan_costing}">
             </td>
-            <td class="px-3 py-2 text-right font-bold text-red-600 align-top">${formatNumber(
-              item.actual_costing || 0
-            )}</td>
+            
+            <td class="px-3 py-2 text-right font-bold text-red-600 align-top">
+              <div class="flex items-center justify-end gap-2">
+                <span>${formatNumber(item_actual_costing)}</span>
+                <button class="view-actual-cost-btn" data-korelasi="${
+                  item.product
+                }" title="Lihat Detail">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 hover:text-blue-800" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>
+                </button>
+              </div>
+            </td>
+            
             <td class="px-3 py-2 text-center align-top">${
-              item.payment_date || "dd/mm/yyyy"
+              data.start_date || "N/A"
             }</td>
+            
             <td class="px-3 py-2 text-center align-top">
               <button class="bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-1 rounded">Update</button>
             </td>
@@ -198,12 +220,14 @@ function loadDetailProject() {
       tbody.innerHTML = `<tr><td colspan="10" class="text-center text-gray-500 italic py-3">Tidak ada item</td></tr>`;
     }
 
-    // Panggil fungsi untuk mengisi data Tab 2
+    // 5. PANGGIL FUNGSI UNTUK TAB 2 & 3
     populateCorrelationDropdown(data.items);
-    loadRealCalculationDetails(realCalculationData);
+    loadRealCalculationDetails(realCalculationData); // Render Tab 2 dengan data yg baru dibangun
+    loadNewProjectCustomerList();
+    setNewProjectTodayDate();
   } catch (err) {
-    console.error("Gagal memuat detail:", err);
-    alert("Gagal memuat detail project: " + err.message);
+    console.error("Gagal me-render data:", err);
+    alert("Gagal me-render data project: " + err.message);
   }
 }
 
@@ -240,104 +264,282 @@ function loadRealCalculationDetails(details) {
 }
 
 // ================================================================
-// --- BARU: FUNGSI UNTUK MENGHITUNG ULANG ACTUAL COST ---
+// FUNGSI UNTUK MENGHITUNG ULANG ACTUAL COST (CLIENT-SIDE)
 // ================================================================
 function updateActualCosting() {
-  projectData.detail.items.forEach((item) => {
-    // Filter semua pengeluaran yang relevan untuk item ini
+  let totalActualCost = 0;
+
+  if (!projectDetailData || !projectDetailData.items) return;
+
+  // Loop melalui item di data global
+  projectDetailData.items.forEach((item) => {
+    // Filter dari array realCalculationData global
     const relatedExpenses = realCalculationData.filter(
       (expense) => expense.korelasi === item.product
     );
-    // Jumlahkan harganya
+    // Hitung total untuk item ini
     const totalActualCostForItem = relatedExpenses.reduce(
       (sum, expense) => sum + expense.harga,
       0
     );
-    // Update nilai actual_costing di data item
-    item.actual_costing = totalActualCostForItem;
+
+    // Update HTML di tabel Tab 1 secara manual
+    const row = document.querySelector(
+      `button[data-korelasi="${item.product}"]`
+    );
+    if (row) {
+      const span = row.closest("td").querySelector("span");
+      if (span) {
+        span.textContent = formatNumber(totalActualCostForItem);
+      }
+    }
+    totalActualCost += totalActualCostForItem;
   });
 
-  // Setelah semua item diupdate, render ulang seluruh tampilan
-  loadDetailProject();
+  // Update kartu header
+  document.getElementById("actual_costing").innerHTML =
+    formatNumber(totalActualCost);
+  const margin = (projectDetailData.project_value || 0) - totalActualCost;
+  document.getElementById("margin").innerHTML = formatNumber(margin);
+}
+
+// ================================================================
+// FUNGSI MODAL (TOMBOL MATA)
+// ================================================================
+function showActualCostDetail(korelasi) {
+  // Baca dari array global yang sudah di-update
+  const details = realCalculationData.filter(
+    (item) => item.korelasi === korelasi
+  );
+
+  let htmlContent = "";
+  if (details.length === 0) {
+    htmlContent =
+      '<p class="text-center text-gray-500">Tidak ada data detail untuk item ini.</p>';
+  } else {
+    htmlContent = `
+      <table class="w-full text-sm text-left">
+        <thead class="bg-gray-100">
+          <tr><th class="px-3 py-2">Tanggal</th><th class="px-3 py-2">Product / Item</th><th class="px-3 py-2 text-right">Harga</th></tr>
+        </thead>
+        <tbody>
+    `;
+    let total = 0;
+    details.forEach((item) => {
+      htmlContent += `
+        <tr class="border-b">
+          <td class="px-3 py-2">${item.tanggal}</td>
+          <td class="px-3 py-2">${item.product}</td>
+          <td class="px-3 py-2 text-right">${formatNumber(item.harga)}</td>
+        </tr>
+      `;
+      total += item.harga;
+    });
+    htmlContent += `
+        </tbody>
+        <tfoot class="font-bold">
+          <tr><td colspan="2" class="px-3 py-2 text-right">Total:</td><td class="px-3 py-2 text-right">${formatNumber(
+            total
+          )}</td></tr>
+        </tfoot>
+      </table>
+    `;
+  }
+
+  if (typeof Swal === "undefined") {
+    alert("Library SweetAlert2 (Swal) tidak ditemukan.");
+    return;
+  }
+
+  Swal.fire({
+    title: `Detail Actual Costing: "${korelasi}"`,
+    html: htmlContent,
+    width: "600px",
+    confirmButtonText: "Tutup",
+  });
 }
 
 // ================================================================
 // EVENT LISTENERS UNTUK INTERAKSI
 // ================================================================
 
-// --- BARU: Event listener untuk form input di Tab 2 ---
+// Listener Form Input Tab 2
 document
   .getElementById("realCalcForm")
   .addEventListener("submit", function (event) {
-    event.preventDefault(); // Mencegah form submit dan reload halaman
-
-    // Ambil nilai dari form
+    event.preventDefault();
     const tanggal = document.getElementById("calcTanggal").value;
     const product = document.getElementById("calcProduct").value;
     const korelasi = document.getElementById("calcKorelasi").value;
     const harga = parseInt(document.getElementById("calcHarga").value) || 0;
-
-    // Validasi sederhana
     if (!tanggal || !product || !korelasi || harga <= 0) {
       alert("Harap isi semua field dengan benar.");
       return;
     }
 
-    // Buat objek data baru
-    const newData = {
-      id: Date.now(), // ID unik sementara
+    // Tambahkan ke array global
+    realCalculationData.push({
+      id: Date.now(),
       tanggal,
       product,
       korelasi,
       harga,
-    };
-
-    // Tambahkan data baru ke array `realCalculationData`
-    realCalculationData.push(newData);
-
-    // Reset form
+    });
     this.reset();
 
-    // Tampilkan notifikasi (opsional)
     const notif = document.getElementById("notification");
     notif.textContent = "Detail pengeluaran berhasil ditambahkan!";
     notif.classList.remove("hidden");
     setTimeout(() => notif.classList.add("hidden"), 2000);
 
-    // Hitung ulang semua nilai Actual Costing dan render ulang halaman
+    // Render ulang tabel Tab 2
+    loadRealCalculationDetails(realCalculationData);
+    // Hitung ulang dan update nilai di Tab 1
     updateActualCosting();
   });
 
-// --- BARU: Event listener untuk input Plan Costing di Tab 1 ---
+// Listener Tabel Tab 1 (Input Plan Costing & Tombol Mata)
+document
+  .getElementById("tabelItem")
+  .addEventListener("click", function (event) {
+    const eyeButton = event.target.closest(".view-actual-cost-btn");
+    if (eyeButton) {
+      const korelasi = eyeButton.dataset.korelasi;
+      showActualCostDetail(korelasi);
+    }
+  });
+
 document
   .getElementById("tabelItem")
   .addEventListener("input", function (event) {
-    // Pastikan event berasal dari input dengan class 'plancosting'
     if (event.target.classList.contains("plancosting")) {
       const inputElement = event.target;
       const newCost = parseInt(inputElement.value) || 0;
       const itemId = parseInt(inputElement.closest("tr").dataset.itemId);
 
-      // Cari item di dalam data JSON dan update nilainya
-      const itemToUpdate = projectData.detail.items.find(
-        (item) => item.id === itemId
+      if (!projectDetailData || !projectDetailData.items) return;
+
+      const itemToUpdate = projectDetailData.items.find(
+        (item) => item.project_item_id === itemId
       );
       if (itemToUpdate) {
-        itemToUpdate.plan_costing = newCost;
+        // Simpan nilai yang diedit ke properti sementara
+        itemToUpdate.temp_plan_costing = newCost;
       }
 
-      // Hitung ulang total Plan Costing untuk kartu ringkasan
-      const totalPlanCost = projectData.detail.items.reduce(
-        (sum, item) => sum + (item.plan_costing || 0),
-        0
-      );
+      // Hitung ulang total Plan Costing
+      const totalPlanCost = projectDetailData.items.reduce((sum, item) => {
+        if (item.temp_plan_costing !== undefined) {
+          return sum + item.temp_plan_costing;
+        }
+        // Jika belum diedit, hitung dari data asli
+        const itemCost =
+          item.materials.reduce((s, m) => s + (m.costing || 0), 0) ||
+          item.costing ||
+          0;
+        return sum + itemCost;
+      }, 0);
 
-      // Update data utama dan tampilkan di kartu ringkasan
-      projectData.detail.plan_costing = totalPlanCost;
+      // Update kartu header
+      projectDetailData.plan_costing = totalPlanCost; // Update data global
       document.getElementById("plan_costing").textContent =
         formatNumber(totalPlanCost);
     }
   });
+
+// ================================================================
+// FUNGSI-FUNGSI UNTUK TAB 3
+// ================================================================
+function setNewProjectTodayDate() {
+  const today = new Date().toISOString().split("T")[0];
+  document.getElementById("new_tanggal").value = today;
+}
+
+async function loadNewProjectCustomerList() {
+  try {
+    const response = await fetch(`${baseUrl}/client/sales/`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+    });
+    if (!response.ok) throw new Error("Gagal mengambil data client");
+    const result = await response.json();
+    const customerList = result.data || [];
+
+    const select = document.getElementById("new_client");
+    select.innerHTML = `<option value="">-- Pilih Client --</option>`;
+
+    customerList.forEach((item) => {
+      select.innerHTML += `<option value="${item.client_id}">${item.nama_client} (${item.alias})</option>`;
+    });
+
+    select.addEventListener("change", function () {
+      document.getElementById("new_client_id").value = this.value;
+    });
+  } catch (error) {
+    console.error("Error load client untuk Tab 3:", error);
+    const select = document.getElementById("new_client");
+    select.innerHTML = `<option value="">Gagal load client</option>`;
+  }
+}
+
+async function saveNewProject() {
+  try {
+    const project_name = document.getElementById("new_project_name").value;
+    const client_id = document.getElementById("new_client_id").value;
+    const pic_name = document.getElementById("new_pic_name").value;
+    const start_date = document.getElementById("new_tanggal").value;
+
+    if (!project_name || !client_id) {
+      Swal.fire("Gagal", "Nama Project dan Client wajib diisi", "error");
+      return;
+    }
+
+    Swal.fire({
+      title: "Menyimpan...",
+      text: "Mohon tunggu sebentar",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    const formData = new FormData();
+    formData.append("owner_id", user.owner_id);
+    formData.append("user_id", user.user_id);
+    formData.append("project_name", project_name);
+    formData.append("pelanggan_id", client_id);
+    formData.append("pic_name", pic_name);
+    formData.append("start_date", start_date);
+    formData.append("status_project", "Baru");
+
+    const res = await fetch(`${baseUrl}/add/project`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+      body: formData,
+    });
+
+    const json = await res.json();
+
+    if (res.ok) {
+      Swal.fire("Sukses", "Project baru berhasil dibuat", "success");
+      document.getElementById("new_project_name").value = "";
+      document.getElementById("new_client").value = "";
+      document.getElementById("new_pic_name").value = "";
+      setNewProjectTodayDate();
+      switchTab(tab1, tab1Btn); // Kembali ke Tab 1
+
+      // Jika ini adalah bagian dari sistem modul, idealnya panggil fungsi global
+      // untuk me-refresh daftar project, contoh: loadModuleContent('project_list');
+    } else {
+      Swal.fire("Gagal", json.message || "Gagal menyimpan data", "error");
+    }
+  } catch (err) {
+    console.error("Submit error:", err);
+    Swal.fire("Error", err.message || "Terjadi kesalahan", "error");
+  }
+}
+
+document
+  .getElementById("saveProjectBtn")
+  .addEventListener("click", saveNewProject);
 
 // ================================================================
 // PEMANGGILAN FUNGSI AWAL
