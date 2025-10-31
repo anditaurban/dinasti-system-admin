@@ -66,6 +66,13 @@
             📁 Project Info
             <span id="icon-projectinfoSection">▼</span>
           </button>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="event.stopPropagation(); openEditInvoiceModal()"
+              class="text-xs bg-yellow-50 text-yellow-700 px-2 py-1 rounded hover:bg-yellow-100">
+              ✏️ Edit Info
+            </button>
+            <span id="icon-projectinfoSection">▼</span>
+          </div>
           <div id="projectinfoSection" class="px-4 py-3 space-y-3 text-sm text-gray-700">
             <div class="flex justify-between"><span id="project_name" class="font-medium">Project</span></div>
             <div class="flex justify-between"><span class="font-medium">No Invoice</span><span id="no_qtn"

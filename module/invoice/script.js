@@ -379,9 +379,6 @@ async function openCreateProject(pesanan_id, nilai_kontrak) {
           ${pmOptions}
         </select>
 
-        <label class="block text-sm font-medium text-gray-700">Plan Costing</label>
-        <input id="plan_costing" type="number" value="${nilai_kontrak}" class="w-full p-2 border rounded-lg">
-
         <label class="block text-sm font-medium text-gray-700">Start Date</label>
         <input id="start_date" type="date" class="w-full p-2 border rounded-lg">
 

@@ -27,10 +27,11 @@ async function loadDetailSales(Id, Detail) {
     const response = await res.json();
     const data = response.detail;
     if (!data) throw new Error("Invalid API response structure");
+    currentInvoiceData = data;
 
     document.getElementById("project_name").innerHTML = data.project_name || "";
     document.getElementById("tanggal_po").innerHTML = data.po_date || "";
-    document.getElementById("tanggal_inv").innerHTML = data.invoice_date                                                                                                                        || "";
+    document.getElementById("tanggal_inv").innerHTML = data.invoice_date || "";
     document.getElementById("type_sales").innerHTML = data.project_type || "";
     document.getElementById("no_qtn").innerHTML = data.inv_number || "";
     document.getElementById("no_po").innerHTML = data.po_number || "";
@@ -229,6 +230,9 @@ async function loadDetailSales(Id, Detail) {
     // ===========================
     // 🔹 Invoice Uang Muka
     // ===========================
+    // ===========================
+    // 🔹 Invoice Uang Muka
+    // ===========================
     const uangMukaSection = document.getElementById("uangMukaSection");
     uangMukaSection.innerHTML = "";
 
@@ -237,33 +241,39 @@ async function loadDetailSales(Id, Detail) {
         const div = document.createElement("div");
         div.className = "border p-2 rounded bg-gray-50 text-sm mb-2";
 
+        // [BARU] Ubah data 'dp' menjadi string agar aman ditaruh di HTML
+        const dpDataString = encodeURIComponent(JSON.stringify(dp));
+
         div.innerHTML = `
-      <div class="flex justify-between items-start">
-        <div>
-          <div class="flex justify-between">
-            <span>${dp.dp_number || "DP"}</span>
-            <span class="font-medium text-green-700">${formatNumber(
-              dp.amount || 0
-            )}</span>
+        <div class="flex justify-between items-start">
+          <div>
+            <div class="flex justify-between">
+              <span>${dp.dp_number || "DP"}</span>
+              <span class="font-medium text-green-700">${formatNumber(
+                dp.amount || 0
+              )}</span>
+            </div>
+            <div class="flex justify-between text-xs text-gray-500 mt-1">
+              <span>${dp.description || "-"}</span>
+              <span>${dp.status_payment || "Unpaid"}</span>
+            </div>
           </div>
-          <div class="flex justify-between text-xs text-gray-500 mt-1">
-            <span>${dp.description || "-"}</span>
-            <span>${dp.status_payment || "Unpaid"}</span>
+          <div class="flex flex-col gap-1 ml-4">
+            
+            <button 
+              onclick="openUpdateDPModal('${dpDataString}')" 
+              class="px-2 py-1 border rounded text-xs bg-yellow-50 text-yellow-700 hover:bg-yellow-100">
+              ✏️ Update
+            </button>
+
+            <button 
+              onclick="printInvoiceDP('${dp.dp_id}')" 
+              class="px-2 py-1 border rounded text-xs bg-green-50 text-green-700 hover:bg-green-100">
+              🖨 Print
+            </button>
           </div>
         </div>
-        <div class="flex flex-col gap-1 ml-4">
-          <button 
-            class="px-2 py-1 border rounded text-xs bg-yellow-50 text-yellow-700 hover:bg-yellow-100">
-            ✏️ Update
-          </button>
-          <button 
-            onclick="printInvoiceDP('${dp.dp_id}')" 
-            class="px-2 py-1 border rounded text-xs bg-green-50 text-green-700 hover:bg-green-100">
-            🖨 Print
-          </button>
-        </div>
-      </div>
-    `;
+      `;
         uangMukaSection.appendChild(div);
       });
     } else {
@@ -708,4 +718,280 @@ async function openSalesReceiptModal(
       }
     }
   });
+}
+
+/**
+ * ======================================
+ * FUNGSI BARU: Edit Info Invoice
+ * ======================================
+ */
+
+/**
+ * 1. Membuka modal (pop-up) SweetAlert
+ * Berisi form yang sudah diisi data dari 'currentInvoiceData'
+ */
+async function openEditInvoiceModal() {
+  // Pastikan data sudah di-load
+  if (!currentInvoiceData) {
+    Swal.fire(
+      "Error",
+      "Data invoice belum ter-load penuh. Silakan coba lagi.",
+      "error"
+    );
+    return;
+  }
+
+  const data = currentInvoiceData;
+
+  const { value: formValues } = await Swal.fire({
+    title: "Edit Informasi Invoice",
+    width: "600px",
+    html: `
+      <div class="space-y-3 text-left p-2">
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Tanggal Invoice</label>
+          <input type="date" id="edit_tanggal_inv" class="w-full border rounded px-3 py-2" value="${
+            data.invoice_date || ""
+          }">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Nomor PO</label>
+          <input type="text" id="edit_no_po" class="w-full border rounded px-3 py-2" value="${
+            data.po_number || ""
+          }">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Tanggal PO</label>
+          <input type="date" id="edit_tanggal_po" class="w-full border rounded px-3 py-2" value="${
+            data.po_date || ""
+          }">
+        </div>
+        <hr class="my-4">
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Catatan</label>
+          <textarea id="edit_catatan" rows="3" class="w-full border rounded px-3 py-2">${
+            data.catatan || ""
+          }</textarea>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Syarat & Ketentuan</label>
+          <textarea id="edit_syarat" rows="3" class="w-full border rounded px-3 py-2">${
+            data.syarat_ketentuan || ""
+          }</textarea>
+        </div>
+      </div>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: "Simpan Perubahan",
+    cancelButtonText: "Batal",
+    preConfirm: () => {
+      // Ambil nilai dari form
+      return {
+        invoice_date: document.getElementById("edit_tanggal_inv").value,
+        po_number: document.getElementById("edit_no_po").value,
+        po_date: document.getElementById("edit_tanggal_po").value,
+        catatan: document.getElementById("edit_catatan").value,
+        syarat_ketentuan: document.getElementById("edit_syarat").value,
+      };
+    },
+  });
+
+  if (formValues) {
+    // Jika user klik "Simpan", panggil fungsi handler
+    await handleSaveInvoiceInfo(formValues);
+  }
+}
+
+/**
+ * 2. Mengirim data update ke API
+ * (Fungsi ini dipanggil oleh openEditInvoiceModal)
+ */
+async function handleSaveInvoiceInfo(formData) {
+  Swal.fire({
+    title: "Menyimpan...",
+    text: "Sedang menyimpan perubahan data invoice.",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
+  });
+
+  try {
+    // ASUMSI: Endpoint API Anda untuk update adalah ini.
+    // Sesuaikan jika endpoint-nya berbeda.
+    const res = await fetch(
+      `${baseUrl}/update/sales_invoice/${window.detail_id}`,
+      {
+        method: "POST", // atau PUT/PATCH
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+        body: JSON.stringify({
+          ...formData, // Data dari form modal
+          // Kirim ID user/owner jika diperlukan oleh API Anda
+          user_id: user_id,
+          owner_id: owner_id,
+        }),
+      }
+    );
+
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.message || "Gagal menyimpan data.");
+    }
+
+    const result = await res.json();
+    Swal.fire({
+      icon: "success",
+      title: "Berhasil",
+      text: result.message || "Data invoice berhasil diperbarui",
+    });
+
+    // PENTING: Muat ulang data detail untuk menampilkan perubahan
+    loadDetailSales(window.detail_id, window.detail_desc);
+  } catch (err) {
+    Swal.fire({
+      icon: "error",
+      title: "Gagal",
+      text: err.message,
+    });
+  }
+}
+
+/**
+ * ======================================
+ * FUNGSI BARU: Update Invoice DP
+ * ======================================
+ */
+
+/**
+ * 1. Membuka modal (pop-up) SweetAlert
+ * Berisi form yang sudah diisi data DP yang ada.
+ */
+async function openUpdateDPModal(dpDataString) {
+  let dpData;
+  try {
+    // Ambil data DP yang kita kirim dari tombol
+    dpData = JSON.parse(decodeURIComponent(dpDataString));
+  } catch (e) {
+    console.error("Gagal parse data DP:", e);
+    Swal.fire("Error", "Gagal memuat data DP. Data tidak valid.", "error");
+    return;
+  }
+
+  // OPSIONAL: Cek jika status sudah 'paid', mungkin tidak bisa di-edit
+  // Hapus blok 'if' ini jika Anda ingin tetap bisa mengedit DP yang sudah lunas
+  if (dpData.status_payment === "paid") {
+    Swal.fire(
+      "Info",
+      "Invoice DP yang sudah lunas (paid) tidak dapat di-update.",
+      "info"
+    );
+    return;
+  }
+
+  const { value: formValues } = await Swal.fire({
+    title: "Update Invoice DP",
+    html: `
+      <div class="space-y-3 text-left">
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Tanggal DP</label>
+          <input type="date" id="dp_date_update" class="w-full border rounded px-3 py-2" value="${
+            dpData.dp_date || ""
+          }">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Jatuh Tempo</label>
+          <input type="date" id="due_date_update" class="w-full border rounded px-3 py-2" value="${
+            dpData.due_date || ""
+          }">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Jumlah (Rp)</label>
+          <input type="number" id="amount_update" class="w-full border rounded px-3 py-2" value="${
+            dpData.amount || 0
+          }">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Deskripsi</label>
+          <textarea id="description_update" rows="2" class="w-full border rounded px-3 py-2">${
+            dpData.description || ""
+          }</textarea>
+        </div>
+      </div>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: "Simpan Perubahan",
+    cancelButtonText: "Batal",
+    preConfirm: () => {
+      return {
+        dp_date: document.getElementById("dp_date_update").value,
+        due_date: document.getElementById("due_date_update").value,
+        amount: document.getElementById("amount_update").value,
+        description: document.getElementById("description_update").value,
+        dp_id: dpData.dp_id, // Kirim ID DP untuk update
+      };
+    },
+  });
+
+  if (formValues) {
+    // Jika user klik "Simpan", panggil fungsi handler
+    await handleUpdateDP(formValues);
+  }
+}
+
+/**
+ * 2. Mengirim data update ke API
+ * (Fungsi ini dipanggil oleh openUpdateDPModal)
+ */
+async function handleUpdateDP(formValues) {
+  // Tampilkan loading
+  Swal.fire({
+    title: "Menyimpan...",
+    text: "Sedang memperbarui data Invoice DP.",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
+  });
+
+  try {
+    // PASTIKAN ENDPOINT BENAR: Asumsi endpoint update Anda adalah /update/sales_dp
+    const res = await fetch(`${baseUrl}/update/sales_dp`, {
+      method: "POST", // atau PUT/PATCH, sesuaikan dengan API Anda
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+      body: JSON.stringify({
+        dp_id: formValues.dp_id, // ID dari DP yang di-update
+        dp_date: formValues.dp_date,
+        due_date: formValues.due_date,
+        amount: parseFloat(formValues.amount) || 0,
+        description: formValues.description,
+        user_id: user_id, // Ambil dari variabel global
+        owner_id: owner_id, // Ambil dari variabel global
+      }),
+    });
+
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.message || "Gagal memperbarui data DP");
+    }
+
+    const result = await res.json();
+    Swal.fire({
+      icon: "success",
+      title: "Berhasil",
+      text: result.message || "Invoice DP berhasil diperbarui",
+    });
+
+    // Muat ulang seluruh modul detail untuk refresh data
+    loadModuleContent("invoice_detail", window.detail_id, window.detail_desc);
+  } catch (err) {
+    Swal.fire({
+      icon: "error",
+      title: "Gagal",
+      text: err.message,
+    });
+  }
 }
