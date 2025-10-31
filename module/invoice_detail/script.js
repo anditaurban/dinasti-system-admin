@@ -104,7 +104,7 @@ async function loadDetailSales(Id, Detail) {
         trHeader.className = "bg-gray-200 font-semibold";
         trHeader.innerHTML = `
       <td colspan="6" class="px-3 py-2 uppercase">${subCat || "-"}</td>
-    `;
+      `;
         tbody.appendChild(trHeader);
 
         groups[subCat].forEach((item) => {
@@ -121,21 +121,21 @@ async function loadDetailSales(Id, Detail) {
         ${
           item.materials?.length
             ? `
-              <td class="px-3 py-2 text-center text-gray-400 italic" colspan="4">
-              </td>
-            `
+                <td class="px-3 py-2 text-center text-gray-400 italic" colspan="4">
+                </td>
+              `
             : `
-              <td class="px-3 py-2 text-right align-top">${item.qty || 0}</td>
-              <td class="px-3 py-2 text-center align-top">${
-                item.unit || ""
-              }</td>
-              <td class="px-3 py-2 text-right align-top">${formatNumber(
-                item.unit_price || 0
-              )}</td>
-              <td class="px-3 py-2 text-right align-top">${formatNumber(
-                item.total || item.qty * item.unit_price
-              )}</td>
-            `
+                <td class="px-3 py-2 text-right align-top">${item.qty || 0}</td>
+                <td class="px-3 py-2 text-center align-top">${
+                  item.unit || ""
+                }</td>
+                <td class="px-3 py-2 text-right align-top">${formatNumber(
+                  item.unit_price || 0
+                )}</td>
+                <td class="px-3 py-2 text-right align-top">${formatNumber(
+                  item.total || item.qty * item.unit_price
+                )}</td>
+              `
         }
       `;
           tbody.appendChild(tr);
@@ -147,10 +147,9 @@ async function loadDetailSales(Id, Detail) {
               subTr.className = "border-b bg-gray-50 text-sm";
 
               subTr.innerHTML = `
-            <td class="px-3 py-1"></td> <!-- kosong untuk nomor -->
-            <td class="px-3 py-1 italic">${mIdx + 1}. ${m.name || ""} - ${
-                m.specification || ""
-              }</td>
+            <td class="px-3 py-1"></td> <td class="px-3 py-1 italic">${
+              mIdx + 1
+            }. ${m.name || ""} - ${m.specification || ""}</td>
             <td class="px-3 py-1 text-right">${m.qty || 0}</td>
             <td class="px-3 py-1 text-center">${m.unit || ""}</td>
             <td class="px-3 py-1 text-right">${formatNumber(
@@ -199,7 +198,7 @@ async function loadDetailSales(Id, Detail) {
       JSON.stringify(data.down_payments || [])
     );
     document.getElementById("pembayaranbutton").innerHTML = `
-  <button onclick="openSalesReceiptModal('${data.pesanan_id}', '${data.pelanggan_id}', '${data.total}', '${data.remaining_balance}', '${dpString}')"  
+  <button onclick="openSalesReceiptModal('${data.pesanan_id}', '${data.pelanggan_id}', '${data.total}', '${data.remaining_balance}', '${dpString}')" 
     class="w-full py-1 px-2 border rounded bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs">
     ➕ Add Payment Receipt
   </button>`;
@@ -364,17 +363,20 @@ async function tambahUangMuka(pesananId) {
       if (!res.ok) throw new Error("Gagal menyimpan data DP");
 
       const result = await res.json();
-      Swal.fire({
+
+      // ✅ [DIPERBAIKI] Tunggu alert ini selesai
+      await Swal.fire({
         icon: "success",
         title: "Berhasil",
         text: result.message || "Uang muka berhasil ditambahkan",
       });
 
-      // TODO: refresh tabel / data di UI setelah berhasil
+      // ✅ [DIPERBAIKI] Baru refresh setelah alert ditutup
       loadModuleContent("invoice_detail", window.detail_id, window.detail_desc);
       console.log("✅ DP berhasil ditambahkan:", result);
     } catch (err) {
-      Swal.fire({
+      // ✅ [DIPERBAIKI] Tambahkan await
+      await Swal.fire({
         icon: "error",
         title: "Gagal",
         text: err.message,
@@ -521,10 +523,10 @@ async function openSalesReceiptModal(
           disabled && "opacity-50"
         }">
           <input type="radio" name="reference_radio" 
-                 value="${value}"
-                 data-nominal="${dp.remaining_balance}" 
-                 data-description="${dp.description || ""}"
-                 class="form-radio" ${disabled}>
+                value="${value}"
+                data-nominal="${dp.remaining_balance}" 
+                data-description="${dp.description || ""}"
+                class="form-radio" ${disabled}>
           <span class="text-sm">
             ${dp.dp_number} - (Total: ${formatRupiah(
           dp.amount
@@ -549,14 +551,12 @@ async function openSalesReceiptModal(
         <input type="hidden" id="user_id" value="${user_id}">
         <input type="hidden" id="branch_id" value="1">
 
-        <!-- Tanggal -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Transaksi</label>
           <input type="date" id="tanggal"
             class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500" required>
         </div>
 
-        <!-- Pilihan sumber pembayaran -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Pembayaran Berdasarkan</label>
           <div class="space-y-2">
@@ -570,7 +570,6 @@ async function openSalesReceiptModal(
           </div>
         </div>
 
-        <!-- Nominal -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Nominal Bayar</label>
           <input type="text" id="sr_nominal"
@@ -578,7 +577,6 @@ async function openSalesReceiptModal(
             placeholder="Masukkan nominal">
         </div>
 
-        <!-- Keterangan -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
           <textarea id="keterangan" rows="2"
@@ -586,7 +584,6 @@ async function openSalesReceiptModal(
             placeholder="Masukkan keterangan"></textarea>
         </div>
 
-        <!-- Akun -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Akun</label>
           <select id="akun_select"
@@ -596,7 +593,6 @@ async function openSalesReceiptModal(
           </select>
         </div>
 
-        <!-- File -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Upload File</label>
           <input type="file" id="file"
@@ -699,14 +695,16 @@ async function openSalesReceiptModal(
         // console.log("📌 Response API:", data);
 
         if (res.ok) {
-          loadDetailSales(window.detail_id, window.detail_desc);
-          Swal.fire(
+          // ✅ [DIPERBAIKI] Tampilkan alert dulu, baru refresh
+          await Swal.fire(
             "Success",
             "Sales receipt berhasil ditambahkan!",
             "success"
           );
+          loadDetailSales(window.detail_id, window.detail_desc);
         } else {
-          Swal.fire(
+          // ✅ [DIPERBAIKI] Tambah await
+          await Swal.fire(
             "Error",
             data.message || "Gagal menambahkan receipt",
             "error"
@@ -714,7 +712,12 @@ async function openSalesReceiptModal(
         }
       } catch (err) {
         console.error("❌ Error:", err);
-        Swal.fire("Error", "Terjadi kesalahan saat mengirim data", "error");
+        // ✅ [DIPERBAIKI] Tambah await
+        await Swal.fire(
+          "Error",
+          "Terjadi kesalahan saat mengirim data",
+          "error"
+        );
       }
     }
   });
@@ -842,16 +845,18 @@ async function handleSaveInvoiceInfo(formData) {
     const result = await res.json();
     if (!res.ok) throw new Error(result.message || "Gagal menyimpan data.");
 
-    Swal.fire({
+    // ✅ [DIPERBAIKI] Tunggu alert ini selesai
+    await Swal.fire({
       icon: "success",
       title: "Berhasil",
       text: result.message || "Data invoice berhasil diperbarui.",
     });
 
-    // Reload data detail
+    // ✅ [DIPERBAIKI] Baru refresh setelah alert ditutup
     loadDetailSales(window.detail_id, window.detail_desc);
   } catch (err) {
-    Swal.fire({
+    // ✅ [DIPERBAIKI] Tambah await
+    await Swal.fire({
       icon: "error",
       title: "Gagal",
       text: err.message,
@@ -989,16 +994,19 @@ async function handleUpdateDP(formValues) {
     }
 
     const result = await res.json();
-    Swal.fire({
+
+    // ✅ [DIPERBAIKI] Tunggu alert ini selesai
+    await Swal.fire({
       icon: "success",
       title: "Berhasil",
       text: result.message || "Invoice DP berhasil diperbarui",
     });
 
-    // Muat ulang seluruh modul detail untuk refresh data
+    // ✅ [DIPERBAIKI] Baru refresh setelah alert ditutup
     loadModuleContent("invoice_detail", window.detail_id, window.detail_desc);
   } catch (err) {
-    Swal.fire({
+    // ✅ [DIPERBAIKI] Tambah await
+    await Swal.fire({
       icon: "error",
       title: "Gagal",
       text: err.message,

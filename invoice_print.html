@@ -209,7 +209,7 @@
           fetch(`${baseUrl}/detail/sales_invoice/${pesanan_id}`, {
             headers: { Authorization: `Bearer ${API_TOKEN}` }
           }),
-          loadFinanceAccount(data.owner_id)
+          loadFinanceAccount(user.owner_id)
         ]);
 
 
@@ -396,7 +396,7 @@
 
 
 
-        loadLogoWithAuth(data.company_profile.logo_url)
+        loadLogoWithAuth(user.logo_url)
         const html = `
       <!-- Header -->
       <div class="invoice-header border-b-4 border-black pb-2">
@@ -408,20 +408,20 @@
 
     <!-- teks tengah -->
     <div class="text-center">
-  <div class="company-name text-2xl font-bold text-red-700">
-    ${data.company_profile.company || ''}
-  </div>
-  <div class="text-sm font-semibold mt-1 uppercase">
-    ${data.company_profile.tagline || ''}
-  </div>
-  <div class="text-xs mt-2 leading-tight">
-    ${data.company_profile.address || ''}
-  </div>
-  <div class="text-xs mt-1">
-    ${data.company_profile.phone ? 'Telp: ' + data.company_profile.phone : ''} 
-    ${data.company_profile.email ? ' • ' + data.company_profile.email : ''}
-  </div>
-</div>
+      <div class="company-name text-2xl font-bold text-red-700">
+        ${user.company || ''}
+      </div>
+      <div class="text-sm font-semibold mt-1 uppercase">
+        ${user.tagline || ''}
+      </div>
+      <div class="text-xs mt-2 leading-tight">
+        ${user.address || ''}
+      </div>
+      <div class="text-xs mt-1">
+        ${user.company_phone ? 'Telp: ' + user.company_phone : ''} 
+        ${user.company_email ? ' • ' + user.company_email : ''}
+      </div>
+    </div>
   </div>
 </div>
 

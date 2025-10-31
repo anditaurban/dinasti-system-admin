@@ -52,12 +52,14 @@
     }
 
     @media print {
-      * {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        color-adjust: exact !important;
-      }
-    }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+}
+
+
   </style>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
@@ -80,30 +82,30 @@
 
     const formatRp = val => `Rp ${(+val).toLocaleString("id-ID")}`;
     function finance(value) {
-      return new Intl.NumberFormat("id-ID", {
-        maximumFractionDigits: 0,
-      }).format(value);
-    }
+  return new Intl.NumberFormat("id-ID", {
+    maximumFractionDigits: 0,
+  }).format(value);
+}
 
-    async function loadLogoWithAuth(url) {
-      try {
-        const res = await fetch(url, {
-          headers: {
-            "Authorization": `Bearer ${API_TOKEN}`
-          }
-        });
-        if (!res.ok) throw new Error("Gagal load logo");
-
-        const blob = await res.blob();
-        const objectUrl = URL.createObjectURL(blob);
-
-        const logoPreview = document.getElementById("logo_preview");
-        logoPreview.src = objectUrl;
-        logoPreview.classList.remove("hidden");
-      } catch (err) {
-        console.error("Error load logo:", err);
+async function loadLogoWithAuth(url) {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "Authorization": `Bearer ${API_TOKEN}`
       }
-    }
+    });
+    if (!res.ok) throw new Error("Gagal load logo");
+
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+
+    const logoPreview = document.getElementById("logo_preview");
+    logoPreview.src = objectUrl;
+    logoPreview.classList.remove("hidden");
+  } catch (err) {
+    console.error("Error load logo:", err);
+  }
+}
 
     function terbilang(n) {
       const satuan = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
@@ -118,16 +120,6 @@
       if (n < 1000000000) return terbilang(Math.floor(n / 1000000)) + " Juta " + terbilang(n % 1000000);
       return "";
     }
-
-    const date = new Date(data.invoice_date_ymd);
-    const bulanIndo = [
-      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-      "Juli", "Agustus", "September", "Oktober", "November", "Desember"
-    ];
-    const tanggal = date.getDate();
-    const bulan = bulanIndo[date.getMonth()];
-    const tahun = date.getFullYear();
-    const tanggalFormatted = `${tanggal} ${bulan} ${tahun}`;
 
     function toRoman(num) {
       const romans = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
@@ -162,13 +154,13 @@
           })
         ]);
 
-
+        
 
         const pesananResult = await pesananRes.json();
         const data = pesananResult?.detail;
-
-        loadLogoWithAuth(user.logo_url)
-        const html = `
+ 
+loadLogoWithAuth(user.logo_url)
+const html = `
   <!-- Header -->
   <div class="flex justify-between items-start mb-6">
     <!-- Logo -->
@@ -225,9 +217,9 @@
 
   <hr class="my-2 border-t border-gray-300" />
 
-  ${data.project_name
-            ? `<p class="text-lg font-bold text-gray-800 mt-2">${data.project_name}</p>`
-            : ""}
+  ${data.project_name 
+    ? `<p class="text-lg font-bold text-gray-800 mt-2">${data.project_name}</p>` 
+    : ""}
 </div>
 
 </div>
@@ -326,7 +318,7 @@
     window.onload = loadPesananData;
   </script>
   <!-- load QRCode.js -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
 
 </body>

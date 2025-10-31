@@ -135,7 +135,14 @@
               <tr>
                 <td colspan="4" class="px-3 py-2 border">
                   <div class="grid grid-cols-2 gap-2 items-center">
-                    <label class="font-medium text-right">Tax 11% (Rp)</label>
+
+                    <div class="flex justify-end items-center gap-2">
+                      <input type="checkbox" id="cekPpn" class="w-4 h-4 rounded" onchange="calculateTotals()">
+                      <label for="cekPpn" class="font-medium text-right cursor-pointer select-none">
+                        Tax 11% (Rp)
+                      </label>
+                    </div>
+
                     <input type="text" id="ppn"
                       class="formatNumber w-full border px-3 py-2 rounded bg-gray-100 text-right" value="0" readonly />
                   </div>

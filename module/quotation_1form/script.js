@@ -718,6 +718,11 @@ async function loadDetailSales(Id, Detail) {
       }
       await Promise.all(renderPromises);
     }
+    const ppnValue = parseInt(data.ppn) || 0;
+    const cekPpn = document.getElementById("cekPpn");
+    if (cekPpn && ppnValue > 0) {
+      cekPpn.checked = true;
+    }
 
     calculateTotals();
     window.dataLoaded = true;
@@ -762,14 +767,23 @@ function calculateTotals() {
 
   const diskon = parseRupiah(document.getElementById("discount")?.value || 0);
   const dpp = subtotal - diskon;
-  const ppn = Math.round(dpp * 0.11);
+
+  // --- REVISI CEKLIS PPN ---
+  const cekPpn = document.getElementById("cekPpn");
+  let ppn = 0; // Default PPN adalah 0
+
+  if (cekPpn && cekPpn.checked) {
+    // Jika diceklis, baru hitung 11%
+    ppn = Math.round(dpp * 0.11);
+  }
+  // --- AKHIR REVISI ---
+
   const total = dpp + ppn;
 
   document.getElementById("contract_amount").value = finance(subtotal);
   document.getElementById("ppn").value = finance(ppn);
   document.getElementById("total").value = finance(total);
 }
-
 function recalculateHarga(element, inputType) {
   const row = element.closest(".itemRow, .subItemRow");
   if (!row) return;
