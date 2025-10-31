@@ -52,14 +52,12 @@
     }
 
     @media print {
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    color-adjust: exact !important;
-  }
-}
-
-
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+    }
   </style>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
@@ -82,30 +80,30 @@
 
     const formatRp = val => `Rp ${(+val).toLocaleString("id-ID")}`;
     function finance(value) {
-  return new Intl.NumberFormat("id-ID", {
-    maximumFractionDigits: 0,
-  }).format(value);
-}
+      return new Intl.NumberFormat("id-ID", {
+        maximumFractionDigits: 0,
+      }).format(value);
+    }
 
-async function loadLogoWithAuth(url) {
-  try {
-    const res = await fetch(url, {
-      headers: {
-        "Authorization": `Bearer ${API_TOKEN}`
+    async function loadLogoWithAuth(url) {
+      try {
+        const res = await fetch(url, {
+          headers: {
+            "Authorization": `Bearer ${API_TOKEN}`
+          }
+        });
+        if (!res.ok) throw new Error("Gagal load logo");
+
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+
+        const logoPreview = document.getElementById("logo_preview");
+        logoPreview.src = objectUrl;
+        logoPreview.classList.remove("hidden");
+      } catch (err) {
+        console.error("Error load logo:", err);
       }
-    });
-    if (!res.ok) throw new Error("Gagal load logo");
-
-    const blob = await res.blob();
-    const objectUrl = URL.createObjectURL(blob);
-
-    const logoPreview = document.getElementById("logo_preview");
-    logoPreview.src = objectUrl;
-    logoPreview.classList.remove("hidden");
-  } catch (err) {
-    console.error("Error load logo:", err);
-  }
-}
+    }
 
     function terbilang(n) {
       const satuan = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
@@ -154,13 +152,20 @@ async function loadLogoWithAuth(url) {
           })
         ]);
 
-        
+
 
         const pesananResult = await pesananRes.json();
         const data = pesananResult?.detail;
- 
-loadLogoWithAuth(user.logo_url)
-const html = `
+        const today = new Date();
+        const options = {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        };
+        const tanggalFormatted = today.toLocaleDateString('id-ID', options);
+
+        loadLogoWithAuth(user.logo_url)
+        const html = `
   <!-- Header -->
   <div class="flex justify-between items-start mb-6">
     <!-- Logo -->
@@ -217,9 +222,9 @@ const html = `
 
   <hr class="my-2 border-t border-gray-300" />
 
-  ${data.project_name 
-    ? `<p class="text-lg font-bold text-gray-800 mt-2">${data.project_name}</p>` 
-    : ""}
+  ${data.project_name
+            ? `<p class="text-lg font-bold text-gray-800 mt-2">${data.project_name}</p>`
+            : ""}
 </div>
 
 </div>
@@ -280,17 +285,18 @@ const html = `
 </div>
 <br><br><br>
 
-        <div class="w-1/3 text-center flex flex-col items-center justify-center">
-      <p class="font-semibold">Jakarta, ${tanggalFormatted}</p>
+        <div class="w-1/3 text-center flex flex-col items-center justify-center ml-auto">
+  <p class="font-semibold">Jakarta, ${tanggalFormatted}</p>
 
-      <!-- QR Code -->
-      <div id="qrcode-container" class="h-24 flex items-center justify-center mt-2">
-        <div  class="inline-block p-2 bg-white rounded shadow"></div>
-      </div>
+  <!-- QR Code -->
+  <div id="qrcode-container" class="h-24 flex items-center justify-center mt-2">
+    <div class="inline-block p-2 bg-white rounded shadow"></div>
+  </div>
 
-      <p class="mt-2 font-semibold underline">Nanda Febby Yuliantina</p>
-      <p class="mt-2">Finance Manager</p>
-    </div>
+  <p class="mt-2 font-semibold underline">Nanda Febby Yuliantina</p>
+  <p class="mt-2">Finance Manager</p>
+</div>
+
   
 
 `;
@@ -318,7 +324,7 @@ const html = `
     window.onload = loadPesananData;
   </script>
   <!-- load QRCode.js -->
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
 
 </body>
