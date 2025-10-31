@@ -731,7 +731,6 @@ async function openSalesReceiptModal(
  * Berisi form yang sudah diisi data dari 'currentInvoiceData'
  */
 async function openEditInvoiceModal() {
-  // Pastikan data sudah di-load
   if (!currentInvoiceData) {
     Swal.fire(
       "Error",
@@ -743,41 +742,42 @@ async function openEditInvoiceModal() {
 
   const data = currentInvoiceData;
 
+  // [DIHAPUS] Logika parsing tanggal (formattedInvDate) tidak diperlukan lagi
+
   const { value: formValues } = await Swal.fire({
     title: "Edit Informasi Invoice",
     width: "600px",
     html: `
       <div class="space-y-3 text-left p-2">
-        <div>
-          <label class="block text-sm text-gray-600 mb-1">Tanggal Invoice</label>
-          <input type="date" id="edit_tanggal_inv" class="w-full border rounded px-3 py-2" value="${
-            data.invoice_date || ""
-          }">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">Nomor Invoice</label>
+            <input type="text" id="edit_no_inv" class="w-full border rounded px-3 py-2" 
+              value="${data.inv_number || ""}">
+          </div>
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">Tanggal Invoice</label>
+            <input type="date" id="edit_tanggal_inv" class="w-full border rounded px-3 py-2" 
+              value="${data.invoice_date_ymd || ""}">
+          </div>
         </div>
-        <div>
-          <label class="block text-sm text-gray-600 mb-1">Nomor PO</label>
-          <input type="text" id="edit_no_po" class="w-full border rounded px-3 py-2" value="${
-            data.po_number || ""
-          }">
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">Nomor PO</label>
+            <input type="text" id="edit_no_po" class="w-full border rounded px-3 py-2" 
+              value="${data.po_number || ""}">
+          </div>
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">Tanggal PO</label>
+            <input type="date" id="edit_tanggal_po" class="w-full border rounded px-3 py-2" 
+              value="${data.po_date_ymd || ""}">
+          </div>
         </div>
+
         <div>
-          <label class="block text-sm text-gray-600 mb-1">Tanggal PO</label>
-          <input type="date" id="edit_tanggal_po" class="w-full border rounded px-3 py-2" value="${
-            data.po_date || ""
-          }">
-        </div>
-        <hr class="my-4">
-        <div>
-          <label class="block text-sm text-gray-600 mb-1">Catatan</label>
-          <textarea id="edit_catatan" rows="3" class="w-full border rounded px-3 py-2">${
-            data.catatan || ""
-          }</textarea>
-        </div>
-        <div>
-          <label class="block text-sm text-gray-600 mb-1">Syarat & Ketentuan</label>
-          <textarea id="edit_syarat" rows="3" class="w-full border rounded px-3 py-2">${
-            data.syarat_ketentuan || ""
-          }</textarea>
+          <label class="block text-sm text-gray-600 mb-1">Upload File (Invoice / PO)</label>
+          <input type="file" id="edit_file" class="w-full border rounded px-3 py-2 bg-white">
         </div>
       </div>
     `,
@@ -786,27 +786,23 @@ async function openEditInvoiceModal() {
     confirmButtonText: "Simpan Perubahan",
     cancelButtonText: "Batal",
     preConfirm: () => {
-      // Ambil nilai dari form
       return {
+        inv_number: document.getElementById("edit_no_inv").value,
         invoice_date: document.getElementById("edit_tanggal_inv").value,
         po_number: document.getElementById("edit_no_po").value,
         po_date: document.getElementById("edit_tanggal_po").value,
-        catatan: document.getElementById("edit_catatan").value,
-        syarat_ketentuan: document.getElementById("edit_syarat").value,
+        files: document.getElementById("edit_file").files[0] || null,
       };
     },
   });
 
   if (formValues) {
-    // Jika user klik "Simpan", panggil fungsi handler
     await handleSaveInvoiceInfo(formValues);
   }
 }
-
-/**
- * 2. Mengirim data update ke API
- * (Fungsi ini dipanggil oleh openEditInvoiceModal)
- */
+// ===========================================================
+// FUNGSI SIMPAN KE API
+// ===========================================================
 async function handleSaveInvoiceInfo(formData) {
   Swal.fire({
     title: "Menyimpan...",
@@ -815,39 +811,44 @@ async function handleSaveInvoiceInfo(formData) {
     didOpen: () => Swal.showLoading(),
   });
 
+  const bodyData = new FormData();
+  bodyData.append("inv_number", formData.inv_number);
+  bodyData.append("invoice_date", formData.invoice_date);
+  bodyData.append("po_number", formData.po_number);
+  bodyData.append("po_date", formData.po_date);
+
+  // Wajib ikut sesuai endpoint
+  bodyData.append("pesanan_id", currentInvoiceData.pesanan_id);
+  bodyData.append("owner_id", owner_id);
+  bodyData.append("user_id", user_id);
+
+  // Upload file kalau ada
+  if (formData.files) {
+    bodyData.append("files", formData.files);
+  }
+
   try {
-    // ASUMSI: Endpoint API Anda untuk update adalah ini.
-    // Sesuaikan jika endpoint-nya berbeda.
     const res = await fetch(
       `${baseUrl}/update/sales_invoice/${window.detail_id}`,
       {
-        method: "POST", // atau PUT/PATCH
+        method: "PUT",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${API_TOKEN}`,
         },
-        body: JSON.stringify({
-          ...formData, // Data dari form modal
-          // Kirim ID user/owner jika diperlukan oleh API Anda
-          user_id: user_id,
-          owner_id: owner_id,
-        }),
+        body: bodyData,
       }
     );
 
-    if (!res.ok) {
-      const errData = await res.json();
-      throw new Error(errData.message || "Gagal menyimpan data.");
-    }
-
     const result = await res.json();
+    if (!res.ok) throw new Error(result.message || "Gagal menyimpan data.");
+
     Swal.fire({
       icon: "success",
       title: "Berhasil",
-      text: result.message || "Data invoice berhasil diperbarui",
+      text: result.message || "Data invoice berhasil diperbarui.",
     });
 
-    // PENTING: Muat ulang data detail untuk menampilkan perubahan
+    // Reload data detail
     loadDetailSales(window.detail_id, window.detail_desc);
   } catch (err) {
     Swal.fire({
@@ -944,6 +945,7 @@ async function openUpdateDPModal(dpDataString) {
 /**
  * 2. Mengirim data update ke API
  * (Fungsi ini dipanggil oleh openUpdateDPModal)
+ * * [VERSI BARU DISESUAIKAN DENGAN ENDPOINT /update/sales_dp/ID]
  */
 async function handleUpdateDP(formValues) {
   // Tampilkan loading
@@ -955,21 +957,29 @@ async function handleUpdateDP(formValues) {
   });
 
   try {
-    // PASTIKAN ENDPOINT BENAR: Asumsi endpoint update Anda adalah /update/sales_dp
-    const res = await fetch(`${baseUrl}/update/sales_dp`, {
-      method: "POST", // atau PUT/PATCH, sesuaikan dengan API Anda
+    // [DIUBAH] Gunakan endpoint dengan ID di URL
+    const res = await fetch(`${baseUrl}/update/sales_dp/${formValues.dp_id}`, {
+      method: "PUT", // atau PUT/PATCH, sesuaikan dengan API Anda
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${API_TOKEN}`,
       },
+      // [DIUBAH] Sesuaikan payload body
       body: JSON.stringify({
-        dp_id: formValues.dp_id, // ID dari DP yang di-update
+        // Ambil ID konteks dari data invoice utama
+        pesanan_id: currentInvoiceData.pesanan_id,
+        invoice_id: window.detail_id,
+
+        // Data dari form modal
         dp_date: formValues.dp_date,
         due_date: formValues.due_date,
         amount: parseFloat(formValues.amount) || 0,
         description: formValues.description,
-        user_id: user_id, // Ambil dari variabel global
-        owner_id: owner_id, // Ambil dari variabel global
+        percentage: "", // Sesuai contoh payload Anda
+
+        // ID user/owner
+        user_id: user_id,
+        owner_id: owner_id,
       }),
     });
 

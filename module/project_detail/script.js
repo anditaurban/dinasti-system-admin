@@ -213,7 +213,6 @@ async function renderProjectData() {
                 </button>
               </div>
             </td>
-            <td class="px-3 py-2 text-center">${data.start_date || "N/A"}</td>
             <td class="px-3 py-2 text-center">
               <button class="update-plan bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-1 rounded">Update</button>
             </td>
@@ -424,8 +423,6 @@ function populateFormForUpdate(costId) {
 
   currentUpdateCostId = costId;
 
-  document.getElementById("calcTanggal").value =
-    item.payment_date || new Date().toISOString().split("T")[0];
   document.getElementById("calcProduct").value = item.cost_name;
   document.getElementById("calcKorelasi").value = item.project_item_id;
   document.getElementById("calcQty").value = item.qty;
@@ -450,7 +447,6 @@ function populateFormForUpdate(costId) {
  * Mengembalikan 'payload' jika valid, atau 'null' jika tidak.
  */
 function getAndValidateCalcForm() {
-  const tanggal = document.getElementById("calcTanggal").value;
   const name = document.getElementById("calcProduct").value;
   const project_item_id = document.getElementById("calcKorelasi").value;
   const qty = document.getElementById("calcQty").value;
@@ -477,7 +473,6 @@ function getAndValidateCalcForm() {
     qty: qty.toString(),
     unit_price: unit_price.toString(),
     total: total.toString(),
-    payment_date: tanggal,
   };
 }
 
