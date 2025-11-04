@@ -14,21 +14,16 @@
 
       <!-- Search -->
       <div class="w-full md:w-auto">
-        <input
-          type="text"
-          id="searchInput"
-          onkeyup="debounceSearch()"
-          placeholder="🔎 Cari..."
-          class="px-3 py-2 border rounded w-full md:w-96"
-        />
+        <input type="text" id="searchInput" onkeyup="debounceSearch()" placeholder="🔎 Cari..."
+          class="px-3 py-2 border rounded w-full md:w-96" />
       </div>
 
       <!-- Actions -->
       <div class="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto">
-        
+
         <!-- Export Dropdown -->
         <div class="relative">
-          <button id="dropdownExportButton" onclick="toggleDropdownButton('dropdownExportMenu')" 
+          <button id="dropdownExportButton" onclick="toggleDropdownButton('dropdownExportMenu')"
             class="flex items-center justify-between px-3 py-2 border rounded w-52 hover:bg-gray-50">
             <span>Export Data</span>
             <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -36,18 +31,18 @@
             </svg>
           </button>
 
-          <div id="dropdownExportMenu" 
+          <div id="dropdownExportMenu"
             class="hidden absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-            <button onclick="exportPDF()" 
+            <button onclick="exportPDF()"
               class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Export PDF</button>
-            <button onclick="exportExcel()" 
+            <button onclick="exportExcel()"
               class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Export Excel</button>
           </div>
         </div>
 
         <!-- Filter Dropdown -->
         <div class="relative">
-          <button id="dropdownFilterButton" onclick="toggleDropdownButton('dropdownFilterMenu')" 
+          <button id="dropdownFilterButton" onclick="toggleDropdownButton('dropdownFilterMenu')"
             class="flex items-center justify-between px-3 py-2 border rounded w-52 hover:bg-gray-50">
             <span>Filter Data</span>
             <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -55,26 +50,24 @@
             </svg>
           </button>
 
-          <div id="dropdownFilterMenu" 
+          <div id="dropdownFilterMenu"
             class="hidden absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
             <!-- Status Filters akan diinject dari JS -->
           </div>
         </div>
 
         <!-- Add Button -->
-        <button id="addButton" 
-          class="hidden bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">
+        <button id="addButton" class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">
           + Create Project
         </button>
       </div>
     </div>
-    
+
 
     <!-- Table -->
     <div class="overflow-x-auto">
       <table class="min-w-full text-sm border">
-        <thead id="tableHeader"
-          class="hidden md:table-header-group bg-gray-100 text-gray-600">
+        <thead id="tableHeader" class="hidden md:table-header-group bg-gray-100 text-gray-600">
           <tr>
             <th rowspan="2" class="px-4 py-2 border">ProjectNr</th>
             <th rowspan="2" class="px-4 py-2 border">Information</th>

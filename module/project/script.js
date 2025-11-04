@@ -5,6 +5,11 @@ colSpanCount = 5;
 setDataType("project");
 fetchAndUpdateData();
 
+document.getElementById("addButton").addEventListener("click", async () => {
+  loadModuleContent("project_detail");
+});
+
+
 window.rowTemplate = function (item, index, perPage = 10) {
   const { currentPage } = state[currentDataType];
   const globalIndex = (currentPage - 1) * perPage + index + 1;

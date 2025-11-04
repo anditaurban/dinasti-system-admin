@@ -530,11 +530,11 @@ function hapusItem(button) {
 }
 
 // GANTI SELURUH FUNGSI ANDA DENGAN INI
+// GANTI SELURUH FUNGSI ANDA DENGAN INI
 async function loadDetailSales(Id, Detail) {
   window.detail_id = Id;
-  window.detail_desc = Detail;
+  window.detail_desc = Detail; // 🔹 Tampilkan loading
 
-  // 🔹 Tampilkan loading
   Swal.fire({
     title: "Loading...",
     text: "Sedang memuat detail data, mohon tunggu.",
@@ -554,9 +554,8 @@ async function loadDetailSales(Id, Detail) {
       throw new Error("Invalid API response structure - missing detail");
     }
 
-    const data = response.detail;
+    const data = response.detail; // ⚡ Tunggu semua load async selesai
 
-    // ⚡ Tunggu semua load async selesai
     await Promise.all([
       loadCustomerList(),
       loadSalesType(),
@@ -573,9 +572,8 @@ async function loadDetailSales(Id, Detail) {
     } else {
       updateBtn?.classList.remove("hidden");
       toggleTambahItemBtn();
-    }
+    } // 📝 Isi form utama
 
-    // 📝 Isi form utama
     document.getElementById("tanggal").value = data.tanggal_ymd || "";
     document.getElementById("type_id").value = data.type_id || "";
     document.getElementById("no_qtn").value = data.no_qtn || "";
@@ -590,9 +588,8 @@ async function loadDetailSales(Id, Detail) {
       data.term_pembayaran || "";
     document.getElementById("client_id").value = data.pelanggan_id || 0;
     document.getElementById("pic_name").value = data.pic_name || 0;
-    document.getElementById("discount").value = finance(data.disc) || 0;
+    document.getElementById("discount").value = finance(data.disc) || 0; // 🔹 Ambil nama client
 
-    // 🔹 Ambil nama client
     const clientSelect = document.getElementById("client");
     const clientOptions = Array.from(clientSelect.options);
     const selectedClientOption = clientOptions.find(
@@ -619,9 +616,8 @@ async function loadDetailSales(Id, Detail) {
           loadModuleContent("quotation_log", Id);
         };
       }
-    }
+    } // 🔹 Load subcategories
 
-    // 🔹 Load subcategories
     const subcategoryRes = await fetch(
       `${baseUrl}/list/sub_category/${owner_id}`,
       { headers: { Authorization: `Bearer ${API_TOKEN}` } }
@@ -634,9 +630,8 @@ async function loadDetailSales(Id, Detail) {
     const subcatResponse = await subcategoryRes.json();
     const subcats = Array.isArray(subcatResponse.listData)
       ? subcatResponse.listData
-      : [];
+      : []; // 🔹 Render item rows
 
-    // 🔹 Render item rows
     const tbody = document.getElementById("tabelItem");
     tbody.innerHTML = "";
 
@@ -663,18 +658,14 @@ async function loadDetailSales(Id, Detail) {
             );
             row.querySelector(".itemHarga").value = finance(
               item.unit_price || 0
-            );
+            ); // <-- BARU: Isi data HPP untuk Item Utama --> // CATATAN: Ini HANYA akan berfungsi jika backend mengirim "item.hpp"
 
-            // <-- BARU: Isi data HPP untuk Item Utama -->
-            // Asumsi key dari API adalah: hpp, markup_nominal, markup_percent
             row.querySelector(".itemHpp").value = finance(item.hpp || 0);
             row.querySelector(".itemMarkupNominal").value = finance(
               item.markup_nominal || 0
             );
             row.querySelector(".itemMarkupPersen").value =
-              item.markup_percent || 0;
-            // <-- AKHIR BARU -->
-
+              item.markup_percent || 0; // <-- AKHIR BARU -->
             if (item.materials?.length) {
               for (const material of item.materials) {
                 tambahSubItem(row.querySelector(".btnTambahSubItem"));
@@ -684,19 +675,20 @@ async function loadDetailSales(Id, Detail) {
                 );
 
                 if (subTr) {
+                  // <-- PERBAIKAN KEY DI SINI -->
                   subTr.querySelector(".subItemMaterial").value =
-                    material.name || "";
+                    material.subItemMaterial || ""; // Sebelumnya 'material.name'
                   subTr.querySelector(".subItemSpec").value =
-                    material.specification || "";
+                    material.subItemSpec || ""; // Sebelumnya 'material.specification'
+                  // <-- AKHIR PERBAIKAN KEY -->
+
                   subTr.querySelector(".subItemQty").value = material.qty || 0;
                   subTr.querySelector(".subItemUnit").value =
                     material.unit || "";
                   subTr.querySelector(".subItemHarga").value = finance(
                     material.unit_price || 0
-                  );
+                  ); // <-- BARU: Isi data HPP untuk Sub-Item --> // CATATAN: Ini HANYA akan berfungsi jika backend mengirim "material.hpp"
 
-                  // <-- BARU: Isi data HPP untuk Sub-Item -->
-                  // Asumsi key dari API adalah: hpp, markup_nominal, markup_percent
                   subTr.querySelector(".subItemHpp").value = finance(
                     material.hpp || 0
                   );
@@ -704,9 +696,7 @@ async function loadDetailSales(Id, Detail) {
                     material.markup_nominal || 0
                   );
                   subTr.querySelector(".subItemMarkupPersen").value =
-                    material.markup_percent || 0;
-                  // <-- AKHIR BARU -->
-
+                    material.markup_percent || 0; // <-- AKHIR BARU -->
                   subTr.querySelector(".subItemTotal").innerText = finance(
                     material.total || material.qty * material.unit_price
                   );
@@ -725,9 +715,8 @@ async function loadDetailSales(Id, Detail) {
     }
 
     calculateTotals();
-    window.dataLoaded = true;
+    window.dataLoaded = true; // ✅ Tutup loading
 
-    // ✅ Tutup loading
     Swal.close();
   } catch (err) {
     console.error("Gagal load detail:", err);
@@ -863,9 +852,8 @@ async function saveInvoice(mode = "create", id = null) {
   try {
     calculateTotals();
 
-    let revisionUpdate = "no"; // default
+    let revisionUpdate = "no";
 
-    // --- Konfirmasi update ---
     if (mode === "update") {
       const konfirmasi = await Swal.fire({
         title: "Update Data?",
@@ -877,7 +865,6 @@ async function saveInvoice(mode = "create", id = null) {
       });
       if (!konfirmasi.isConfirmed) return;
 
-      // --- Tanya apakah ini revision update ---
       const revisionConfirm = await Swal.fire({
         title: "Revision Update?",
         text: "Apakah perubahan ini disimpan sebagai revision update?",
@@ -897,7 +884,6 @@ async function saveInvoice(mode = "create", id = null) {
       const row = rows[i];
       if (!row.querySelector(".itemProduct")) continue;
 
-      // --- AMBIL DATA ITEM (TERMASUK HPP) ---
       const sub_category_id = parseInt(
         row.querySelector(".itemSubcategory")?.value || 0
       );
@@ -908,7 +894,6 @@ async function saveInvoice(mode = "create", id = null) {
       const unit_price = parseRupiah(
         row.querySelector(".itemHarga")?.value || 0
       );
-      // --- TAMBAHAN DATA HPP ---
       const hpp = parseRupiah(row.querySelector(".itemHpp")?.value || 0);
       const markup_nominal = parseRupiah(
         row.querySelector(".itemMarkupNominal")?.value || 0
@@ -919,7 +904,6 @@ async function saveInvoice(mode = "create", id = null) {
 
       const key = `${sub_category_id}-${product}`;
       if (!groupedItems[key]) {
-        // --- MASUKKAN DATA ITEM (TERMASUK HPP) ---
         groupedItems[key] = {
           product,
           sub_category_id,
@@ -938,7 +922,6 @@ async function saveInvoice(mode = "create", id = null) {
       if (subWrapper && subWrapper.classList.contains("subItemWrapper")) {
         const subItems = subWrapper.querySelectorAll(".subItemRow");
         subItems.forEach((sub) => {
-          // --- AMBIL DATA SUB-ITEM (TERMASUK HPP) ---
           const subItemMaterial =
             sub.querySelector(".subItemMaterial")?.value.trim() || "";
           const subItemSpec =
@@ -951,21 +934,16 @@ async function saveInvoice(mode = "create", id = null) {
           const subItemHarga = parseRupiah(
             sub.querySelector(".subItemHarga")?.value || 0
           );
-          // --- TAMBAHAN DATA HPP SUB-ITEM ---
           const subItemHpp = parseRupiah(
             sub.querySelector(".subItemHpp")?.value || 0
           );
           const subItemMarkupNominal = parseRupiah(
             sub.querySelector(".subItemMarkupNominal")?.value || 0
           );
-
-          // --- INI BARIS YANG DIPERBAIKI ---
-          // Sebelumnya ".subItemMarkupPercent" (salah, pakai 't')
           const subItemMarkupPercent = parseFloat(
             sub.querySelector(".subItemMarkupPersen")?.value || 0
-          ); // <-- BENAR (pakai 's')
+          );
 
-          // --- MASUKKAN DATA SUB-ITEM (TERMASUK HPP) ---
           groupedItems[key].materials.push({
             subItemMaterial,
             subItemSpec,
@@ -984,7 +962,6 @@ async function saveInvoice(mode = "create", id = null) {
 
     const items = Object.values(groupedItems);
 
-    // --- FormData ---
     const owner_id = user.owner_id;
     const user_id = user.user_id;
     const nominalKontrak = parseRupiah(
@@ -993,10 +970,6 @@ async function saveInvoice(mode = "create", id = null) {
     const disc = parseRupiah(document.getElementById("discount")?.value || 0);
     const ppn = parseRupiah(document.getElementById("ppn").value);
     const total = parseRupiah(document.getElementById("total").value);
-
-    console.log("Total baris item ditemukan:", rows.length);
-    console.log("Total item valid:", Object.keys(groupedItems).length);
-    console.log("Contoh groupedItems (sudah ada HPP):", groupedItems);
 
     const formData = new FormData();
     formData.append("owner_id", owner_id);
@@ -1056,6 +1029,27 @@ async function saveInvoice(mode = "create", id = null) {
           await new Promise((resolve) => setTimeout(resolve, 0));
       }
     }
+
+    // --- 🔍 Tambahan Console Log Lengkap ---
+    console.group("🔍 Data yang dikirim ke server");
+    console.log(
+      "URL:",
+      mode === "create"
+        ? `${baseUrl}/add/sales`
+        : `${baseUrl}/update/sales/${id}`
+    );
+    console.log("Method:", mode === "create" ? "POST" : "PUT");
+
+    console.log("\n🧾 Items (list lengkap):", items);
+    console.log("\n📦 FormData (isi field):");
+    for (const [key, val] of formData.entries()) {
+      if (key === "items") {
+        console.log(key, JSON.parse(val)); // biar kelihatan strukturnya
+      } else {
+        console.log(key, val);
+      }
+    }
+    console.groupEnd();
 
     const url =
       mode === "create"
