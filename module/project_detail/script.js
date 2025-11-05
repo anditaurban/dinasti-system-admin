@@ -843,14 +843,36 @@ async function handleAddNewActualCost() {
 // ================================================================
 // FUNGSI MODAL (TOMBOL MATA)
 // ================================================================
+// ================================================================
+// FUNGSI MODAL (TOMBOL MATA) - VERSI PERBAIKAN
+// ================================================================
 function showActualCostDetail(korelasi) {
-  // 💡 REVISI: Ambil data dari 'realCalculationData' (data Tab 2)
-  //    dan filter berdasarkan 'cost_name' (kolom Korelasi)
-  const details = realCalculationData.filter(
-    (item) => item.cost_name === korelasi
+  // 1. Ambil data dari variabel global projectDetailData
+  const selectedItem = projectDetailData.items.find(
+    (item) => item.product === korelasi
   );
 
-  // 2. Buat tabel HTML untuk modal
+  let details = []; // Ini akan menampung SEMUA data actual cost
+
+  if (selectedItem) {
+    // 2. Cek apakah item ini punya 'materials'
+    if (selectedItem.materials?.length > 0) {
+      // Jika punya, kita loop setiap material dan ambil 'actuals' DARI DALAM material
+      selectedItem.materials.forEach((mat) => {
+        if (mat.actuals?.length > 0) {
+          // Concat (gabung) array-nya ke 'details'
+          details = details.concat(mat.actuals);
+        }
+      });
+    }
+    // 3. Cek apakah item ini punya 'actuals' langsung (untuk item tanpa material)
+    else if (selectedItem.actuals?.length > 0) {
+      // Jika punya, langsung gabung ke 'details'
+      details = details.concat(selectedItem.actuals);
+    }
+  }
+
+  // 4. Buat tabel HTML untuk modal
   let htmlContent = "";
   if (details.length === 0) {
     htmlContent =
@@ -860,40 +882,43 @@ function showActualCostDetail(korelasi) {
       <table class="w-full text-sm text-left">
         <thead class="bg-gray-100">
           <tr>
-            <th class="px-3 py-2">Product</th>
+            <th class="px-3 py-2">Nama Pengeluaran</th>
             <th class="px-3 py-2 text-right">Unit Price</th>
             <th class="px-3 py-2 text-right">Qty</th>
             <th class="px-3 py-2 text-right">Total</th>
+            <th class="px-3 py-2">Notes</th>
           </tr>
         </thead>
         <tbody>
     `;
     let total = 0;
     details.forEach((item) => {
-      // 💡 REVISI: Gunakan 'item.total' (sesuai data di realCalculationData)
+      // 5. Gunakan key dari array 'actuals' (cost_name, unit_price, qty, total)
       htmlContent += `
         <tr class="border-b">
-          <td class="px-3 py-2">${item.product}</td>
+          <td class="px-3 py-2">${item.cost_name}</td>
           <td class="px-3 py-2 text-right">${formatNumber(item.unit_price)}</td>
-          <td class="px-3 py-2 text-right">${item.qty}</td>
+          <td class="px-3 py-2 text-right">${item.qty} ${item.unit}</td>
           <td class="px-3 py-2 text-right">${formatNumber(item.total)}</td>
+          <td class="px-3 py-2 text-xs">${item.notes || ""}</td>
         </tr>
       `;
-      total += item.total; // 💡 REVISI: Gunakan 'item.total'
+      total += item.total;
     });
     htmlContent += `
         </tbody>
         <tfoot class="font-bold">
           <tr>
-            <td colspan="3 " class="px-3 py-2 text-right">Total:</td>
+            <td colspan="3" class="px-3 py-2 text-right">Total:</td>
             <td class="px-3 py-2 text-right">${formatNumber(total)}</td>
+            <td></td>
           </tr>
         </tfoot>
       </table>
     `;
   }
 
-  // 3. Tampilkan modal
+  // 6. Tampilkan modal
   if (typeof Swal === "undefined") {
     alert("Library SweetAlert2 (Swal) tidak ditemukan.");
     return;
