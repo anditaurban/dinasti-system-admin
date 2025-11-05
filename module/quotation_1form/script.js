@@ -677,9 +677,9 @@ async function loadDetailSales(Id, Detail) {
                 if (subTr) {
                   // <-- PERBAIKAN KEY DI SINI -->
                   subTr.querySelector(".subItemMaterial").value =
-                    material.subItemMaterial || ""; // Sebelumnya 'material.name'
+                    material.name || ""; // Sebelumnya 'material.name'
                   subTr.querySelector(".subItemSpec").value =
-                    material.subItemSpec || ""; // Sebelumnya 'material.specification'
+                    material.specification || ""; // Sebelumnya 'material.specification'
                   // <-- AKHIR PERBAIKAN KEY -->
 
                   subTr.querySelector(".subItemQty").value = material.qty || 0;
