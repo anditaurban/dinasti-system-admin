@@ -10,6 +10,8 @@ realCalculationData = []; // Menyimpan data untuk tabel Tab 2
 dataItemDropdown = [];
 actualCostCurrentPage = 1;
 currentUpdateCostId = null;
+currentMode = "view";
+customerList = [];
 
 // ================================================================
 // PENGATURAN TAB
@@ -44,217 +46,803 @@ async function loadDetailSales(Id, Detail) {
   window.detail_id = Id;
   window.detail_desc = Detail;
 
-  // 💡 REVISI: Tampilkan loading utama
-  Swal.fire({
-    title: "Memuat Data Project...",
-    text: "Mohon tunggu sebentar.",
-    allowOutsideClick: false,
-    didOpen: () => {
-      Swal.showLoading();
-    },
-  });
+  if (Id) {
+    currentMode = "view";
+  } else {
+    currentMode = "add";
+  }
 
-  try {
-    // 🔹 Fetch detail project dari API
-    const res = await fetch(`${baseUrl}/detail/project/${Id}`, {
-      headers: { Authorization: `Bearer ${API_TOKEN}` },
-    });
-    const response = await res.json();
+  // Ambil elemen-elemen UI
+  const addProjectForm = document.getElementById("addProjectForm");
+  const viewProjectCards = document.getElementById("viewProjectCards");
+  const savePlanCostBtn = document.getElementById("saveAllPlanCostBtn");
+  const addItemBtn = document.getElementById("addItemBtn");
+  const saveNewProjectBtn = document.getElementById("saveNewProjectBtn");
+  const viewModeContainer = document.getElementById("viewModeContainer");
+  const addModeContainer = document.getElementById("addModeContainer");
 
-    if (!response.success || !response.detail) {
-      throw new Error(response.message || "Struktur data API tidak valid");
-    }
+  // ----------------------------------------------------------------
+  // ➡️ A. LOGIKA MODE TAMBAH (ADD MODE)
+  // ----------------------------------------------------------------
+  if (currentMode === "add") {
+    // Atur visibilitas UI
+    tab2Btn.classList.add("hidden");
+    if (addProjectForm) addProjectForm.classList.remove("hidden");
+    if (viewProjectCards) viewProjectCards.classList.add("hidden");
+    if (savePlanCostBtn) savePlanCostBtn.classList.add("hidden");
+    // if (addItemBtn) addItemBtn.classList.remove("hidden"); // Tombol dari QO
+    if (saveNewProjectBtn) saveNewProjectBtn.classList.remove("hidden");
+    if (viewModeContainer) viewModeContainer.classList.add("hidden");
+    if (addModeContainer) addModeContainer.classList.remove("hidden");
 
-    // 🔹 Simpan data project ke variabel global
-    projectDetailData = response.detail;
-    const data = projectDetailData;
+    // Pastikan Tab 1 aktif
+    switchTab(tab1, tab1Btn);
 
-    // 🔹 Tampilkan informasi utama project
+    // Ganti teks judul
     document.getElementById("projectNameDisplay").textContent =
-      data.project_name || "Project Detail";
-    document.getElementById("projectAmount").innerHTML =
-      finance(data.project_value) || 0;
-    document.getElementById("plan_costing").innerHTML =
-      finance(data.plan_costing) || 0;
-    document.getElementById("actual_costing").innerHTML =
-      finance(data.actual_cost) || 0;
-    document.getElementById("margin").innerHTML = finance(data.margin) || 0;
+      "Buat Project Baru";
 
-    // 🔹 Siapkan tabel item
-    const tbody = document.getElementById("tabelItem");
-    tbody.innerHTML = "";
+    // Kosongkan tabel 'add mode'
+    document.getElementById("tabelItemAdd").innerHTML = "";
 
-    // ======================================================
-    // 🔸 Tampilkan item berdasarkan sub_category (grouping)
-    // ======================================================
-    if (data.items?.length) {
-      const groups = {};
+    // Inisialisasi form 'add mode' (dari QO)
+    setTodayDate("add_tanggal"); // Set tanggal ke input baru
+    loadSalesType("add_type_id"); // Load tipe ke select baru
+    loadCustomerList("add_client"); // Load client ke select baru
 
-      // Grouping berdasarkan sub_category
-      data.items.forEach((item) => {
-        if (!groups[item.sub_category]) groups[item.sub_category] = [];
-        groups[item.sub_category].push(item);
+    // Tambahkan listener untuk diskon & ppn (dari QO)
+    document
+      .getElementById("discount")
+      ?.addEventListener("input", calculateTotals);
+    document
+      .getElementById("cekPpn")
+      ?.addEventListener("change", calculateTotals);
+  }
+  // ----------------------------------------------------------------
+  // ➡️ B. LOGIKA MODE LIHAT (VIEW MODE)
+  // ----------------------------------------------------------------
+  else {
+    // Atur visibilitas UI
+    tab2Btn.classList.remove("hidden");
+    if (addProjectForm) addProjectForm.classList.add("hidden");
+    if (viewProjectCards) viewProjectCards.classList.remove("hidden");
+    if (savePlanCostBtn) savePlanCostBtn.classList.remove("hidden");
+    if (addItemBtn) addItemBtn.classList.add("hidden");
+    if (saveNewProjectBtn) saveNewProjectBtn.classList.add("hidden");
+    if (viewModeContainer) viewModeContainer.classList.remove("hidden");
+    if (addModeContainer) addModeContainer.classList.add("hidden");
+
+    Swal.fire({
+      title: "Memuat Data Project...",
+      text: "Mohon tunggu sebentar.",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
+    try {
+      // 🔹 Fetch detail project dari API (Kode asli Anda)
+      const res = await fetch(`${baseUrl}/detail/project/${Id}`, {
+        headers: { Authorization: `Bearer ${API_TOKEN}` },
       });
+      const response = await res.json();
+      if (!response.success || !response.detail) {
+        throw new Error(response.message || "Struktur data API tidak valid");
+      }
+      projectDetailData = response.detail;
+      const data = projectDetailData;
 
-      let nomor = 1;
+      // 🔹 Tampilkan info card
+      document.getElementById("projectNameDisplay").textContent =
+        data.project_name || "Project Detail";
+      document.getElementById("projectAmount").innerHTML =
+        finance(data.project_value) || 0;
+      document.getElementById("plan_costing").innerHTML =
+        finance(data.plan_costing) || 0;
+      document.getElementById("actual_costing").innerHTML =
+        finance(data.actual_cost) || 0;
+      document.getElementById("margin").innerHTML = finance(data.margin) || 0;
 
-      // Loop setiap group
-      Object.keys(groups).forEach((subCat) => {
-        // 🔹 Header sub-category
-        const trHeader = document.createElement("tr");
-        trHeader.className = "bg-gray-200 font-semibold";
-        trHeader.innerHTML = `
-          <td colspan="10" class="px-3 py-2 uppercase">${subCat || "-"}</td>
-        `;
-        tbody.appendChild(trHeader);
+      // 🔹 Render tabel 'view mode'
+      const tbody = document.getElementById("tabelItemView");
+      tbody.innerHTML = "";
 
-        // 🔹 Loop item dalam sub-category
-        groups[subCat].forEach((item) => {
-          // Perhitungan nilai
-          const item_plan_costing =
-            item.materials.reduce((s, m) => s + (m.costing || 0), 0) ||
-            item.costing ||
-            0;
-          const item_actual_costing =
-            item.materials.reduce((s, m) => s + (m.actual_total || 0), 0) ||
-            item.actual_total ||
-            0;
-          const item_project_value =
-            item.materials.reduce((s, m) => s + (m.total || 0), 0) ||
-            item.total ||
-            0;
-          const item_unit_price =
-            item.qty > 0 ? item.total / item.qty : item.unit_price || 0;
+      if (data.items?.length) {
+        const groups = {};
+        data.items.forEach((item) => {
+          if (!groups[item.sub_category]) groups[item.sub_category] = [];
+          groups[item.sub_category].push(item);
+        });
+        let nomor = 1;
+        Object.keys(groups).forEach((subCat) => {
+          const trHeader = document.createElement("tr");
+          trHeader.className = "bg-gray-200 font-semibold";
+          trHeader.innerHTML = `<td colspan="10" class="px-3 py-2 uppercase">${
+            subCat || "-"
+          }</td>`;
+          tbody.appendChild(trHeader);
 
-          // Baris utama item
-          const tr = document.createElement("tr");
-          tr.className = "border-b bg-gray-50";
-          tr.dataset.itemId = item.project_item_id;
+          groups[subCat].forEach((item) => {
+            const tr = document.createElement("tr");
+            tr.className = "border-b bg-gray-50";
+            tr.dataset.itemId = item.project_item_id;
+            tr.innerHTML = `
+              <td class="px-3 py-2 align-top text-sm font-semibold">${nomor++}</td>
+              <td class="px-3 py-2 align-top">
+                <div class="font-medium">${item.product || "-"}</div>
+                <div class="text-xs text-gray-500">${
+                  item.description || ""
+                }</div>
+              </td>
+              ${
+                item.materials?.length
+                  ? `<td colspan="6" class="px-3 py-2 text-left text-gray-500 italic text-xs"></td>`
+                  : `
+                    <td class="px-3 py-2 text-right align-top">${
+                      item.qty || 0
+                    }</td>
+                    <td class="px-3 py-2 text-center align-top">${
+                      item.unit || ""
+                    }</td>
+                    <td class="px-3 py-2 text-right align-top">${formatNumber(
+                      item.unit_price
+                    )}</td>
+                    <td class="px-3 py-2 text-right align-top">${formatNumber(
+                      item.item_total
+                    )}</td>
+                    <td class="px-3 py-2 text-center align-top">
+                      <input class="plancosting text-right border px-2 py-1 w-20" placeholder="0" value="${formatNumber(
+                        item.plan_total
+                      )}">
+                    </td>
+                    <td class="px-3 py-2 text-center align-top">
+                      <div class="formatNumber flex items-center justify-end gap-2 text-red-600 font-bold">
+                        <span>${formatNumber(item.actual_total)}</span>
+                        <button class="view-actual-cost-btn" data-korelasi="${
+                          item.product
+                        }" title="Lihat Detail">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 hover:text-blue-800" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>
+                        </button>
+                      </div>
+                    </td>
+                  `
+              }
+            `;
+            tbody.appendChild(tr);
 
-          // 🔸 Isi baris utama
-          tr.innerHTML = `
-            <td class="px-3 py-2 align-top text-sm font-semibold">${nomor++}</td>
-            <td class="px-3 py-2 align-top">
-              <div class="font-medium">${item.product || "-"}</div>
-              <div class="text-xs text-gray-500">${item.description || ""}</div>
-            </td>
-            ${
-              item.materials?.length
-                ? `
-                  <td colspan="6" class="px-3 py-2 text-left text-gray-500 italic text-xs">
-                  
+            if (item.materials?.length) {
+              item.materials.forEach((m, mIdx) => {
+                const subTr = document.createElement("tr");
+                subTr.className = "border-b bg-gray-50 text-sm";
+                subTr.dataset.materialId = m.project_materials_id;
+                subTr.innerHTML = `
+                  <td class="px-3 py-1"></td>
+                  <td class="px-3 py-1 italic">
+                    ${mIdx + 1}. ${m.name || ""} - ${m.specification || ""}
                   </td>
-                `
-                : `
-                  <td class="px-3 py-2 text-right align-top">${
-                    item.qty || 0
-                  }</td>
-                  <td class="px-3 py-2 text-center align-top">${
-                    item.unit || ""
-                  }</td>
-                  <td class="px-3 py-2 text-right align-top">${formatNumber(
-                    item.unit_price
+                  <td class="px-3 py-1 text-right">${m.qty || 0}</td>
+                  <td class="px-3 py-1 text-center">${m.unit || ""}</td>
+                  <td class="px-3 py-1 text-right">${formatNumber(
+                    m.unit_price || 0
                   )}</td>
-                  <td class="px-3 py-2 text-right align-top">${formatNumber(
-                    item.item_total
+                  <td class="px-3 py-1 text-right">${formatNumber(
+                    m.material_total || 0
                   )}</td>
-                  <td class="px-3 py-2 text-center align-top">
-                    <input class="plancosting text-right border px-2 py-1 w-20" placeholder="0" value="${formatNumber(
-                      item.plan_total
+                  <td class="px-3 py-1 text-center">
+                    <input class="formatNumber plancosting text-right border px-2 py-1 w-20" placeholder="0" value="${formatNumber(
+                      m.plan_total || 0
                     )}">
                   </td>
-                  <td class="px-3 py-2 text-center align-top">
+                  <td class="px-3 py-1 text-center">
                     <div class="flex items-center justify-end gap-2 text-red-600 font-bold">
-                      <span>${formatNumber(item.actual_total)}</span>
+                      <span>${formatNumber(m.actual_total || 0)}</span>
                       <button class="view-actual-cost-btn" data-korelasi="${
                         item.product
                       }" title="Lihat Detail">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 hover:text-blue-800" viewBox="0 0 20 20" fill="currentColor">
-                          <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                          <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
-                        </svg>
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 hover:text-blue-800" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>
                       </button>
                     </div>
                   </td>
-                `
+                `;
+                tbody.appendChild(subTr);
+              });
             }
-          `;
-          tbody.appendChild(tr);
-
-          if (item.materials?.length) {
-            item.materials.forEach((m, mIdx) => {
-              const subTr = document.createElement("tr");
-              subTr.className = "border-b bg-gray-50 text-sm";
-              subTr.dataset.materialId = m.project_materials_id;
-              subTr.innerHTML = `
-        <td class="px-3 py-1"></td>
-        <td class="px-3 py-1 italic">
-          ${mIdx + 1}. ${m.name || ""} - ${m.specification || ""}
-        </td>
-        <td class="px-3 py-1 text-right">${m.qty || 0}</td>
-        <td class="px-3 py-1 text-center">${m.unit || ""}</td>
-        <td class="px-3 py-1 text-right">${formatNumber(m.unit_price || 0)}</td>
-        <td class="px-3 py-1 text-right">${formatNumber(
-          m.material_total || 0
-        )}</td>
-        <td class="px-3 py-1 text-center">
-          <input class="plancosting text-right border px-2 py-1 w-20" placeholder="0" value="${formatNumber(
-            m.plan_total || 0
-          )}">
-        </td>
-        <td class="px-3 py-1 text-center">
-          
-          <div class="flex items-center justify-end gap-2 text-red-600 font-bold">
-            
-            <span>${formatNumber(m.actual_total || 0)}</span>
-
-            <button class="view-actual-cost-btn" data-korelasi="${
-              item.product
-            }" title="Lihat Detail">
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 hover:text-blue-800" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                            <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
-                          </svg>
-                        </button>
-          </div>
-          </td>
-      `;
-              tbody.appendChild(subTr);
-            });
-          }
+          });
         });
-      });
-    } else {
-      // 🔸 Jika tidak ada item
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="10" class="text-center text-gray-500 italic py-3">
-            Tidak ada item
-          </td>
-        </tr>
-      `;
+      } else {
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-gray-500 italic py-3">Tidak ada item</td></tr>`;
+      }
+
+      tbody.querySelectorAll(".plancosting").forEach((input) => {
+        input.addEventListener("input", (e) => {
+          // Ambil nilai & posisi kursor
+          let value = e.target.value;
+          let cursorPosition = e.target.selectionStart;
+          let originalLength = value.length; // Hapus semua selain angka
+
+          const numericValue = value.replace(/\D/g, ""); // Format dengan titik
+
+          const formattedValue = numericValue.replace(
+            /\B(?=(\d{3})+(?!\d))/g,
+            "."
+          ); // Set nilai baru
+
+          e.target.value = formattedValue; // Hitung perbedaan panjang untuk menyesuaikan kursor
+
+          let newLength = formattedValue.length;
+          let lengthDifference = newLength - originalLength; // Set posisi kursor baru agar tidak loncat ke akhir
+
+          if (
+            e.target.selectionEnd === originalLength ||
+            cursorPosition === originalLength
+          ) {
+            e.target.setSelectionRange(
+              cursorPosition + lengthDifference,
+              cursorPosition + lengthDifference
+            );
+          } // PENTING: JANGAN panggil updateFormTotal() di sini
+        });
+      }); // ⬆️ ⬆️ ⬆️ BATAS AKHIR KODE TAMBAHAN ⬆️ ⬆️ ⬆️ // 🔹 Inisialisasi Tab 2 dan Event
+      window.dataLoaded = true;
+      await initRealCalculationTab();
+      toggleTambahItemBtn(); // Hanya panggil di View Mode
+      if (savePlanCostBtn) {
+        savePlanCostBtn.removeEventListener(
+          "click",
+          handleUpdateAllPlanCosting
+        );
+        savePlanCostBtn.addEventListener("click", handleUpdateAllPlanCosting);
+      }
+      switchTab(tab1, tab1Btn);
+      Swal.close();
+    } catch (err) {
+      console.error("Gagal load detail:", err);
+      Swal.fire(
+        "Error",
+        err.message || "Gagal memuat detail penjualan",
+        "error"
+      );
     }
+  }
+}
 
-    // ======================================================
-    // 🔹 Inisialisasi Tab dan Event
-    // ======================================================
-    window.dataLoaded = true;
-    await initRealCalculationTab();
-    const saveBtn = document.getElementById("saveAllPlanCostBtn");
-    if (saveBtn) {
-      saveBtn.removeEventListener("click", handleUpdateAllPlanCosting);
-      saveBtn.addEventListener("click", handleUpdateAllPlanCosting);
+// FUNGSI-FUNGSI DARI ANDA (SUDAH BENAR)
+// Pastikan fungsi ini ada di file JS Anda
+
+function setTodayDate(elementId) {
+  const today = new Date().toISOString().split("T")[0];
+  const dateInput = document.getElementById(elementId);
+  if (dateInput) {
+    dateInput.value = today;
+  }
+}
+
+// 💡 Fungsi dari QO, diubah untuk menerima ID elemen
+async function loadSalesType(elementId) {
+  try {
+    const response = await fetch(`${baseUrl}/list/type_sales`, {
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+    });
+    if (!response.ok) throw new Error("Gagal mengambil data sales type");
+    const result = await response.json();
+    const salesTypes = result.listData;
+
+    const typeSelect = document.getElementById(elementId);
+    if (!typeSelect) return;
+    typeSelect.innerHTML = '<option value="">Pilih Tipe</option>';
+    salesTypes.forEach((item) => {
+      const option = document.createElement("option");
+      option.value = item.type_id;
+      // 💡 Anda mungkin ingin menyesuaikan teks ini
+      option.textContent = `${item.nama_type} (${item.kode_type})`;
+      typeSelect.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Gagal load sales type:", error);
+  }
+}
+
+// 💡 Fungsi dari QO, diubah untuk menerima ID elemen
+async function loadCustomerList(elementId) {
+  try {
+    const response = await fetch(`${baseUrl}/client/sales/`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+    });
+    if (!response.ok) throw new Error("Gagal mengambil data client");
+    const result = await response.json();
+    customerList = result.data || []; // Simpan di global
+
+    const select = document.getElementById(elementId);
+    if (!select) return;
+    select.innerHTML = `<option value="">-- Pilih Client --</option>`;
+    customerList.forEach((item) => {
+      const opt = document.createElement("option");
+      opt.value = item.client_id;
+      opt.textContent = `${item.nama_client} (${item.alias})`;
+      select.appendChild(opt);
+    });
+  } catch (error) {
+    console.error("Error load client:", error);
+    customerList = [];
+  }
+}
+
+// 💡 Fungsi dari QO
+function toggleTambahItemBtn() {
+  // Sesuaikan ID dengan form 'Add Mode'
+  const select = document.getElementById("add_type_id");
+  const btn = document.getElementById("addItemBtn"); // Tombol utama "Tambah Item"
+
+  if (select.value !== "" && select.value !== "0") {
+    btn.classList.remove("hidden");
+  } else {
+    btn.classList.add("hidden");
+  }
+}
+
+// 💡 Fungsi dari QO
+async function loadSubcategories(selectElement, selectedId = "") {
+  try {
+    const res = await fetch(`${baseUrl}/list/sub_category/${owner_id}`, {
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+    });
+    const data = await res.json();
+    if (!data.listData || !Array.isArray(data.listData)) {
+      selectElement.innerHTML = `<option value="">Tidak ada data</option>`;
+      return;
     }
-
-    switchTab(tab1, tab1Btn);
-    switchTab(tab1, tab1Btn); // Pastikan tab pertama aktif
-
-    // 💡 REVISI: Tutup loading utama setelah semua selesai
-    Swal.close();
+    selectElement.innerHTML = `<option value="">-- Pilih Subcategory --</option>`;
+    data.listData.forEach((item) => {
+      const option = document.createElement("option");
+      option.value = item.sub_category_id;
+      option.textContent = item.nama;
+      if (selectedId && selectedId == item.sub_category_id) {
+        option.selected = true;
+      }
+      selectElement.appendChild(option);
+    });
   } catch (err) {
-    console.error("Gagal load detail:", err);
-    // 💡 REVISI: Tampilkan error jika gagal
-    Swal.fire("Error", err.message || "Gagal memuat detail penjualan", "error");
+    console.error("Gagal load subcategory:", err);
+    selectElement.innerHTML = `<option value="">Gagal load</option>`;
+  }
+}
+
+// 💡 Fungsi dari QO
+function setupRupiahFormattingForElement(element) {
+  if (!element) return;
+  element.addEventListener("input", function (e) {
+    const value = e.target.value.replace(/[^\d]/g, "");
+    e.target.value = finance(value);
+
+    const row = e.target.closest("tr");
+    if (!row) return;
+
+    // Perlu cek ini sub-item atau bukan
+    const qtyEl =
+      row.querySelector(".itemQty") || row.querySelector(".subItemQty");
+    const totalEl =
+      row.querySelector(".itemTotal") || row.querySelector(".subItemTotal");
+
+    const qty = parseInt(qtyEl?.value || 0);
+    const harga = parseRupiah(e.target.value);
+    const subtotal = qty * harga;
+
+    if (totalEl) totalEl.textContent = finance(subtotal);
+    calculateTotals();
+  });
+}
+
+// 💡 Fungsi dari QO
+function parseRupiah(rupiah) {
+  if (!rupiah || typeof rupiah !== "string") return 0;
+  const isNegative = rupiah.trim().startsWith("-");
+  const angkaString = rupiah.replace(/[^\d]/g, "");
+  let angka = parseInt(angkaString) || 0;
+  return isNegative ? -angka : angka;
+}
+
+// 💡 Fungsi dari QO
+async function tambahItem() {
+  const typeId = document.getElementById("add_type_id").value;
+  const tbody = document.getElementById("tabelItemAdd"); // Target tbody 'add mode'
+
+  const tr = document.createElement("tr");
+  tr.classList.add("itemRow");
+  const index =
+    document.querySelectorAll("#tabelItemAdd tr.itemRow").length + 1;
+
+  // Ini adalah HTML dari QO
+  tr.innerHTML = `
+    <td class="border px-3 py-2 w-[5%] align-top">${index}</td>
+    <td class="border px-5 py-2 w-[55%] align-top">
+      <div class="mb-1">
+        <label class="block text-xs text-gray-500">Type</label>
+        <select class="w-full border rounded px-2 itemSubcategory"></select>
+      </div>
+      <div class="mb-1">
+        <label class="block text-xs text-gray-500">Product</label>
+        <input type="text" class="w-full border rounded px-2 itemProduct" placeholder="Product">
+      </div>
+      <div class="mb-1">
+        <label class="block text-xs text-gray-500">Deskripsi</label>
+        <textarea class="w-full border rounded px-2 itemDesc" rows="3" placeholder="Deskripsi"></textarea>
+      </div>
+      <div class="grid grid-cols-3 gap-2 p-2 border rounded bg-gray-50 my-2">
+        <div>
+          <label class="block text-xs text-gray-500">HPP (Modal)</label>
+          <input type="text" class="w-full border rounded px-2 itemHpp text-right finance" value="0" oninput="recalculateHarga(this, 'hpp')">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500">Markup (Nominal)</label>
+          <input type="text" class="w-full border rounded px-2 itemMarkupNominal text-right finance" value="0" oninput="recalculateHarga(this, 'nominal')">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500">Markup (%)</label>
+          <input type="number" class="w-full border rounded px-2 itemMarkupPersen text-right" value="0" oninput="recalculateHarga(this, 'persen')">
+        </div>
+      </div>
+      <div class="grid grid-cols-4 gap-2">
+        <div>
+          <label class="block text-xs text-gray-500">Qty</label>
+          <input type="number" class="w-full border rounded px-2 itemQty text-right" value="1" oninput="recalculateTotal()">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500">Unit</label>
+          <input type="text" class="w-full border rounded px-2 itemUnit" placeholder="set">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-xs text-gray-500">Harga (Jual)</label>
+          <input type="text" class="w-full border rounded px-2 itemHarga text-right bg-gray-100" value="0" readonly>
+        </div>
+      </div>
+      <div class="mt-2">
+        <label class="block text-xs text-gray-500">Sub Total</label>
+        <div class="border rounded px-2 py-1 text-right bg-gray-50 itemTotal">0</div>
+      </div>
+    </td>
+    <td class="border px-3 py-2 text-center w-[10%] align-top">
+      <div class="flex flex-col items-center justify-center space-y-2">
+        <button onclick="hapusItem(this)" 
+          class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition" 
+          title="Hapus Item">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        ${
+          typeId == 3
+            ? `
+          <button onclick="tambahSubItem(this)" 
+            class="btnTambahSubItem inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" 
+            title="Tambah Sub Item">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>`
+            : ""
+        }
+      </div>
+    </td>
+  `;
+
+  const subWrapper = document.createElement("tr");
+  subWrapper.classList.add("subItemWrapper");
+  subWrapper.innerHTML = `<td colspan="3" class="p-0"><table class="w-full"></table></td>`; // colspan=3
+
+  tbody.appendChild(tr);
+  tbody.appendChild(subWrapper);
+
+  setupRupiahFormattingForElement(tr.querySelector(".itemHarga"));
+  await loadSubcategories(tr.querySelector(".itemSubcategory"));
+}
+
+// 💡 Fungsi dari QO
+function tambahSubItem(btn) {
+  const parentRow = btn.closest("tr");
+  const subWrapper = parentRow.nextElementSibling?.querySelector("table");
+  if (!subWrapper) return;
+  const subTr = document.createElement("tr");
+  subTr.classList.add("subItemRow", "bg-gray-50", "italic");
+
+  // Ini HTML dari QO
+  subTr.innerHTML = `
+    <td class="border px-3 py-2 w-[5%] text-center align-middle itemNumber"></td>
+    <td class="border px-3 py-2 align-top">
+      <div class="space-y-2">
+        <div>
+          <label class="block text-xs text-gray-500">Material</label>
+          <input type="text" class="w-full border rounded px-2 subItemMaterial" placeholder="Material">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500">Specification</label>
+          <input type="text" class="w-full border rounded px-2 subItemSpec" placeholder="Spesifikasi">
+        </div>
+        <div class="grid grid-cols-3 gap-2 p-2 border rounded bg-white my-2">
+          <div>
+            <label class="block text-xs text-gray-500">HPP (Modal)</label>
+            <input type="text" class="w-full border rounded px-2 subItemHpp text-right finance" value="0" oninput="recalculateHarga(this, 'hpp')">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500">Markup (Nominal)</label>
+            <input type="text" class="w-full border rounded px-2 subItemMarkupNominal text-right finance" value="0" oninput="recalculateHarga(this, 'nominal')">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500">Markup (%)</label>
+            <input type="number" class="w-full border rounded px-2 subItemMarkupPersen text-right" value="0" oninput="recalculateHarga(this, 'persen')">
+          </div>
+        </div>
+        <div class="grid grid-cols-4 gap-2">
+          <div>
+            <label class="block text-xs text-gray-500">Qty</label>
+            <input type="number" class="w-full border rounded px-2 text-right subItemQty" value="1" oninput="recalculateTotal()">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500">Unit</label>
+            <input type="text" class="w-full border rounded px-2 subItemUnit" placeholder="pcs">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs text-gray-500">Harga (Jual)</label>
+            <input type="text" class="w-full border rounded px-2 text-right subItemHarga bg-gray-100" value="0" readonly>
+          </div>
+        </div>
+        <div class="mt-2">
+          <label class="block text-xs text-gray-500">Sub Total</label>
+          <div class="border rounded px-2 py-1 text-right bg-gray-100 subItemTotal">0</div>
+        </div>
+      </div>
+    </td>
+    <td class="border px-3 py-2 text-center w-[10%] align-middle">
+      <button onclick="hapusItem(this)"
+        class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition"
+        title="Hapus Sub Item">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </td>
+  `;
+
+  subWrapper.appendChild(subTr);
+  setupRupiahFormattingForElement(subTr.querySelector(".subItemHarga"));
+}
+
+// 💡 Fungsi dari QO
+function hapusItem(button) {
+  const row = button.closest("tr");
+  // Cek apakah ini item utama, jika ya, hapus juga wrapper-nya
+  if (row.classList.contains("itemRow")) {
+    const wrapper = row.nextElementSibling;
+    if (wrapper && wrapper.classList.contains("subItemWrapper")) {
+      wrapper.remove();
+    }
+  }
+  row.remove();
+  calculateTotals();
+}
+
+// 💡 Fungsi dari QO
+function recalculateTotal() {
+  // Hitung itemRow
+  document.querySelectorAll("#tabelItemAdd tr.itemRow").forEach((row) => {
+    const qty = parseInt(row.querySelector(".itemQty")?.value || 0);
+    const harga = parseRupiah(row.querySelector(".itemHarga")?.value || "0");
+    const totalCell = row.querySelector(".itemTotal");
+    if (totalCell) totalCell.textContent = finance(qty * harga);
+  });
+
+  // Hitung subItemRow
+  document.querySelectorAll("#tabelItemAdd tr.subItemRow").forEach((sub) => {
+    const q = parseInt(sub.querySelector(".subItemQty")?.value || 0);
+    const h = parseRupiah(sub.querySelector(".subItemHarga")?.value || "0");
+    const t = q * h;
+    sub.querySelector(".subItemTotal").textContent = finance(t);
+  });
+
+  calculateTotals();
+}
+
+// 💡 Fungsi dari QO
+function calculateTotals() {
+  let subtotal = 0;
+
+  // Ambil semua total HANYA dari tabel 'add mode'
+  document
+    .querySelectorAll("#tabelItemAdd .itemTotal, #tabelItemAdd .subItemTotal")
+    .forEach((cell) => {
+      subtotal += parseRupiah(cell.textContent || "0");
+    });
+
+  const diskon = parseRupiah(document.getElementById("discount")?.value || 0);
+  const dpp = subtotal - diskon;
+
+  const cekPpn = document.getElementById("cekPpn");
+  let ppn = 0;
+
+  if (cekPpn && cekPpn.checked) {
+    ppn = Math.round(dpp * 0.11);
+  }
+
+  const total = dpp + ppn;
+
+  document.getElementById("contract_amount").value = finance(subtotal);
+  document.getElementById("ppn").value = finance(ppn);
+  document.getElementById("total").value = finance(total);
+}
+
+// 💡 Fungsi dari QO
+function recalculateHarga(element, inputType) {
+  const row = element.closest(".itemRow, .subItemRow");
+  if (!row) return;
+
+  const isSubItem = row.classList.contains("subItemRow");
+  const prefix = isSubItem ? ".subItem" : ".item";
+
+  const hppEl = row.querySelector(`${prefix}Hpp`);
+  const nominalEl = row.querySelector(`${prefix}MarkupNominal`);
+  const persenEl = row.querySelector(`${prefix}MarkupPersen`);
+  const hargaEl = row.querySelector(`${prefix}Harga`);
+
+  let hpp = parseRupiah(hppEl.value) || 0;
+  let nominal = parseRupiah(nominalEl.value) || 0;
+  let persen = parseFloat(persenEl.value) || 0;
+
+  if (inputType === "hpp" || inputType === "nominal") {
+    nominal = parseRupiah(nominalEl.value) || 0;
+    if (hpp !== 0) {
+      persen = (nominal / hpp) * 100;
+      persenEl.value = Math.round(persen);
+    } else {
+      persenEl.value = 0;
+    }
+  } else if (inputType === "persen") {
+    persen = parseFloat(persenEl.value) || 0;
+    nominal = hpp * (persen / 100);
+    let nominalStr = String(Math.abs(Math.round(nominal)));
+    nominalEl.value =
+      nominal < 0 ? "-" + finance(nominalStr) : finance(nominalStr);
+  }
+
+  const hargaJual = hpp + nominal;
+  let hargaJualStr = String(Math.abs(Math.round(hargaJual)));
+  hargaEl.value =
+    hargaJual < 0 ? "-" + finance(hargaJualStr) : finance(hargaJualStr);
+
+  recalculateTotal();
+}
+
+// 💡 Fungsi dari QO (saveInvoice), diganti nama dan disesuaikan
+async function handleSaveNewProject() {
+  try {
+    calculateTotals(); // Hitung final
+
+    // Konfirmasi
+    const konfirmasi = await Swal.fire({
+      title: "Buat Project Baru?",
+      text: "Apakah Anda yakin ingin menyimpan project baru ini?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "✅ Ya, simpan",
+      cancelButtonText: "❌ Batal",
+    });
+    if (!konfirmasi.isConfirmed) return;
+
+    // Kumpulkan Item dari 'tabelItemAdd'
+    const rows = document.querySelectorAll("#tabelItemAdd tr");
+    const groupedItems = {};
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row.querySelector(".itemProduct")) continue; // Skip jika bukan itemRow
+
+      // Ambil data item utama
+      const sub_category_id = parseInt(
+        row.querySelector(".itemSubcategory")?.value || 0
+      );
+      const product = row.querySelector(".itemProduct")?.value.trim() || "";
+      // ... (Ambil semua data item: desc, qty, unit, hpp, markup, dll.)
+      const description = row.querySelector(".itemDesc")?.value.trim() || "";
+      const qty = parseInt(row.querySelector(".itemQty")?.value || 0);
+      const unit = row.querySelector(".itemUnit")?.value.trim() || "pcs";
+      const unit_price = parseRupiah(
+        row.querySelector(".itemHarga")?.value || 0
+      );
+      const hpp = parseRupiah(row.querySelector(".itemHpp")?.value || 0);
+      const markup_nominal = parseRupiah(
+        row.querySelector(".itemMarkupNominal")?.value || 0
+      );
+      const markup_percent = parseFloat(
+        row.querySelector(".itemMarkupPersen")?.value || 0
+      );
+
+      const key = `${sub_category_id}-${product}`;
+      if (!groupedItems[key]) {
+        groupedItems[key] = {
+          product,
+          sub_category_id,
+          description,
+          qty,
+          unit,
+          unit_price,
+          hpp,
+          markup_nominal,
+          markup_percent,
+          materials: [],
+        };
+      }
+
+      // Ambil data material
+      const subWrapper = row.nextElementSibling;
+      if (subWrapper && subWrapper.classList.contains("subItemWrapper")) {
+        const subItems = subWrapper.querySelectorAll(".subItemRow");
+        subItems.forEach((sub) => {
+          groupedItems[key].materials.push({
+            name: sub.querySelector(".subItemMaterial")?.value.trim() || "", // 'name'
+            specification:
+              sub.querySelector(".subItemSpec")?.value.trim() || "", // 'specification'
+            qty: parseInt(sub.querySelector(".subItemQty")?.value || 0),
+            unit: sub.querySelector(".subItemUnit")?.value.trim() || "pcs",
+            unit_price: parseRupiah(
+              sub.querySelector(".subItemHarga")?.value || 0
+            ),
+            hpp: parseRupiah(sub.querySelector(".subItemHpp")?.value || 0),
+            markup_nominal: parseRupiah(
+              sub.querySelector(".subItemMarkupNominal")?.value || 0
+            ),
+            markup_percent: parseFloat(
+              sub.querySelector(".subItemMarkupPersen")?.value || 0
+            ),
+          });
+        });
+      }
+    }
+
+    const items = Object.values(groupedItems);
+
+    // Siapkan Payload
+    // 💡 Ganti /add/project dengan endpoint Anda yang benar
+    const payload = {
+      project_name:
+        document.getElementById("add_project_name")?.value || "Project Baru",
+      pelanggan_id: parseInt(document.getElementById("add_client")?.value || 0),
+      type_id: parseInt(document.getElementById("add_type_id")?.value || 0),
+      order_date: document.getElementById("add_tanggal")?.value || "",
+      contract_amount: parseRupiah(
+        document.getElementById("contract_amount").value
+      ),
+      disc: parseRupiah(document.getElementById("discount")?.value || 0),
+      ppn: parseRupiah(document.getElementById("ppn").value),
+      total: parseRupiah(document.getElementById("total").value),
+      items: items,
+      owner_id: user.owner_id,
+      user_id: user.user_id,
+      // Tambahkan field lain jika perlu (catatan, snk, top, dll)
+    };
+
+    console.log("Payload Project Baru:", JSON.stringify(payload, null, 2));
+
+    // Kirim ke API
+    const res = await fetch(`${baseUrl}/add/project`, {
+      // 💡 PASTIKAN ENDPOINT INI BENAR
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const json = await res.json();
+    if (res.ok) {
+      Swal.fire("Sukses", `Project baru berhasil dibuat`, "success");
+      loadModuleContent("project"); // Kembali ke list project
+    } else {
+      Swal.fire("Gagal", json.message || "Gagal menyimpan data", "error");
+    }
+  } catch (err) {
+    console.error("Submit error:", err);
+    Swal.fire("Error", err.message || "Terjadi kesalahan", "error");
   }
 }
 
@@ -274,7 +862,7 @@ async function handleUpdateAllPlanCosting() {
   });
 
   const payload = { items: [] };
-  const tableBody = document.getElementById("tabelItem");
+  const tableBody = document.getElementById("tabelItemView");
 
   try {
     // Loop melalui data asli untuk mendapatkan ID dan struktur
@@ -299,7 +887,7 @@ async function handleUpdateAllPlanCosting() {
 
           if (materialRow) {
             const input = materialRow.querySelector(".plancosting");
-            const plan_total = parseFloat(input?.value.replace(/,/g, "") || 0);
+            const plan_total = parseFormattedNumber(input?.value || "0");
 
             itemPayload.materials.push({
               project_materials_id: material_id,
@@ -311,7 +899,7 @@ async function handleUpdateAllPlanCosting() {
       } else {
         // --- ITEM TANPA MATERIAL ---
         const input = itemRow.querySelector(".plancosting");
-        const plan_total = parseFloat(input?.value.replace(/,/g, "") || 0);
+        const plan_total = parseFormattedNumber(input?.value || "0");
         itemPayload.plan_total = plan_total;
       }
 
@@ -471,7 +1059,7 @@ function handlePekerjaanChange() {
       option.value = mat.name;
       option.textContent = mat.name;
       option.dataset.unit = mat.unit;
-      option.dataset.materialId = mat.material_id;
+      option.dataset.materialId = mat.project_materials_id;
       selectMaterial.appendChild(option);
     });
 
@@ -583,7 +1171,6 @@ function resetCalcForm() {
 
   document.getElementById("cancelUpdateBtn").classList.add("hidden");
 
-  // 💡 BARU: Panggil updateFormTotal untuk me-reset (menjadi 0)
   updateFormTotal();
 }
 function updateCalcTotal() {
@@ -604,18 +1191,14 @@ function updateCalcTotal() {
   }
 }
 function updateFormTotal() {
-  // 1. Ambil nilai mentah dari input (cth: "200.000")
   let unitPriceStr = document.getElementById("calcUnitPrice").value;
   let qtyStr = document.getElementById("calcQty").value;
 
-  // 2. Gunakan fungsi helper untuk mendapatkan angka murni
   const unitPrice = parseFormattedNumber(unitPriceStr);
   const qty = parseFormattedNumber(qtyStr);
 
-  // 3. Kalkulasi
   const total = unitPrice * qty;
 
-  // 4. Tampilkan total dalam format "id-ID"
   document.getElementById("calcHarga").value = total.toLocaleString("id-ID");
 }
 
@@ -794,7 +1377,7 @@ async function handleDeleteActualCost(costId) {
 }
 
 document
-  .getElementById("tabelItem")
+  .getElementById("tabelItemView")
   .addEventListener("click", function (event) {
     const eyeButton = event.target.closest(".view-actual-cost-btn");
     if (eyeButton) {
@@ -818,7 +1401,9 @@ async function handleAddNewActualCost() {
   const payload = getAndValidateCalcForm();
   if (!payload) return;
 
-  console.log("Payload yang akan dikirim:", JSON.stringify(payload, null, 2));
+  console.log("=== 🚀 START handleAddNewActualCost ===");
+  console.log("Payload dari form:", payload);
+  console.log("Payload JSON (siap dikirim):", JSON.stringify(payload, null, 2));
 
   Swal.fire({
     title: "Menyimpan...",
@@ -828,6 +1413,9 @@ async function handleAddNewActualCost() {
   });
 
   try {
+    console.log("Endpoint tujuan:", `${baseUrl}/add/actual_costing`);
+    console.log("Header Authorization:", `Bearer ${API_TOKEN}`);
+
     const res = await fetch(`${baseUrl}/add/actual_costing`, {
       method: "POST",
       headers: {
@@ -837,8 +1425,9 @@ async function handleAddNewActualCost() {
       body: JSON.stringify(payload),
     });
 
+    console.log("Status Response:", res.status);
     const result = await res.json();
-    console.log("Response tambah actual costing:", result);
+    console.log("Response dari server:", result);
 
     if (!res.ok || !result.data?.success) {
       const errorMessage =
@@ -851,11 +1440,12 @@ async function handleAddNewActualCost() {
     const successMessage =
       result.data?.message || "Data actual cost berhasil ditambahkan!";
 
-    // 💡 REVISI: Urutan diubah. Reset dan Load data dulu.
-    resetCalcForm(); // 1. Reset form input
-    await loadDetailSales(window.detail_id, window.detail_desc); // 2. Reload data (tunggu sampai selesai)
+    console.log("✅ Sukses:", successMessage);
+    console.log("🔄 Reload data setelah tambah...");
 
-    // 💡 REVISI: Tampilkan sukses SETELAH semua selesai
+    resetCalcForm();
+    await loadDetailSales(window.detail_id, window.detail_desc);
+
     Swal.fire({
       icon: "success",
       title: "Berhasil",
@@ -863,8 +1453,10 @@ async function handleAddNewActualCost() {
       timer: 1500,
       showConfirmButton: false,
     });
+
+    console.log("=== ✅ END handleAddNewActualCost ===");
   } catch (err) {
-    console.error("Gagal submit actual costing:", err);
+    console.error("❌ Gagal submit actual costing:", err);
     Swal.fire({
       icon: "error",
       title: "Gagal",
@@ -1048,19 +1640,20 @@ async function printInvoice(pesanan_id) {
     });
   }
 }
+document
+  .getElementById("realCalcForm")
+  .querySelectorAll(".formatNumber")
+  .forEach((input) => {
+    input.addEventListener("input", (e) => {
+      // 1. Logika format (sama)
+      const value = e.target.value.replace(/\D/g, "");
+      e.target.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, "."); // 2. Panggil kalkulasi (Ini sekarang aman)
 
-document.querySelectorAll(".formatNumber").forEach((input) => {
-  input.addEventListener("input", (e) => {
-    const value = e.target.value.replace(/\D/g, "");
-    e.target.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-
-    updateFormTotal();
+      updateFormTotal();
+    });
   });
-});
 function parseFormattedNumber(val) {
   if (!val) return 0;
-  // 1. Hapus semua titik (untuk ribuan)
-  // 2. Ganti koma (jika ada) menjadi titik (untuk desimal)
   const cleanedVal = String(val).replace(/\./g, "").replace(",", ".");
   return parseFloat(cleanedVal) || 0;
 }
