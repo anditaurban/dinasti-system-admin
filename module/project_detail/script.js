@@ -10,6 +10,7 @@ realCalculationData = []; // Menyimpan data untuk tabel Tab 2
 dataItemDropdown = [];
 actualCostCurrentPage = 1;
 currentUpdateCostId = null;
+currentMode = "view";
 
 // ================================================================
 // PENGATURAN TAB
@@ -337,10 +338,6 @@ async function handleUpdateAllPlanCosting() {
       throw new Error(errorMessage);
     }
 
-    // 💡 REVISI UTAMA DI SINI
-    // 3. Panggil dan TUNGGU (await) data untuk di-refresh
-    //    Fungsi loadDetailSales akan menampilkan loading-nya sendiri
-    //    dan menutup loading "Menyimpan..."
     await loadDetailSales(window.detail_id, window.detail_desc);
 
     // 4. BARU tampilkan "Berhasil" setelah semua data dijamin ter-update
@@ -532,6 +529,7 @@ async function loadActualCostingTable(page = 1) {
           <tr class="border-b" data-id="${data.cost_id}">
             <td class="px-3 py-2">${data.product}</td>
             <td class="px-3 py-2">${data.cost_name}</td>
+            <td class="px-3 py-2">${data.notes || "-"}</td>
             <td class="px-3 py-2 text-right">${formatNumber(
               data.unit_price
             )}</td>
