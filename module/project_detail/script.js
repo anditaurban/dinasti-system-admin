@@ -10,7 +10,6 @@ realCalculationData = []; // Menyimpan data untuk tabel Tab 2
 dataItemDropdown = [];
 actualCostCurrentPage = 1;
 currentUpdateCostId = null;
-currentMode = "view";
 
 // ================================================================
 // PENGATURAN TAB
@@ -160,9 +159,9 @@ async function loadDetailSales(Id, Detail) {
                     item.item_total
                   )}</td>
                   <td class="px-3 py-2 text-center align-top">
-                    <input class="plancosting text-right border px-2 py-1 w-20" placeholder="0" value="${
+                    <input class="plancosting text-right border px-2 py-1 w-20" placeholder="0" value="${formatNumber(
                       item.plan_total
-                    }">
+                    )}">
                   </td>
                   <td class="px-3 py-2 text-center align-top">
                     <div class="flex items-center justify-end gap-2 text-red-600 font-bold">
@@ -199,9 +198,9 @@ async function loadDetailSales(Id, Detail) {
           m.material_total || 0
         )}</td>
         <td class="px-3 py-1 text-center">
-          <input class="plancosting text-right border px-2 py-1 w-20" placeholder="0" value="${
+          <input class="plancosting text-right border px-2 py-1 w-20" placeholder="0" value="${formatNumber(
             m.plan_total || 0
-          }">
+          )}">
         </td>
         <td class="px-3 py-1 text-center">
           
@@ -379,6 +378,11 @@ function initRealCalculationTab() {
   document
     .getElementById("realCalcBody")
     .addEventListener("click", handleCostAction);
+
+  document
+    .getElementById("calcUnitPrice")
+    .addEventListener("input", updateFormTotal);
+  document.getElementById("calcQty").addEventListener("input", updateFormTotal);
 }
 
 async function handleCostAction(e) {
@@ -457,7 +461,6 @@ function handlePekerjaanChange() {
 
   if (!selectedPekerjaanId) return;
 
-  // 💡 REVISI: Cari di variabel baru
   const selectedItem = dataItemDropdown.find(
     (item) => item.project_item_id == selectedPekerjaanId
   );
@@ -468,7 +471,7 @@ function handlePekerjaanChange() {
       option.value = mat.name;
       option.textContent = mat.name;
       option.dataset.unit = mat.unit;
-      option.dataset.materialId = mat.material_id; // Pastikan API mengirimkan ini
+      option.dataset.materialId = mat.material_id;
       selectMaterial.appendChild(option);
     });
 
@@ -483,11 +486,8 @@ function handleMaterialChange() {
 
   if (!selectedOption || !selectedOption.value) return;
 
-  const productName = selectedOption.value;
-  const unit = selectedOption.dataset.unit;
-
-  document.getElementById("calcProduct").value = productName;
-  document.getElementById("calcUnit").value = unit || "pcs";
+  // const unit = selectedOption.dataset.unit;
+  // document.getElementById("calcUnit").value = unit || "pcs";
 }
 
 async function loadActualCostingTable(page = 1) {
@@ -582,7 +582,9 @@ function resetCalcForm() {
   submitBtn.classList.add("bg-blue-600", "hover:bg-blue-700");
 
   document.getElementById("cancelUpdateBtn").classList.add("hidden");
-  updateCalcTotal();
+
+  // 💡 BARU: Panggil updateFormTotal untuk me-reset (menjadi 0)
+  updateFormTotal();
 }
 function updateCalcTotal() {
   const rows = document.querySelectorAll("#realCalcBody tr");
@@ -601,6 +603,21 @@ function updateCalcTotal() {
     totalElement.textContent = total.toLocaleString("id-ID");
   }
 }
+function updateFormTotal() {
+  // 1. Ambil nilai mentah dari input (cth: "200.000")
+  let unitPriceStr = document.getElementById("calcUnitPrice").value;
+  let qtyStr = document.getElementById("calcQty").value;
+
+  // 2. Gunakan fungsi helper untuk mendapatkan angka murni
+  const unitPrice = parseFormattedNumber(unitPriceStr);
+  const qty = parseFormattedNumber(qtyStr);
+
+  // 3. Kalkulasi
+  const total = unitPrice * qty;
+
+  // 4. Tampilkan total dalam format "id-ID"
+  document.getElementById("calcHarga").value = total.toLocaleString("id-ID");
+}
 
 function populateFormForUpdate(costId) {
   const item = realCalculationData.find((d) => d.cost_id == costId);
@@ -618,9 +635,17 @@ function populateFormForUpdate(costId) {
   currentUpdateCostId = item.cost_id;
   document.getElementById("calcProduct").value = item.product;
   document.getElementById("calcKorelasiPekerjaan").value = item.project_item_id;
-  document.getElementById("calcQty").value = item.qty;
+  document.getElementById("calcQty").value = parseFloat(
+    item.qty
+  ).toLocaleString("id-ID");
   document.getElementById("calcUnit").value = item.unit;
-  document.getElementById("calcHarga").value = item.total;
+  document.getElementById("calcUnitPrice").value = parseFloat(
+    item.unit_price
+  ).toLocaleString("id-ID");
+  document.getElementById("calcHarga").value = parseFloat(
+    item.total
+  ).toLocaleString("id-ID");
+  // (Notes & korelasi material di-handle di bawah)
 
   const submitBtn = document.getElementById("submitCalcFormBtn");
   submitBtn.textContent = "💾 Update Data";
@@ -637,7 +662,7 @@ function populateFormForUpdate(costId) {
   setTimeout(() => {
     const selectMaterial = document.getElementById("calcKorelasiMaterial");
     const optionExists = Array.from(selectMaterial.options).find(
-      (opt) => opt.text === item.product
+      (opt) => opt.text === item.product // Ini mungkin perlu disesuaikan jika logikanya beda
     );
     if (optionExists) {
       selectMaterial.value = optionExists.value;
@@ -645,15 +670,23 @@ function populateFormForUpdate(costId) {
   }, 100);
 }
 
+// GANTI FUNGSI LAMA DENGAN YANG INI
 function getAndValidateCalcForm() {
   const name = document.getElementById("calcProduct").value;
   const project_item_id = document.getElementById(
     "calcKorelasiPekerjaan"
   ).value;
-  const qty = parseFloat(document.getElementById("calcQty").value) || 0;
+
+  // 💡 REVISI UTAMA ADA DI SINI:
+  // Gunakan parseFormattedNumber untuk membaca nilai dari form
+  const qty = parseFormattedNumber(document.getElementById("calcQty").value);
   const unit = document.getElementById("calcUnit").value;
-  const total = parseFloat(document.getElementById("calcHarga").value) || 0;
-  const unit_price = qty > 0 ? total / qty : 0;
+  const unit_price = parseFormattedNumber(
+    document.getElementById("calcUnitPrice").value
+  );
+  const total = parseFormattedNumber(
+    document.getElementById("calcHarga").value
+  );
 
   const selectMaterial = document.getElementById("calcKorelasiMaterial");
   const selectedMaterialOption =
@@ -663,10 +696,11 @@ function getAndValidateCalcForm() {
   const notes = document.getElementById("calcNotes")?.value || "";
   const project_id = projectDetailData.project_id.toString();
 
-  if (!name || !project_item_id || qty <= 0 || !unit || total <= 0) {
+  // Validasi tetap sama
+  if (!name || !project_item_id || qty <= 0 || !unit || unit_price <= 0) {
     Swal.fire(
       "Gagal",
-      "Harap isi semua field (Nama, Korelasi, Qty, Unit, Harga Total) dengan benar. Qty dan Harga Total harus lebih dari 0.",
+      "Harap isi semua field (Nama, Korelasi, Harga Satuan, Qty, Unit) dengan benar. Harga Satuan dan Qty harus lebih dari 0.",
       "warning"
     );
     return null;
@@ -678,6 +712,7 @@ function getAndValidateCalcForm() {
     project_materials_id: project_materials_id,
     name: name,
     unit: unit,
+    // Kirim sebagai string angka murni
     qty: qty.toString(),
     unit_price: unit_price.toString(),
     total: total.toString(),
@@ -1012,4 +1047,20 @@ async function printInvoice(pesanan_id) {
       icon: "error",
     });
   }
+}
+
+document.querySelectorAll(".formatNumber").forEach((input) => {
+  input.addEventListener("input", (e) => {
+    const value = e.target.value.replace(/\D/g, "");
+    e.target.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+    updateFormTotal();
+  });
+});
+function parseFormattedNumber(val) {
+  if (!val) return 0;
+  // 1. Hapus semua titik (untuk ribuan)
+  // 2. Ganti koma (jika ada) menjadi titik (untuk desimal)
+  const cleanedVal = String(val).replace(/\./g, "").replace(",", ".");
+  return parseFloat(cleanedVal) || 0;
 }

@@ -83,8 +83,9 @@
     <div id="tab2" class="hidden tab-content space-y-6">
       <div class="bg-gray-50 p-4 rounded-lg border shadow-sm">
         <h3 class="text-lg font-semibold mb-3">Input Detail Pengeluaran</h3>
-        <form id="realCalcForm" class="grid grid-cols-1 gap-4">
 
+        <form id="realCalcForm" class="grid grid-cols-1 gap-4">
+          <!-- Korelasi -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label for="calcKorelasiPekerjaan" class="block text-sm font-medium text-gray-700">
@@ -107,14 +108,16 @@
             </div>
           </div>
 
+          <!-- Produk -->
           <div>
             <label for="calcProduct" class="block text-sm font-medium text-gray-700">
               Product / Item <span class="text-red-500">*</span>
             </label>
             <input type="text" id="calcProduct" name="calcProduct" required placeholder="Cth: Semen Tiga Roda"
-              class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+              class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" />
           </div>
 
+          <!-- Notes -->
           <div>
             <label for="calcNotes" class="block text-sm font-medium text-gray-700">
               Notes (Opsional)
@@ -122,14 +125,15 @@
             <textarea id="calcNotes" name="calcNotes" rows="2" placeholder="Cth: Dibeli dari Toko X, DP 50%"
               class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
 
+          <!-- Harga, Qty, Unit -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             <div>
-              <label for="calcHarga" class="block text-sm font-medium text-gray-700">
-                Harga (Total Rp) <span class="text-red-500">*</span>
+              <label for="calcUnitPrice" class="block text-sm font-medium text-gray-700">
+                Harga Satuan (Rp) <span class="text-red-500">*</span>
               </label>
-              <input type="number" id="calcHarga" name="calcHarga" required placeholder="500000"
-                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+              <input type="text" id="calcUnitPrice" name="calcUnitPrice" required placeholder="200.000"
+                class="formatNumber mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" />
             </div>
 
             <div>
@@ -137,7 +141,7 @@
                 Qty <span class="text-red-500">*</span>
               </label>
               <input type="number" id="calcQty" name="calcQty" required value="1" placeholder="1"
-                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" />
             </div>
 
             <div>
@@ -145,7 +149,18 @@
                 Unit <span class="text-red-500">*</span>
               </label>
               <input type="text" id="calcUnit" name="calcUnit" required placeholder="lot"
-                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+            </div>
+          </div>
+
+          <!-- Total & Tombol -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div class="md:col-span-2">
+              <label for="calcHarga" class="block text-sm font-medium text-gray-700">
+                Total Harga (Rp)
+              </label>
+              <input type="text" id="calcHarga" name="calcHarga" readonly placeholder="0"
+                class="formatNumber mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" />
             </div>
 
             <div class="flex gap-2">
@@ -158,29 +173,27 @@
                 Batal
               </button>
             </div>
-
           </div>
-
         </form>
 
       </div>
-
       <h3 class="text-lg font-semibold mb-3">Real Calculation Details</h3>
       <div class="overflow-auto border rounded">
         <table class="w-full text-sm">
+
           <thead class="bg-gray-100">
             <tr>
-
-              <th class="px-3 py-2 border text-left">Product</th>
-              <th class="px-3 py-2 border text-left">Korelasi</th>
+              <th class="px-3 py-2 border text-left">Korelasi Pekerjaan</th>
+              <th class="px-3 py-2 border text-left">Produk</th>
               <th class="px-3 py-2 border text-left">Notes</th>
               <th class="px-3 py-2 border text-right">Unit Price</th>
               <th class="px-3 py-2 border text-right">Qty</th>
               <th class="px-3 py-2 border text-right">Unit</th>
-              <th class_="px-3 py-2 border text-right">Total Harga</th>
+              <th class="px-3 py-2 border text-right">Total Harga</th>
               <th class="px-3 py-2 border text-center w-[100px]">Action</th>
             </tr>
           </thead>
+
           <tbody id="realCalcBody" class="bg-white">
             <tr>
               <td colspan="8" class="text-center italic text-gray-500 py-3">Belum ada data</td>

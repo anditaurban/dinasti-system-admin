@@ -316,3 +316,10 @@ function formatNumber(angka) {
   if (isNaN(angka) || angka === "") return "0";
   return parseInt(angka).toLocaleString("id-ID");
 }
+
+document.querySelectorAll(".formatNumber").forEach((input) => {
+  input.addEventListener("input", (e) => {
+    const value = e.target.value.replace(/\D/g, "");
+    e.target.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  });
+});
