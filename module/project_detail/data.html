@@ -46,16 +46,26 @@
             <select id="add_client" class="w-full border px-3 py-2 rounded text-sm">
               <option value="">-- Pilih Client --</option>
             </select>
-            <input type="hidden" id="add_client_id" />
           </div>
           <div>
             <label class="block text-xs text-gray-500 mb-1">Start Date</label>
             <input type="date" id="add_tanggal" class="w-full border px-3 py-2 rounded text-sm" />
           </div>
           <div>
+            <label class="block text-xs text-gray-500 mb-1">Finish Date</label>
+            <input type="date" id="add_finish_date" class="w-full border px-3 py-2 rounded text-sm" />
+          </div>
+          <div>
             <label class="block text-xs text-gray-500 mb-1">Tipe Project</label>
             <select id="add_type_id" class="w-full border px-3 py-2 rounded text-sm" onchange="toggleTambahItemBtn()">
               <option value="">Pilih Tipe</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Project Manager</label>
+            <select id="add_project_manager" class="w-full border px-3 py-2 rounded text-sm">
+              <option value="">-- Pilih PM --</option>
             </select>
           </div>
         </div>
@@ -77,6 +87,28 @@
         <div class="bg-white rounded-xl shadow p-5">
           <span class="text-gray-800 font-semibold">Margin</span>
           <div id="margin" class="text-3xl text-right font-bold tracking-wider mb-3">---</div>
+        </div>
+      </div>
+
+      <div class="mt-6 bg-white p-4 rounded-lg shadow border border-gray-200">
+        <h3 class="text-lg font-semibold mb-3 border-b pb-2">Detail Informasi Project</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div>
+            <span class="text-gray-500 block">NO QO</span>
+            <span id="detailNoQO" class="font-semibold">---</span>
+          </div>
+          <div>
+            <span class="text-gray-500 block">NO INV</span>
+            <span id="detailNoInv" class="font-semibold">---</span>
+          </div>
+          <div>
+            <span class="text-gray-500 block">No PO</span>
+            <span id="detailNoPO" class="font-semibold">---</span>
+          </div>
+          <div>
+            <span class="text-gray-500 block">PIC / PM</span>
+            <span id="detailPIC" class="font-semibold">---</span>
+          </div>
         </div>
       </div>
 
@@ -135,53 +167,6 @@
                 </tr>
               </thead>
               <tbody id="tabelItemAdd" class="bg-white"></tbody>
-
-              <tfoot class="bg-gray-50">
-                <tr>
-                  <td colspan="3" class="px-3 py-2 border">
-                    <div class="grid grid-cols-2 gap-2 items-center">
-                      <label class="font-medium text-right">Subtotal (Rp)</label>
-                      <input type="text" id="contract_amount"
-                        class="formatNumber w-full border px-3 py-2 rounded bg-gray-100 text-right" value="0"
-                        readonly />
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td colspan="3" class="px-3 py-2 border">
-                    <div class="grid grid-cols-2 gap-2 items-center">
-                      <label class="font-medium text-right">Diskon (Rp)</label>
-                      <input type="text" id="discount" class="formatNumber w-full border px-3 py-2 rounded text-right"
-                        value="0" />
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td colspan="3" class="px-3 py-2 border">
-                    <div class="grid grid-cols-2 gap-2 items-center">
-                      <div class="flex justify-end items-center gap-2">
-                        <input type="checkbox" id="cekPpn" class="w-4 h-4 rounded" onchange="calculateTotals()">
-                        <label for="cekPpn" class="font-medium text-right cursor-pointer select-none">
-                          Tax 11% (Rp)
-                        </label>
-                      </div>
-                      <input type="text" id="ppn"
-                        class="formatNumber w-full border px-3 py-2 rounded bg-gray-100 text-right" value="0"
-                        readonly />
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td colspan="3" class="px-3 py-2 border">
-                    <div class="grid grid-cols-2 gap-2 items-center">
-                      <label class="font-semibold text-right">TOTAL</label>
-                      <input type="text" id="total"
-                        class="formatNumber w-full border px-3 py-2 rounded bg-blue-50 text-right font-semibold text-blue-700"
-                        value="0" readonly />
-                    </div>
-                  </td>
-                </tr>
-              </tfoot>
             </table>
           </div>
         </section>

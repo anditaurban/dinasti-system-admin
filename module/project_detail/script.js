@@ -70,7 +70,7 @@ async function loadDetailSales(Id, Detail) {
     if (addProjectForm) addProjectForm.classList.remove("hidden");
     if (viewProjectCards) viewProjectCards.classList.add("hidden");
     if (savePlanCostBtn) savePlanCostBtn.classList.add("hidden");
-    // if (addItemBtn) addItemBtn.classList.remove("hidden"); // Tombol dari QO
+    // Tombol addItemBtn (dihapus dari sini, di-handle toggleTambahItemBtn)
     if (saveNewProjectBtn) saveNewProjectBtn.classList.remove("hidden");
     if (viewModeContainer) viewModeContainer.classList.add("hidden");
     if (addModeContainer) addModeContainer.classList.remove("hidden");
@@ -86,9 +86,11 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("tabelItemAdd").innerHTML = "";
 
     // Inisialisasi form 'add mode' (dari QO)
-    setTodayDate("add_tanggal"); // Set tanggal ke input baru
-    loadSalesType("add_type_id"); // Load tipe ke select baru
-    loadCustomerList("add_client"); // Load client ke select baru
+    setTodayDate("add_tanggal");
+    setTodayDate("add_finish_date"); // 💡 BARU: Set finish date juga
+    loadSalesType("add_type_id");
+    loadCustomerList("add_client");
+    loadProjectManagers("add_project_manager"); // 💡 BARU: Panggil load PM
 
     // Tambahkan listener untuk diskon & ppn (dari QO)
     document
@@ -97,6 +99,9 @@ async function loadDetailSales(Id, Detail) {
     document
       .getElementById("cekPpn")
       ?.addEventListener("change", calculateTotals);
+
+    // 💡 BARU: Panggil ini untuk sembunyikan tombol "Tambah Item"
+    toggleTambahItemBtn();
   }
   // ----------------------------------------------------------------
   // ➡️ B. LOGIKA MODE LIHAT (VIEW MODE)
@@ -143,6 +148,13 @@ async function loadDetailSales(Id, Detail) {
       document.getElementById("actual_costing").innerHTML =
         finance(data.actual_cost) || 0;
       document.getElementById("margin").innerHTML = finance(data.margin) || 0;
+
+      document.getElementById("detailNoQO").textContent = data.no_qtn;
+      document.getElementById("detailNoInv").textContent = data.inv_number;
+      document.getElementById("detailNoPO").textContent =
+        data.po_number || "---";
+      document.getElementById("detailPIC").textContent =
+        data.project_manager_name || "---";
 
       // 🔹 Render tabel 'view mode'
       const tbody = document.getElementById("tabelItemView");
@@ -200,9 +212,13 @@ async function loadDetailSales(Id, Detail) {
                       <div class="formatNumber flex items-center justify-end gap-2 text-red-600 font-bold">
                         <span>${formatNumber(item.actual_total)}</span>
                         <button class="view-actual-cost-btn" data-korelasi="${
+
                           item.product
+
                         }" title="Lihat Detail">
+
                           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 hover:text-blue-800" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>
+
                         </button>
                       </div>
                     </td>
@@ -237,9 +253,10 @@ async function loadDetailSales(Id, Detail) {
                   <td class="px-3 py-1 text-center">
                     <div class="flex items-center justify-end gap-2 text-red-600 font-bold">
                       <span>${formatNumber(m.actual_total || 0)}</span>
-                      <button class="view-actual-cost-btn" data-korelasi="${
-                        item.product
-                      }" title="Lihat Detail">
+                      <button class="view-actual-cost-btn" 
+                        data-korelasi="${item.product}" 
+                        data-material-name="${m.name}" 
+                       title="Lihat Detail ${m.name}">
                          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 hover:text-blue-800" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>
                       </button>
                     </div>
@@ -307,6 +324,163 @@ async function loadDetailSales(Id, Detail) {
   }
 }
 
+async function handleSaveNewProject() {
+  try {
+    // calculateTotals();
+
+    // --- 🔽 VALIDASI DISESUAIKAN 🔽 ---
+    const projectName = document.getElementById("add_project_name")?.value;
+    const pm_id = document.getElementById("add_project_manager")?.value;
+    const startDate = document.getElementById("add_tanggal")?.value;
+    const finishDate = document.getElementById("add_finish_date")?.value;
+    const type_id = document.getElementById("add_type_id")?.value;
+    const pelanggan_id = document.getElementById("add_client")?.value;
+
+    if (
+      !projectName ||
+      !pm_id ||
+      !type_id ||
+      !pelanggan_id ||
+      !startDate ||
+      !finishDate
+    ) {
+      Swal.fire(
+        "Gagal",
+        "Harap lengkapi semua field: Project Name, Client, Project Manager, Tipe, Start Date, dan Finish Date.",
+        "warning"
+      );
+      return;
+    }
+    // --- 🔼 AKHIR VALIDASI 🔼 ---
+
+    const konfirmasi = await Swal.fire({
+      title: "Buat Project Baru?",
+      text: "Apakah Anda yakin ingin menyimpan project baru ini?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "✅ Ya, simpan",
+      cancelButtonText: "❌ Batal",
+    });
+    if (!konfirmasi.isConfirmed) return;
+
+    // Kumpulkan Item dari 'tabelItemAdd' (LOGIKA INI TETAP SAMA)
+    const rows = document.querySelectorAll("#tabelItemAdd tr");
+    const groupedItems = {};
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row.querySelector(".itemProduct")) continue;
+
+      const sub_category_id = parseInt(
+        row.querySelector(".itemSubcategory")?.value || 0
+      );
+      const product = row.querySelector(".itemProduct")?.value.trim() || "";
+      const key = `${sub_category_id}-${product}`;
+
+      const itemData = {
+        product: product,
+        sub_category_id: sub_category_id,
+        description: row.querySelector(".itemDesc")?.value.trim() || "",
+        qty: parseInt(row.querySelector(".itemQty")?.value || 0),
+        unit: row.querySelector(".itemUnit")?.value.trim() || "pcs",
+        unit_price: parseRupiah(row.querySelector(".itemHarga")?.value || 0),
+        materials: [],
+      };
+
+      if (!groupedItems[key]) {
+        groupedItems[key] = itemData;
+      }
+
+      const subWrapper = row.nextElementSibling;
+      if (subWrapper && subWrapper.classList.contains("subItemWrapper")) {
+        const subItems = subWrapper.querySelectorAll(".subItemRow");
+        subItems.forEach((sub) => {
+          groupedItems[key].materials.push({
+            subItemMaterial:
+              sub.querySelector(".subItemMaterial")?.value.trim() || "",
+            subItemSpec: sub.querySelector(".subItemSpec")?.value.trim() || "",
+            subItemQty: parseInt(sub.querySelector(".subItemQty")?.value || 0),
+            subItemUnit:
+              sub.querySelector(".subItemUnit")?.value.trim() || "pcs",
+            subItemHarga: parseRupiah(
+              sub.querySelector(".subItemHarga")?.value || 0
+            ),
+          });
+        });
+      }
+    }
+
+    const items = Object.values(groupedItems);
+
+    // --- 🔽 PAYLOAD DISESUAIKAN DENGAN CONTOH BARU 🔽 ---
+    const payload = {
+      owner_id: user.owner_id,
+      project_manager_id: parseInt(pm_id),
+      project_name: projectName,
+      type_id: parseInt(type_id),
+      pelanggan_id: parseInt(pelanggan_id),
+      start_date: startDate,
+      finish_date: finishDate,
+      items: items,
+    };
+    // --- 🔼 SELESAI 🔼 ---
+
+    console.log(
+      "Payload Project Baru (Sesuai Contoh):",
+      JSON.stringify(payload, null, 2)
+    );
+
+    // Kirim ke API endpoint baru
+    const res = await fetch(`${baseUrl}/add/project_manual`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const json = await res.json();
+    if (res.ok) {
+      Swal.fire("Sukses", `Project baru berhasil dibuat`, "success");
+      loadModuleContent("project"); // Kembali ke list project
+    } else {
+      Swal.fire("Gagal", json.message || "Gagal menyimpan data", "error");
+    }
+  } catch (err) {
+    console.error("Submit error:", err);
+    Swal.fire("Error", err.message || "Terjadi kesalahan", "error");
+  }
+}
+async function loadProjectManagers(elementId) {
+  const select = document.getElementById(elementId);
+  if (!select) return;
+
+  select.innerHTML = `<option value="">Memuat PM...</option>`;
+
+  try {
+    // Menggunakan endpoint dari snippet Anda
+    const res = await fetch(`${baseUrl}/list/project_manager/${owner_id}`, {
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+    });
+    const data = await res.json();
+
+    if (data.listData && data.listData.length > 0) {
+      select.innerHTML = `<option value="">-- Pilih Project Manager --</option>`;
+      data.listData.forEach((pm) => {
+        const option = document.createElement("option");
+        option.value = pm.employee_id; // Sesuai snippet
+        option.textContent = `${pm.name} (${pm.alias})`; // Sesuai snippet
+        select.appendChild(option);
+      });
+    } else {
+      select.innerHTML = `<option value="">Tidak ada data PM</option>`;
+    }
+  } catch (err) {
+    console.error("Gagal ambil PM:", err);
+    select.innerHTML = `<option value="">Gagal load PM</option>`;
+  }
+}
 // FUNGSI-FUNGSI DARI ANDA (SUDAH BENAR)
 // Pastikan fungsi ini ada di file JS Anda
 
@@ -622,7 +796,7 @@ function hapusItem(button) {
   calculateTotals();
 }
 
-// 💡 Fungsi dari QO
+// ✅ FUNGSI BARU (SUDAH DIPERBAIKI)
 function recalculateTotal() {
   // Hitung itemRow
   document.querySelectorAll("#tabelItemAdd tr.itemRow").forEach((row) => {
@@ -640,7 +814,7 @@ function recalculateTotal() {
     sub.querySelector(".subItemTotal").textContent = finance(t);
   });
 
-  calculateTotals();
+  // calculateTotals(); // <-- HAPUS ATAU KOMENTARI BARIS INI
 }
 
 // 💡 Fungsi dari QO
@@ -710,140 +884,6 @@ function recalculateHarga(element, inputType) {
     hargaJual < 0 ? "-" + finance(hargaJualStr) : finance(hargaJualStr);
 
   recalculateTotal();
-}
-
-// 💡 Fungsi dari QO (saveInvoice), diganti nama dan disesuaikan
-async function handleSaveNewProject() {
-  try {
-    calculateTotals(); // Hitung final
-
-    // Konfirmasi
-    const konfirmasi = await Swal.fire({
-      title: "Buat Project Baru?",
-      text: "Apakah Anda yakin ingin menyimpan project baru ini?",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "✅ Ya, simpan",
-      cancelButtonText: "❌ Batal",
-    });
-    if (!konfirmasi.isConfirmed) return;
-
-    // Kumpulkan Item dari 'tabelItemAdd'
-    const rows = document.querySelectorAll("#tabelItemAdd tr");
-    const groupedItems = {};
-
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      if (!row.querySelector(".itemProduct")) continue; // Skip jika bukan itemRow
-
-      // Ambil data item utama
-      const sub_category_id = parseInt(
-        row.querySelector(".itemSubcategory")?.value || 0
-      );
-      const product = row.querySelector(".itemProduct")?.value.trim() || "";
-      // ... (Ambil semua data item: desc, qty, unit, hpp, markup, dll.)
-      const description = row.querySelector(".itemDesc")?.value.trim() || "";
-      const qty = parseInt(row.querySelector(".itemQty")?.value || 0);
-      const unit = row.querySelector(".itemUnit")?.value.trim() || "pcs";
-      const unit_price = parseRupiah(
-        row.querySelector(".itemHarga")?.value || 0
-      );
-      const hpp = parseRupiah(row.querySelector(".itemHpp")?.value || 0);
-      const markup_nominal = parseRupiah(
-        row.querySelector(".itemMarkupNominal")?.value || 0
-      );
-      const markup_percent = parseFloat(
-        row.querySelector(".itemMarkupPersen")?.value || 0
-      );
-
-      const key = `${sub_category_id}-${product}`;
-      if (!groupedItems[key]) {
-        groupedItems[key] = {
-          product,
-          sub_category_id,
-          description,
-          qty,
-          unit,
-          unit_price,
-          hpp,
-          markup_nominal,
-          markup_percent,
-          materials: [],
-        };
-      }
-
-      // Ambil data material
-      const subWrapper = row.nextElementSibling;
-      if (subWrapper && subWrapper.classList.contains("subItemWrapper")) {
-        const subItems = subWrapper.querySelectorAll(".subItemRow");
-        subItems.forEach((sub) => {
-          groupedItems[key].materials.push({
-            name: sub.querySelector(".subItemMaterial")?.value.trim() || "", // 'name'
-            specification:
-              sub.querySelector(".subItemSpec")?.value.trim() || "", // 'specification'
-            qty: parseInt(sub.querySelector(".subItemQty")?.value || 0),
-            unit: sub.querySelector(".subItemUnit")?.value.trim() || "pcs",
-            unit_price: parseRupiah(
-              sub.querySelector(".subItemHarga")?.value || 0
-            ),
-            hpp: parseRupiah(sub.querySelector(".subItemHpp")?.value || 0),
-            markup_nominal: parseRupiah(
-              sub.querySelector(".subItemMarkupNominal")?.value || 0
-            ),
-            markup_percent: parseFloat(
-              sub.querySelector(".subItemMarkupPersen")?.value || 0
-            ),
-          });
-        });
-      }
-    }
-
-    const items = Object.values(groupedItems);
-
-    // Siapkan Payload
-    // 💡 Ganti /add/project dengan endpoint Anda yang benar
-    const payload = {
-      project_name:
-        document.getElementById("add_project_name")?.value || "Project Baru",
-      pelanggan_id: parseInt(document.getElementById("add_client")?.value || 0),
-      type_id: parseInt(document.getElementById("add_type_id")?.value || 0),
-      order_date: document.getElementById("add_tanggal")?.value || "",
-      contract_amount: parseRupiah(
-        document.getElementById("contract_amount").value
-      ),
-      disc: parseRupiah(document.getElementById("discount")?.value || 0),
-      ppn: parseRupiah(document.getElementById("ppn").value),
-      total: parseRupiah(document.getElementById("total").value),
-      items: items,
-      owner_id: user.owner_id,
-      user_id: user.user_id,
-      // Tambahkan field lain jika perlu (catatan, snk, top, dll)
-    };
-
-    console.log("Payload Project Baru:", JSON.stringify(payload, null, 2));
-
-    // Kirim ke API
-    const res = await fetch(`${baseUrl}/add/project`, {
-      // 💡 PASTIKAN ENDPOINT INI BENAR
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${API_TOKEN}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const json = await res.json();
-    if (res.ok) {
-      Swal.fire("Sukses", `Project baru berhasil dibuat`, "success");
-      loadModuleContent("project"); // Kembali ke list project
-    } else {
-      Swal.fire("Gagal", json.message || "Gagal menyimpan data", "error");
-    }
-  } catch (err) {
-    console.error("Submit error:", err);
-    Swal.fire("Error", err.message || "Terjadi kesalahan", "error");
-  }
 }
 
 async function handleUpdateAllPlanCosting() {
@@ -1215,9 +1255,11 @@ function populateFormForUpdate(costId) {
     return;
   }
 
-  currentUpdateCostId = item.cost_id;
-  document.getElementById("calcProduct").value = item.product;
+  currentUpdateCostId = item.cost_id; // Mengisi semua data form
+
+  document.getElementById("calcProduct").value = item.cost_name;
   document.getElementById("calcKorelasiPekerjaan").value = item.project_item_id;
+  document.getElementById("calcNotes").value = item.notes || "";
   document.getElementById("calcQty").value = parseFloat(
     item.qty
   ).toLocaleString("id-ID");
@@ -1227,30 +1269,32 @@ function populateFormForUpdate(costId) {
   ).toLocaleString("id-ID");
   document.getElementById("calcHarga").value = parseFloat(
     item.total
-  ).toLocaleString("id-ID");
-  // (Notes & korelasi material di-handle di bawah)
+  ).toLocaleString("id-ID"); // Mengatur UI tombol (Sudah Benar)
 
   const submitBtn = document.getElementById("submitCalcFormBtn");
   submitBtn.textContent = "💾 Update Data";
   submitBtn.classList.add("bg-green-600", "hover:bg-green-700");
   submitBtn.classList.remove("bg-blue-600", "hover:bg-blue-700");
-
   document.getElementById("cancelUpdateBtn").classList.remove("hidden");
   document
     .getElementById("realCalcForm")
-    .scrollIntoView({ behavior: "smooth" });
+    .scrollIntoView({ behavior: "smooth" }); // ⬇️ ⬇️ ⬇️ PERBAIKAN (Menghilangkan setTimeout) ⬇️ ⬇️ ⬇️ // 1. Panggil fungsi ini untuk mengisi dropdown material //    (Fungsi ini berjalan SINKRON, tidak perlu ditunggu)
 
-  handlePekerjaanChange();
+  handlePekerjaanChange(); // 2. Karena (1) sudah selesai, kita bisa LANGSUNG pilih materialnya
 
-  setTimeout(() => {
-    const selectMaterial = document.getElementById("calcKorelasiMaterial");
-    const optionExists = Array.from(selectMaterial.options).find(
-      (opt) => opt.text === item.product // Ini mungkin perlu disesuaikan jika logikanya beda
-    );
-    if (optionExists) {
-      selectMaterial.value = optionExists.value;
-    }
-  }, 100);
+  const selectMaterial = document.getElementById("calcKorelasiMaterial"); // Cari opsi yang teksnya = nama biayanya (item.cost_name) // Saya tambahkan .trim() untuk jaga-jaga jika ada spasi
+
+  const optionExists = Array.from(selectMaterial.options).find(
+    (opt) => opt.text.trim() === (item.cost_name || "").trim()
+  );
+
+  if (optionExists) {
+    // Jika ketemu, pilih nilainya
+    selectMaterial.value = optionExists.value;
+  } else {
+    // Jika tidak ketemu (ini biaya umum), biarkan default
+    selectMaterial.value = "";
+  } // ⬆️ ⬆️ ⬆️ BATAS AKHIR PERBAIKAN ⬆️ ⬆️ ⬆️
 }
 
 // GANTI FUNGSI LAMA DENGAN YANG INI
@@ -1381,8 +1425,11 @@ document
   .addEventListener("click", function (event) {
     const eyeButton = event.target.closest(".view-actual-cost-btn");
     if (eyeButton) {
-      const korelasi = eyeButton.dataset.korelasi;
-      showActualCostDetail(korelasi);
+      // Ambil KEDUA data
+      const korelasiPekerjaan = eyeButton.dataset.korelasi;
+      const korelasiMaterial = eyeButton.dataset.materialName; // Akan undefined jika diklik di baris Pekerjaan // Kirim KEDUA data ke fungsi
+
+      showActualCostDetail(korelasiPekerjaan, korelasiMaterial);
       return;
     }
   });
@@ -1465,92 +1512,107 @@ async function handleAddNewActualCost() {
   }
 }
 
-// ================================================================
-// FUNGSI MODAL (TOMBOL MATA)
-// ================================================================
-// ================================================================
-// FUNGSI MODAL (TOMBOL MATA) - VERSI PERBAIKAN
-// ================================================================
-function showActualCostDetail(korelasi) {
-  // 1. Ambil data dari variabel global projectDetailData
+function showActualCostDetail(korelasiPekerjaan, korelasiMaterial) {
+  // 1. Ambil data Pekerjaan (Item)
   const selectedItem = projectDetailData.items.find(
-    (item) => item.product === korelasi
+    (item) => item.product === korelasiPekerjaan
   );
 
-  let details = []; // Ini akan menampung SEMUA data actual cost
+  let details = []; // Ini akan menampung data actual cost
+  let modalTitle = `Detail Actual Costing: "${korelasiPekerjaan}"`; // Judul default
 
-  if (selectedItem) {
-    // 2. Cek apakah item ini punya 'materials'
+  if (!selectedItem) {
+    console.error("Data Pekerjaan tidak ditemukan:", korelasiPekerjaan);
+    return;
+  } // 2. Cek apakah kita mencari material SPESIFIK?
+
+  if (korelasiMaterial) {
+    // ==========================================================
+    // LOGIKA A: User mengklik "mata" di baris MATERIAL
+    // ==========================================================
+    modalTitle = `Detail Actual Cost: "${korelasiMaterial}"`; // Ganti judul modal
+
     if (selectedItem.materials?.length > 0) {
-      // Jika punya, kita loop setiap material dan ambil 'actuals' DARI DALAM material
+      // Cari material spesifik di dalam pekerjaan
+      const selectedMaterial = selectedItem.materials.find(
+        (mat) => mat.name === korelasiMaterial
+      );
+
+      if (selectedMaterial && selectedMaterial.actuals?.length > 0) {
+        // Ambil HANYA data actuals dari material itu
+        details = selectedMaterial.actuals;
+      }
+    }
+  } else {
+    // ==========================================================
+    // LOGIKA B: User mengklik "mata" di baris PEKERJAAN
+    // (Ini adalah logika lama Anda, sudah benar)
+    // ==========================================================
+    // Cek apakah item ini punya 'materials'
+    if (selectedItem.materials?.length > 0) {
+      // Jika punya, loop SEMUA material dan GABUNGKAN actuals-nya
       selectedItem.materials.forEach((mat) => {
         if (mat.actuals?.length > 0) {
-          // Concat (gabung) array-nya ke 'details'
           details = details.concat(mat.actuals);
         }
       });
-    }
-    // 3. Cek apakah item ini punya 'actuals' langsung (untuk item tanpa material)
+    } // Cek 'actuals' langsung (untuk item tanpa material)
     else if (selectedItem.actuals?.length > 0) {
-      // Jika punya, langsung gabung ke 'details'
       details = details.concat(selectedItem.actuals);
     }
-  }
+  } // 4. Buat tabel HTML (Bagian ini tidak berubah)
 
-  // 4. Buat tabel HTML untuk modal
   let htmlContent = "";
   if (details.length === 0) {
     htmlContent =
       '<p class="text-center text-gray-500">Tidak ada data detail pengeluaran (actual cost) untuk item ini.</p>';
   } else {
     htmlContent = `
-      <table class="w-full text-sm text-left">
-        <thead class="bg-gray-100">
-          <tr>
-            <th class="px-3 py-2">Nama Pengeluaran</th>
-            <th class="px-3 py-2 text-right">Unit Price</th>
-            <th class="px-3 py-2 text-right">Qty</th>
-            <th class="px-3 py-2 text-right">Total</th>
-            <th class="px-3 py-2">Notes</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
+      <table class="w-full text-sm text-left">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="px-3 py-2">Nama Pengeluaran</th>
+            <th class="px-3 py-2 text-right">Unit Price</th>
+            <th class="px-3 py-2 text-right">Qty</th>
+            <th class="px-3 py-2 text-right">Total</th>
+            <th class="px-3 py-2">Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
     let total = 0;
     details.forEach((item) => {
-      // 5. Gunakan key dari array 'actuals' (cost_name, unit_price, qty, total)
       htmlContent += `
-        <tr class="border-b">
-          <td class="px-3 py-2">${item.cost_name}</td>
-          <td class="px-3 py-2 text-right">${formatNumber(item.unit_price)}</td>
-          <td class="px-3 py-2 text-right">${item.qty} ${item.unit}</td>
-          <td class="px-3 py-2 text-right">${formatNumber(item.total)}</td>
-          <td class="px-3 py-2 text-xs">${item.notes || ""}</td>
-        </tr>
-      `;
+        <tr class="border-b">
+          <td class="px-3 py-2">${item.cost_name}</td>
+          <td class="px-3 py-2 text-right">${formatNumber(item.unit_price)}</td>
+          <td class="px-3 py-2 text-right">${item.qty} ${item.unit}</td>
+          <td class="px-3 py-2 text-right">${formatNumber(item.total)}</td>
+          <td class="px-3 py-2 text-xs">${item.notes || ""}</td>
+        </tr>
+      `;
       total += item.total;
     });
     htmlContent += `
-        </tbody>
-        <tfoot class="font-bold">
-          <tr>
-            <td colspan="3" class="px-3 py-2 text-right">Total:</td>
-            <td class="px-3 py-2 text-right">${formatNumber(total)}</td>
-            <td></td>
-          </tr>
-        </tfoot>
-      </table>
-    `;
-  }
+        </tbody>
+        <tfoot class="font-bold">
+          <tr>
+            <td colspan="3" class="px-3 py-2 text-right">Total:</td>
+            <td class="px-3 py-2 text-right">${formatNumber(total)}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    `;
+  } // 6. Tampilkan modal
 
-  // 6. Tampilkan modal
   if (typeof Swal === "undefined") {
     alert("Library SweetAlert2 (Swal) tidak ditemukan.");
     return;
   }
 
   Swal.fire({
-    title: `Detail Actual Costing: "${korelasi}"`,
+    title: modalTitle, // Gunakan judul yang dinamis
     html: htmlContent,
     width: "800px",
     confirmButtonText: "Tutup",
