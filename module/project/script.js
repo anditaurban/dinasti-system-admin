@@ -6,13 +6,17 @@ setDataType("project");
 fetchAndUpdateData();
 
 document.getElementById("addButton").addEventListener("click", async () => {
-  loadModuleContent("project_detail");
+  setProjectModeAndLoad("add");
 });
-
+function setProjectModeAndLoad(mode, id = null, desc = null) {
+  sessionStorage.setItem("projectMode", mode);
+  loadModuleContent("project_detail", id, desc); // <-- Tambahkan 'desc'
+}
 
 window.rowTemplate = function (item, index, perPage = 10) {
   const { currentPage } = state[currentDataType];
   const globalIndex = (currentPage - 1) * perPage + index + 1;
+  const cleanProjectName = item.project_name.replace(/'/g, "\\'");
 
   return `
     <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50">
@@ -26,7 +30,7 @@ window.rowTemplate = function (item, index, perPage = 10) {
       <!-- Project Name -->
       <td class="px-6 py-4 text-sm border-b sm:border-0">
         <span class="font-medium sm:hidden">Project Name</span>
-        ${item.project_name} - ${item.type || "-"}
+        ${item.project_name} - (${item.project_type || "-"})
         <br>${item.customer}
       </td>
 
@@ -65,23 +69,37 @@ window.rowTemplate = function (item, index, perPage = 10) {
 
         <!-- Dropdown Menu -->
         <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
-          <!-- View Project -->
-         <button 
-  onclick="event.stopPropagation(); loadModuleContent('project_detail', '${
-    item.project_id
-  }');" 
-  class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-  👁️ View Project
-</button>
+  <!-- 👁️ View Project -->
+  <button
+    onclick="event.stopPropagation(); setProjectModeAndLoad('view', '${
+      item.project_id
+    }', '${cleanProjectName}');"
+    class="block w-full text-left px-4 py-2 hover:bg-gray-100"
+  >
+    👁️ View Project
+  </button>
 
+  
 
-          <!-- Delete Project -->
-          <button 
-            onclick="handleDelete('${item.project_id}')" 
-            class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">
-            🗑 Delete Project
-          </button>
-        </div>
+  <!-- ✏️ Update Project -->
+  <button
+    onclick="event.stopPropagation(); setProjectModeAndLoad('update', '${
+      item.project_id
+    }', '${cleanProjectName}');"
+    class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600"
+  >
+    ✏️ Update Project
+  </button>
+
+  <!-- 🗑 Delete Project -->
+  <button
+    onclick="handleDelete('${item.project_id}')"
+    class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
+  >
+    🗑 Delete Project
+  </button>
+</div>
+
       </td>
 
     </tr>

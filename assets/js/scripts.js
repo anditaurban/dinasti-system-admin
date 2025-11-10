@@ -31,6 +31,7 @@ const month = String(today.getMonth() + 1).padStart(2, "0");
 const day = String(today.getDate()).padStart(2, "0");
 const formattedDate = `${year}-${month}-${day}`;
 let cashier_id = 0;
+let unitDebounceTimer;
 
 let current_date = formattedDate;
 
@@ -77,7 +78,8 @@ function setTodayDate() {
 function renderCompanyInfo() {
   document.getElementById("companyName").textContent = user.company || "-";
   document.getElementById("companyTagline").textContent = user.tagline || "";
-  document.getElementById("companyAddress").innerHTML = user.address?.replace(/\n/g, "<br>") || "-";
+  document.getElementById("companyAddress").innerHTML =
+    user.address?.replace(/\n/g, "<br>") || "-";
 
   const socmed = document.getElementById("companySocial");
   socmed.innerHTML = "";
@@ -88,7 +90,6 @@ function renderCompanyInfo() {
     socmed.innerHTML += `<p>Instagram: ${user.other_sosmed}</p>`;
   }
 }
-
 
 function openLink(baseURL) {
   // Retrieve all localStorage data from the current tab

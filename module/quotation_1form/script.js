@@ -394,7 +394,18 @@ async function tambahItem() {
         </div>
         <div>
           <label class="block text-xs text-gray-500">Unit</label>
-          <input type="text" class="w-full border rounded px-2 itemUnit" placeholder="set">
+          <div class="relative">
+            <input 
+              type="text" 
+              class="w-full border rounded px-2 itemUnit" 
+              placeholder="set"
+              oninput="filterUnitSuggestions(this)" 
+              autocomplete="off"
+            >
+            <ul class="absolute z-10 w-full bg-white border rounded mt-1 text-sm shadow hidden max-h-48 overflow-y-auto">
+              <!-- Unit suggestions -->
+            </ul>
+          </div>
         </div>
         <div class="col-span-2">
           <label class="block text-xs text-gray-500">Harga (Jual)</label>
@@ -491,10 +502,21 @@ function tambahSubItem(btn) {
             <label class="block text-xs text-gray-500">Qty</label>
             <input type="number" class="w-full border rounded px-2 text-right subItemQty" value="1" oninput="recalculateTotal()">
           </div>
-          <div>
-            <label class="block text-xs text-gray-500">Unit</label>
-            <input type="text" class="w-full border rounded px-2 subItemUnit" placeholder="pcs">
+         <div>
+          <label class="block text-xs text-gray-500">Unit</label>
+          <div class="relative">
+            <input 
+              type="text" 
+              class="w-full border rounded px-2 subItemUnit" 
+              placeholder="pcs"
+              oninput="filterUnitSuggestions(this)" 
+              autocomplete="off"
+            >
+            <ul class="absolute z-10 w-full bg-white border rounded mt-1 text-sm shadow hidden max-h-48 overflow-y-auto">
+              <!-- Unit suggestions -->
+            </ul>
           </div>
+        </div>
           <div class="col-span-2">
             <label class="block text-xs text-gray-500">Harga (Jual)</label>
             <input type="text" class="w-full border rounded px-2 text-right subItemHarga bg-gray-100" value="0" readonly>
@@ -521,6 +543,69 @@ function tambahSubItem(btn) {
 
   subWrapper.appendChild(subTr);
   setupRupiahFormattingForElement(subTr.querySelector(".subItemHarga"));
+}
+
+function filterUnitSuggestions(inputElement) {
+  const inputVal = inputElement.value.toLowerCase();
+
+  // Ambil <ul> suggestion box yang ada TEPAT SETELAH input
+  const suggestionBox = inputElement.nextElementSibling;
+  if (!suggestionBox || suggestionBox.tagName !== "UL") {
+    console.error("Struktur HTML untuk suggestion box unit salah.");
+    return;
+  }
+
+  // Hentikan timer (debounce) sebelumnya
+  clearTimeout(unitDebounceTimer);
+
+  // Jika input kosong, sembunyikan box
+  if (inputVal.length < 1) {
+    suggestionBox.innerHTML = "";
+    suggestionBox.classList.add("hidden");
+    return;
+  }
+
+  // Set timer baru untuk memanggil API setelah 300ms
+  unitDebounceTimer = setTimeout(async () => {
+    // Tampilkan status "Mencari..."
+    suggestionBox.innerHTML = `<li class="px-3 py-2 text-gray-500 italic">Mencari...</li>`;
+    suggestionBox.classList.remove("hidden");
+
+    try {
+      const res = await fetch(
+        `${baseUrl}/table/unit/${owner_id}/1?search=${inputVal}`,
+        {
+          headers: { Authorization: `Bearer ${API_TOKEN}` },
+        }
+      );
+      const result = await res.json();
+
+      suggestionBox.innerHTML = ""; // Hapus "Mencari..."
+
+      if (result.tableData && result.tableData.length > 0) {
+        result.tableData.forEach((item) => {
+          // ❗️ PENTING: Sesuaikan 'item.unit_name' jika key dari API Anda berbeda
+          const unitName = item.unit || "N/A";
+
+          const li = document.createElement("li");
+          li.textContent = unitName;
+          li.className = "px-3 py-2 hover:bg-gray-200 cursor-pointer";
+
+          // Saat item diklik, isi input dan sembunyikan list
+          li.addEventListener("click", () => {
+            inputElement.value = unitName;
+            suggestionBox.classList.add("hidden");
+          });
+          suggestionBox.appendChild(li);
+        });
+      } else {
+        suggestionBox.innerHTML = `<li class="px-3 py-2 text-gray-500 italic">Tidak ditemukan</li>`;
+      }
+    } catch (err) {
+      console.error("Gagal fetch unit:", err);
+      suggestionBox.innerHTML = `<li class="px-3 py-2 text-red-500 italic">Gagal memuat data</li>`;
+    }
+  }, 300); // Jeda 300 milidetik
 }
 
 function hapusItem(button) {

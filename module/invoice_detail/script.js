@@ -194,14 +194,32 @@ async function loadDetailSales(Id, Detail) {
     }
 
     // console.log('DP: ', data.down_payments);
+    // console.log('DP: ', data.down_payments);
     const dpString = encodeURIComponent(
       JSON.stringify(data.down_payments || [])
     );
-    document.getElementById("pembayaranbutton").innerHTML = `
-  <button onclick="openSalesReceiptModal('${data.pesanan_id}', '${data.pelanggan_id}', '${data.total}', '${data.remaining_balance}', '${dpString}')" 
-    class="w-full py-1 px-2 border rounded bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs">
-    ➕ Add Payment Receipt
-  </button>`;
+
+    // [MODIFIKASI] Ambil elemen container tombolnya
+    const pembayaranButtonEl = document.getElementById("pembayaranbutton");
+
+    // [MODIFIKASI] Cek status invoice
+    // Kita gunakan 'invoice_status_id === 3' (Paid) sebagai acuan
+    // Ini lebih baik daripada 'remaining_balance <= 0' karena status lebih eksplisit
+    if (data.invoice_status_id === 3) {
+      // Jika status 3 (Paid/Lunas), tampilkan pesan Lunas
+      pembayaranButtonEl.innerHTML = `
+      <div class="text-center text-xs text-green-700 italic py-1 px-2 border rounded bg-green-50">
+        ( Lunas )
+      </div>
+      `;
+    } else {
+      // Jika status BUKAN 3 (masih Unpaid/Partial), tampilkan tombol
+      pembayaranButtonEl.innerHTML = `
+      <button onclick="openSalesReceiptModal('${data.pesanan_id}', '${data.pelanggan_id}', '${data.total}', '${data.remaining_balance}', '${dpString}')" 
+        class="w-full py-1 px-2 border rounded bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs">
+        ➕ Add Payment Receipt
+      </button>`;
+    }
 
     // ===========================
     // 🔹 File Pendukung
@@ -279,11 +297,25 @@ async function loadDetailSales(Id, Detail) {
       uangMukaSection.innerHTML = `<div class="text-gray-500 italic">-</div>`;
     }
 
-    document.getElementById("invoiceDPbutton").innerHTML = `
-  <button onclick="tambahUangMuka('${data.pesanan_id}', '${data.contract_amount}')" 
-    class="w-full py-1 px-2 border rounded bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs">
-    ➕ Add Invoice DP/Progress
-  </button>`;
+    // [MODIFIKASI] Ambil elemen container tombol DP
+    const invoiceDPButtonEl = document.getElementById("invoiceDPbutton");
+
+    // [MODIFIKASI] Cek status invoice utama
+    if (data.invoice_status_id === 3) {
+      // Jika invoice utama sudah Lunas (Paid), tampilkan pesan
+      invoiceDPButtonEl.innerHTML = `
+      <div class="text-center text-xs text-gray-500 italic py-1 px-2 border rounded bg-gray-50">
+        (Invoice Lunas)
+      </div>
+      `;
+    } else {
+      // Jika invoice utama belum lunas, tampilkan tombol tambah DP
+      invoiceDPButtonEl.innerHTML = `
+      <button onclick="tambahUangMuka('${data.pesanan_id}', '${data.contract_amount}')" 
+        class="w-full py-1 px-2 border rounded bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs">
+        ➕ Add Invoice DP/Progress
+      </button>`;
+    }
 
     window.dataLoaded = true;
 
@@ -465,7 +497,8 @@ async function openSalesReceiptModal(
   pelangganId,
   totalInvoice,
   sisaBayar,
-  invoiceDP
+  invoiceDP,
+  mainInvoiceId
 ) {
   const totalOrder = totalInvoice;
   const remainingAmount = sisaBayar;
@@ -640,7 +673,7 @@ async function openSalesReceiptModal(
         // default untuk invoice utama
         refData = {
           reference_type: "main",
-          reference_id: pesananId,
+          reference_id: mainInvoiceId,
           nominal: remainingAmount,
           description: "Pembayaran invoice utama",
         };
