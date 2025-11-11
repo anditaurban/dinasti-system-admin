@@ -215,7 +215,7 @@ async function loadDetailSales(Id, Detail) {
     } else {
       // Jika status BUKAN 3 (masih Unpaid/Partial), tampilkan tombol
       pembayaranButtonEl.innerHTML = `
-      <button onclick="openSalesReceiptModal('${data.pesanan_id}', '${data.pelanggan_id}', '${data.total}', '${data.remaining_balance}', '${dpString}')" 
+      <button onclick="openSalesReceiptModal('${data.pesanan_id}', '${data.pelanggan_id}', '${data.total}','${Id}', '${data.remaining_balance}', '${dpString}')" 
         class="w-full py-1 px-2 border rounded bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs">
         ➕ Add Payment Receipt
       </button>`;
@@ -244,9 +244,6 @@ async function loadDetailSales(Id, Detail) {
       fileSection.innerHTML = `<div class="text-gray-500 italic">-</div>`;
     }
 
-    // ===========================
-    // 🔹 Invoice Uang Muka
-    // ===========================
     // ===========================
     // 🔹 Invoice Uang Muka
     // ===========================

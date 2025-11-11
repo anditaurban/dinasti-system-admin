@@ -52,14 +52,12 @@
     }
 
     @media print {
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    color-adjust: exact !important;
-  }
-}
-
-
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+    }
   </style>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
@@ -82,47 +80,47 @@
 
     const formatRp = val => `Rp ${(+val).toLocaleString("id-ID")}`;
     function finance(value) {
-  return new Intl.NumberFormat("id-ID", {
-    maximumFractionDigits: 0,
-  }).format(value);
-}
+      return new Intl.NumberFormat("id-ID", {
+        maximumFractionDigits: 0,
+      }).format(value);
+    }
 
-async function loadLogoWithAuth(url) {
-  try {
-    const res = await fetch(url, {
-      headers: {
-        "Authorization": `Bearer ${API_TOKEN}`
+    async function loadLogoWithAuth(url) {
+      try {
+        const res = await fetch(url, {
+          headers: {
+            "Authorization": `Bearer ${API_TOKEN}`
+          }
+        });
+        if (!res.ok) throw new Error("Gagal load logo");
+
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+
+        const logoPreview = document.getElementById("logo_preview");
+        logoPreview.src = objectUrl;
+        logoPreview.classList.remove("hidden");
+      } catch (err) {
+        console.error("Error load logo:", err);
       }
-    });
-    if (!res.ok) throw new Error("Gagal load logo");
+    }
 
-    const blob = await res.blob();
-    const objectUrl = URL.createObjectURL(blob);
+    async function loadPesananData() {
+      try {
 
-    const logoPreview = document.getElementById("logo_preview");
-    logoPreview.src = objectUrl;
-    logoPreview.classList.remove("hidden");
-  } catch (err) {
-    console.error("Error load logo:", err);
-  }
-}
 
-async function loadPesananData() {
-  try {
+        const pesananRes = await fetch(`${baseUrl}/detail/sales_receipt/${pesanan_id}`, {
+          headers: { Authorization: `Bearer ${API_TOKEN}` }
+        });
+        const response = await pesananRes.json();
+        const data = response.detail || {};
+        console.log(response);
 
-    
-    const pesananRes = await fetch(`${baseUrl}/detail/sales_receipt/${pesanan_id}`, {
-      headers: { Authorization: `Bearer ${API_TOKEN}` }
-    });
-    const response = await pesananRes.json();
-    const data = response.detail || {};
-    console.log(response);
+        // Load logo dengan token auth
+        loadLogoWithAuth(user.logo_url);
 
-    // Load logo dengan token auth
-    loadLogoWithAuth(user.logo_url);
-
-    // Template HTML
-const html = `
+        // Template HTML
+        const html = `
   <!-- Header -->
   <div class="flex justify-between items-start mb-6">
     <!-- Logo -->
@@ -183,7 +181,7 @@ const html = `
     </div>
 
     <div class="flex items-start">
-      <div class="w-1/4 font-bold">Untuk Pembayaran</div>
+      <div class="w-1/4 font-bold">Keterangan</div>
       <div class="flex-1 bg-gray-50 border px-3 py-6 italic">
         ${data.keterangan || "-"}
       </div>
@@ -207,31 +205,31 @@ const html = `
   </div>
 `;
 
-    container.innerHTML = html;
+        container.innerHTML = html;
 
-    // Export ke PDF jika diminta
-    if (isDownload) {
-      setTimeout(() => {
-        html2pdf().set({
-          margin: 0,
-          filename: `${data.receipt_number || "document"}.pdf`,
-          image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2 },
-          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
-        }).from(container).save();
-      }, 1000);
+        // Export ke PDF jika diminta
+        if (isDownload) {
+          setTimeout(() => {
+            html2pdf().set({
+              margin: 0,
+              filename: `${data.receipt_number || "document"}.pdf`,
+              image: { type: "jpeg", quality: 0.98 },
+              html2canvas: { scale: 2 },
+              jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+            }).from(container).save();
+          }, 1000);
+        }
+      } catch (err) {
+        console.error("Gagal memuat pesanan", err);
+        alert("Gagal memuat data pesanan.");
+      }
     }
-  } catch (err) {
-    console.error("Gagal memuat pesanan", err);
-    alert("Gagal memuat data pesanan.");
-  }
-}
 
 
     window.onload = loadPesananData;
   </script>
   <!-- load QRCode.js -->
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
 
 </body>

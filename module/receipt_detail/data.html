@@ -13,7 +13,8 @@
 
       <!-- Actions -->
       <div class="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto">
-        <button id="downloadBtn"  onclick="printReceipt(detail_id)" class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded text-sm">
+        <button id="downloadBtn" onclick="printReceipt(detail_id)"
+          class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded text-sm">
           📄 Download PDF
         </button>
         <button onclick="loadModuleContent('receipt')" class="bg-gray-300 text-sm px-4 py-2 rounded">
@@ -29,16 +30,16 @@
         <img id="logo_preview" class="h-28 w-28 object-contain" />
       </div>
 
-<!-- Company Info -->
-<div class="flex-1 px-4">
-  <h1 id="companyName" class="font-bold text-red-600 text-lg leading-tight"></h1>
-  <p id="companyTagline" class="font-bold text-sm"></p>
-  <p id="companyAddress" class="text-xs leading-snug mt-1"></p>
-  <div class="text-xs mt-2 space-y-0.5">
-    <p class="font-medium">Social Media</p>
-    <div id="companySocial"></div>
-  </div>
-</div>
+      <!-- Company Info -->
+      <div class="flex-1 px-4">
+        <h1 id="companyName" class="font-bold text-red-600 text-lg leading-tight"></h1>
+        <p id="companyTagline" class="font-bold text-sm"></p>
+        <p id="companyAddress" class="text-xs leading-snug mt-1"></p>
+        <div class="text-xs mt-2 space-y-0.5">
+          <p class="font-medium">Social Media</p>
+          <div id="companySocial"></div>
+        </div>
+      </div>
 
 
       <!-- Receipt Box -->
@@ -76,7 +77,7 @@
       </div>
 
       <div class="flex items-start">
-        <div class="w-1/4 font-bold">Untuk Pembayaran</div>
+        <div class="w-1/4 font-bold">Keterangan</div>
         <div id="keterangan" class="flex-1 bg-gray-50 border px-3 py-6 italic"></div>
       </div>
     </div>
