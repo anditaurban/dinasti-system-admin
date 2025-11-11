@@ -1953,9 +1953,11 @@ function showActualCostDetail(korelasiPekerjaan, korelasiMaterial) {
 // FUNGSI KONVERSI KE SALES (VERSI BERSIH)
 // ===========================================================
 
+// ===========================================================
+// FUNGSI BARU: BUKA MODAL KONVERSI KE SALES
+// ===========================================================
 async function openConvertToSalesModal() {
   // 1. Cek apakah data project sudah ada
-  // (Pastikan projectDetailData sudah di-set di loadProjectDataForUpdate)
   if (!projectDetailData) {
     Swal.fire("Error", "Data project belum ter-load penuh.", "error");
     return;
@@ -1972,7 +1974,7 @@ async function openConvertToSalesModal() {
       <div class="space-y-3 text-left p-2">
         <p class="text-sm text-gray-600">
           Ini akan mengonversi data project costing saat ini menjadi
-          Quotation.
+          Quotation baru.
         </p>
         <div>
           <label class="block text-sm text-gray-600 mb-1">Tanggal Order</label>
@@ -1982,63 +1984,6 @@ async function openConvertToSalesModal() {
           <label class="block text-sm text-gray-600 mb-1">Nama PIC</label>
           <input type="text" id="sales_pic_name" class="w-full border rounded px-3 py-2" 
             placeholder="Masukkan nama PIC Client">
-        </div>
-      </div>
-    `,
-    focusConfirm: false,
-    showCancelButton: true,
-    confirmButtonText: "Simpan Sales Order",
-    cancelButtonText: "Batal",
-    preConfirm: () => {
-      // 4. Ambil dan Validasi data modal
-      const order_date = document.getElementById("sales_order_date").value;
-      const pic_name = document.getElementById("sales_pic_name").value;
-
-      if (!order_date || !pic_name) {
-        Swal.showValidationMessage("Tanggal Order dan Nama PIC wajib diisi.");
-        return false;
-      }
-      return { order_date, pic_name };
-    },
-  });
-
-  // 5. Jika user klik "Simpan" dan validasi lolos
-  if (formValues) {
-    await handleSaveConvertToSales(formValues);
-  }
-}
-
-// ===========================================================
-// FUNGSI BARU: BUKA MODAL KONVERSI KE SALES
-// ===========================================================
-async function openConvertToSalesModal() {
-  // 1. Cek apakah data project sudah ada
-  if (!projectDetailData) {
-    Swal.fire("Error", "Data project belum ter-load penuh.", "error");
-    return;
-  }
-
-  // 2. Ambil tanggal hari ini untuk default value
-  const today = new Date().toISOString().split("T")[0];
-
-  // 3. Tampilkan modal
-  const { value: formValues } = await Swal.fire({
-    title: "Buat Sales Order",
-    width: "600px",
-    html: `
-      <div class="space-y-3 text-left p-2">
-        <p class="text-sm text-gray-600">
-          Ini akan mengonversi data project costing saat ini menjadi
-          Sales Order baru.
-        </p>
-        <div>
-          <label class="block text-sm text-gray-600 mb-1">Tanggal Order</label>
-          <input type="date" id="sales_order_date" class="w-full border rounded px-3 py-2" value="${today}">
-        </div>
-        <div>
-          <label class="block text-sm text-gray-600 mb-1">Nama PIC</label>
-          <input type="text" id="sales_pic_name" class="w-full border rounded px-3 py-2" 
-            placeholder="Masukkan nama PIC (Project Manager)">
         </div>
       </div>
     `,
