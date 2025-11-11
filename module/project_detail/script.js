@@ -1966,13 +1966,13 @@ async function openConvertToSalesModal() {
 
   // 3. Tampilkan modal
   const { value: formValues } = await Swal.fire({
-    title: "Buat Sales Order",
+    title: "Buat Quotation",
     width: "600px",
     html: `
       <div class="space-y-3 text-left p-2">
         <p class="text-sm text-gray-600">
           Ini akan mengonversi data project costing saat ini menjadi
-          Sales Order baru.
+          Quotation.
         </p>
         <div>
           <label class="block text-sm text-gray-600 mb-1">Tanggal Order</label>
@@ -1981,7 +1981,7 @@ async function openConvertToSalesModal() {
         <div>
           <label class="block text-sm text-gray-600 mb-1">Nama PIC</label>
           <input type="text" id="sales_pic_name" class="w-full border rounded px-3 py-2" 
-            placeholder="Masukkan nama PIC (Project Manager)">
+            placeholder="Masukkan nama PIC Client">
         </div>
       </div>
     `,
