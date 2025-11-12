@@ -173,22 +173,36 @@
 
 
       <!-- Ringkasan (DIPINDAH KE BAWAH, bentuk HORIZONTAL di desktop) -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded shadow text-sm">
-        <div class="space-y-3">
-          <label class="block font-medium">📝 Catatan</label>
-          <textarea id="catatan" rows="3" class="w-full border rounded px-3 py-2"></textarea>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-gray-50 p-6 rounded-2xl shadow-md text-sm">
+        <!-- Catatan -->
+        <div class="space-y-2">
+          <label for="catatan" class="block font-semibold text-gray-700 text-base">📝 Catatan</label>
+          <select id="catatan"
+            class="w-full border border-gray-300 rounded-lg px-3 py-3 h-14 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <option value="">Memuat catatan...</option>
+          </select>
         </div>
 
-        <div class="space-y-3">
-          <label class="block font-medium">📌 Syarat & Ketentuan</label>
-          <textarea id="syarat_ketentuan" rows="3" class="w-full border rounded px-3 py-2"></textarea>
+        <!-- Syarat & Ketentuan -->
+        <div class="space-y-2">
+          <label for="syarat_ketentuan" class="block font-semibold text-gray-700 text-base">📌 Syarat &
+            Ketentuan</label>
+          <select id="syarat_ketentuan"
+            class="w-full border border-gray-300 rounded-lg px-3 py-3 h-14 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <option value="">Memuat S&K...</option>
+          </select>
         </div>
 
-        <div class="space-y-3">
-          <label class="block font-medium">💰 Term of Payment</label>
-          <textarea id="term_pembayaran" rows="3" class="w-full border rounded px-3 py-2"></textarea>
+        <!-- Term of Payment -->
+        <div class="space-y-2">
+          <label for="term_pembayaran" class="block font-semibold text-gray-700 text-base">💰 Term of Payment</label>
+          <select id="term_pembayaran"
+            class="w-full border border-gray-300 rounded-lg px-3 py-3 h-14 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <option value="">Memuat ToP...</option>
+          </select>
         </div>
       </div>
+
       <div id="versionInfo"
         class="hidden bg-blue-50 border border-blue-200 rounded p-2 text-sm flex items-center justify-between mt-2">
         <button id="btnVersionHistory" class="w-full text-sm text-blue-600 text-center hover:underline mt-2">

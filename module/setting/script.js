@@ -1,12 +1,103 @@
 pagemodule = "Setting";
 subpagemodule = "";
 renderHeader();
+
+// =====================================================================
+// == DEFINISI GLOBAL DIPINDAHKAN KE ATAS SINI ==
+// =====================================================================
+
+// State untuk menyimpan halaman saat ini untuk setiap tabel
+tableStates = {
+  notes: { currentPage: 1, perPage: 10 },
+  top: { currentPage: 1, perPage: 10 },
+  tnc: { currentPage: 1, perPage: 10 },
+  unit: { currentPage: 1, perPage: 10 },
+};
+
+/**
+ * Template untuk baris tabel Catatan, ToP, dan T&C
+ * (DIPINDAHKAN KE ATAS)
+ */
+window.notesTopRowTemplate = function (item, dataType) {
+  const editFuncMap = {
+    notes: "handleEditNote",
+    top: "handleEditTop",
+    tnc: "handleEditTnc",
+  };
+  const deleteFuncMap = {
+    notes: "handleDeleteNote",
+    top: "handleDeleteTop",
+    tnc: "handleDeleteTnc",
+  };
+
+  const editFunc = editFuncMap[dataType];
+  const deleteFunc = deleteFuncMap[dataType];
+
+  // Ubah newline (\n) menjadi <br> agar tampil rapi di HTML
+  const pretextHtml = item.pretext.replace(/\n/g, "<br>");
+
+  // Gunakan JSON.stringify agar aman passing string ke fungsi onclick
+  const pretextJson = JSON.stringify(item.pretext);
+
+  return `
+  <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50">
+    
+    <td class="px-6 py-4 text-sm border-b sm:border-0 flex justify-between sm:table-cell">
+      <span class="font-medium sm:hidden">Deskripsi</span>
+      <div class="prose prose-sm max-w-none">${pretextHtml}</div>
+    </td>
+
+    <td class="px-6 py-4 text-sm text-gray-700 sm:border-0 flex justify-between sm:table-cell" style="width: 150px;">
+      <span class="font-medium sm:hidden">Actions</span>
+      <div class="flex gap-2 justify-end w-full sm:w-auto">
+        <button onclick="${editFunc}(${item.setting_id}, ${pretextJson})" class="text-blue-500 hover:text-blue-700 p-1">
+          <i class="fas fa-edit"></i> Edit
+        </button>
+        <button onclick="${deleteFunc}(${item.setting_id})" class="text-red-500 hover:text-red-700 p-1">
+          <i class="fas fa-trash"></i> Delete
+        </button>
+      </div>
+    </td>
+  </tr>`;
+};
+
+/**
+ * Template untuk baris tabel Unit (Satuan)
+ * (DIPINDAHKAN KE ATAS)
+ */
+window.unitRowTemplate = function (item, dataType) {
+  const unitNameJson = JSON.stringify(item.unit);
+  return `
+    <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50">
+        <td class="px-6 py-4 text-sm border-b sm:border-0 flex justify-between sm:table-cell">
+            <span class="font-medium sm:hidden">Nama Satuan</span>
+            ${item.unit}
+        </td>
+        <td class="px-6 py-4 text-sm text-gray-700 sm:border-0 flex justify-between sm:table-cell" style="width: 150px;">
+            <span class="font-medium sm:hidden">Actions</span>
+            <div class="flex gap-2 justify-end w-full sm:w-auto">
+                <button onclick="handleEditUnit(${item.unit_id}, ${unitNameJson})" class="text-blue-500 hover:text-blue-700 p-1">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+                <button onclick="handleDeleteUnit(${item.unit_id})" class="text-red-500 hover:text-red-700 p-1">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </div>
+        </td>
+    </tr>`;
+};
+
+// =====================================================================
+// == SCRIPT AWAL (SEKARANG AMAN) ==
+// =====================================================================
+
 loadAccounts();
 loadProfile(user_id);
 getCompanyDetail();
 loadTermOfPayment();
 loadTermCondition();
 loadNotes();
+loadUnits();
 loadUpdateLog();
 
 function switchSection(btn, section) {
@@ -397,7 +488,7 @@ async function loadProfile(user_id) {
     document.getElementById("profile_level").value = "Loading...";
     document.getElementById("profile_role").value = "Loading...";
 
-    // delay 10 detik sebelum fetch
+    // delay 5 detik sebelum fetch
     await new Promise((resolve) => setTimeout(resolve, 5000));
 
     const res = await fetch(`${baseUrl}/detail/user/${user_id}`, {
@@ -474,7 +565,7 @@ async function getCompanyDetail() {
     document.getElementById("company_linkedin").value = "Loading...";
     document.getElementById("company_facebook").value = "Loading...";
 
-    // delay 10 detik sebelum fetch
+    // delay 5 detik sebelum fetch
     await new Promise((resolve) => setTimeout(resolve, 5000));
     const res = await fetch(`${baseUrl}/detail/company/${owner_id}`, {
       headers: { Authorization: `Bearer ${API_TOKEN}` },
@@ -575,242 +666,498 @@ async function saveCompanySetting() {
   });
 }
 
+// =====================================================================
+// == BAGIAN TABEL GENERIC (Notes, ToP, T&C, Unit) ==
+// =====================================================================
+
+// Template functions `window.notesTopRowTemplate` dan `window.unitRowTemplate`
+// SUDAH DIPINDAHKAN KE ATAS SCRIPT
+
 /**
- * Memuat data Term of Payment dari API dan menampilkannya
- * di elemen textarea mana pun berdasarkan ID-nya.
- * @param {string} targetElementId - ID dari elemen <textarea> yang akan diisi.
+ * Fungsi generik untuk load data tabel
  */
-async function loadTermOfPayment(targetElementId) {
-  const textarea = document.getElementById(targetElementId);
-  if (!textarea) {
-    console.error(
-      `Error: Element dengan ID "${targetElementId}" tidak ditemukan.`
-    );
+async function loadTableData(dataType, page = 1) {
+  const config = {
+    notes: {
+      endpoint: (p) => `${baseUrl}/table/notes/${owner_id}/${p}`,
+      tbodyId: "catatanTableBody",
+      paginationId: "catatanPagination",
+      infoId: "catatanInfoText",
+      pageSelectId: "catatanPageSelect",
+      headerId: "catatanTableHeader",
+      rowTemplate: window.notesTopRowTemplate,
+    },
+    top: {
+      endpoint: (p) => `${baseUrl}/table/term_of_payment/${owner_id}/${p}`,
+      tbodyId: "topTableBody",
+      paginationId: "topPagination",
+      infoId: "topInfoText",
+      pageSelectId: "topPageSelect",
+      headerId: "topTableHeader",
+      rowTemplate: window.notesTopRowTemplate,
+    },
+    tnc: {
+      endpoint: (p) => `${baseUrl}/table/terms/${owner_id}/${p}`,
+      tbodyId: "tncTableBody",
+      paginationId: "tncPagination",
+      infoId: "tncInfoText",
+      pageSelectId: "tncPageSelect",
+      headerId: "tncTableHeader",
+      rowTemplate: window.notesTopRowTemplate,
+    },
+    unit: {
+      endpoint: (p) => `${baseUrl}/table/unit/${owner_id}/${p}`,
+      tbodyId: "unitTableBody",
+      paginationId: "unitPagination",
+      infoId: "unitInfoText",
+      pageSelectId: "unitPageSelect",
+      headerId: "unitTableHeader",
+      rowTemplate: window.unitRowTemplate,
+    },
+  };
+
+  const currentConfig = config[dataType];
+  if (!currentConfig) {
+    console.error("Invalid dataType:", dataType);
     return;
   }
 
+  tableStates[dataType].currentPage = page;
+  const {
+    tbodyId,
+    paginationId,
+    infoId,
+    pageSelectId,
+    endpoint,
+    rowTemplate,
+    headerId,
+  } = currentConfig;
+
+  const tableBody = document.getElementById(tbodyId);
+  const tableHeader = document.getElementById(headerId);
+
+  // Tampilkan loading
+  tableBody.innerHTML = `<tr><td colspan="2" class="text-center p-6 text-gray-500">
+        <i class="fas fa-spinner fa-spin mr-2"></i> Memuat data...
+    </td></tr>`;
+  tableHeader.classList.add("hidden");
+
   try {
-    textarea.value = "Loading...";
+    // PERUBAHAN: Menambahkan delay 3 detik untuk simulasi loading
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
-    // Hapus delay 5 detik ini jika sudah tidak diperlukan untuk testing
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-
-    const res = await fetch(`${baseUrl}/list/term_of_payment/${owner_id}`, {
+    const res = await fetch(endpoint(page), {
       headers: { Authorization: `Bearer ${API_TOKEN}` },
     });
     const data = await res.json();
 
-    if (data.success && data.listData.length > 0) {
-      const top = data.listData[0]; // ambil 1 record (default)
-      textarea.value = top.pretext || "";
+    if (data.success !== false && data.tableData) {
+      renderTableContent(dataType, currentConfig, data, rowTemplate);
     } else {
-      textarea.value = "";
+      tableBody.innerHTML = `<tr><td colspan="2" class="text-center p-4 text-red-500">${
+        data.message || "Gagal memuat data."
+      }</td></tr>`;
     }
   } catch (err) {
-    console.error("Gagal load Term of Payment:", err);
-    textarea.value = "Gagal memuat data."; // Beri feedback error
+    console.error(`Error loading ${dataType}:`, err);
+    tableBody.innerHTML = `<tr><td colspan="2" class="text-center p-4 text-red-500">Error: ${err.message}</td></tr>`;
   }
 }
 
 /**
- * Memuat data Term & Condition dari API dan menampilkannya
- * di elemen textarea mana pun berdasarkan ID-nya.
- * @param {string} targetElementId - ID dari elemen <textarea> yang akan diisi.
+ * Render konten tabel dan kontrol pagination
  */
-async function loadTermCondition(targetElementId) {
-  const textarea = document.getElementById(targetElementId);
-  if (!textarea) {
-    console.error(
-      `Error: Element dengan ID "${targetElementId}" tidak ditemukan.`
-    );
-    return;
+function renderTableContent(dataType, config, data, rowTemplate) {
+  const { tbodyId, paginationId, infoId, pageSelectId, headerId } = config;
+
+  const tableBody = document.getElementById(tbodyId);
+  const pagination = document.getElementById(paginationId);
+  const infoText = document.getElementById(infoId);
+  const pageSelect = document.getElementById(pageSelectId);
+  const tableHeader = document.getElementById(headerId);
+
+  const { tableData, totalRecords, totalPages } = data;
+  const { currentPage } = tableStates[dataType];
+  const perPage = tableStates[dataType].perPage || 10;
+
+  // Render Body Tabel
+  if (tableData.length === 0) {
+    tableBody.innerHTML = `<tr><td colspan="2" class="text-center p-6 text-gray-500">Belum ada data.</td></tr>`;
+    tableHeader.classList.add("hidden");
+  } else {
+    tableBody.innerHTML = tableData
+      .map((item, index) => rowTemplate(item, dataType))
+      .join("");
+    tableHeader.classList.remove("hidden");
   }
 
-  try {
-    textarea.value = "Loading...";
+  // Render Info Pagination
+  const start = totalRecords > 0 ? (currentPage - 1) * perPage + 1 : 0;
+  const end = start + tableData.length - 1;
+  infoText.textContent = `Showing ${start}-${end} of ${totalRecords} entries.`;
+  infoText.classList.remove("hidden");
 
-    // Hapus delay 5 detik ini jika sudah tidak diperlukan untuk testing
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+  // Render Kontrol Pagination (Desktop)
+  pagination.innerHTML = generatePagination(dataType, currentPage, totalPages);
+  pagination.classList.remove("hidden");
 
-    const res = await fetch(`${baseUrl}/list/terms/${owner_id}`, {
-      headers: { Authorization: `Bearer ${API_TOKEN}` },
-    });
-    const data = await res.json();
-
-    if (data.success && data.listData.length > 0) {
-      const top = data.listData[0]; // ambil 1 record (default)
-      textarea.value = top.pretext || "";
-    } else {
-      textarea.value = "";
-    }
-  } catch (err) {
-    console.error("Gagal load Term Condition:", err);
-    textarea.value = "Gagal memuat data."; // Beri feedback error
+  // Render Page Select (Mobile)
+  pageSelect.innerHTML = "";
+  for (let i = 1; i <= totalPages; i++) {
+    pageSelect.innerHTML += `<option value="${i}" ${
+      i === currentPage ? "selected" : ""
+    }>${i}</option>`;
   }
+  pageSelect.onchange = () =>
+    loadTableData(dataType, parseInt(pageSelect.value));
 }
 
 /**
- * Memuat data Notes dari API dan menampilkannya
- * di elemen textarea mana pun berdasarkan ID-nya.
- * @param {string} targetElementId - ID dari elemen <textarea> yang akan diisi.
+ * Buat HTML untuk tombol pagination
  */
-async function loadNotes(targetElementId) {
-  const textarea = document.getElementById(targetElementId);
-  if (!textarea) {
-    console.error(
-      `Error: Element dengan ID "${targetElementId}" tidak ditemukan.`
-    );
-    return;
+function generatePagination(dataType, currentPage, totalPages) {
+  let html = "";
+  const maxButtons = 5;
+
+  const createBtn = (page, text, disabled = false, active = false) => {
+    return `<button 
+            onclick="loadTableData('${dataType}', ${page})"
+            class="px-3 py-1 border rounded ${
+              active ? "bg-blue-500 text-white" : "bg-white"
+            } ${
+      disabled
+        ? "text-gray-300 cursor-not-allowed"
+        : "text-gray-700 hover:bg-gray-100"
+    }"
+            ${disabled ? "disabled" : ""}>
+            ${text}
+        </button>`;
+  };
+
+  // Tombol Previous
+  html += createBtn(currentPage - 1, "« Prev", currentPage === 1);
+
+  // Nomor Halaman
+  let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+  let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+  if (endPage - startPage + 1 < maxButtons) {
+    startPage = Math.max(1, endPage - maxButtons + 1);
   }
 
-  try {
-    textarea.value = "Loading...";
-
-    // Hapus delay 5 detik ini jika sudah tidak diperlukan untuk testing
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-
-    const res = await fetch(`${baseUrl}/list/notes/${owner_id}`, {
-      headers: { Authorization: `Bearer ${API_TOKEN}` },
-    });
-    const data = await res.json();
-
-    if (data.success && data.listData.length > 0) {
-      const top = data.listData[0]; // ambil 1 record (default)
-      textarea.value = top.pretext || "";
-    } else {
-      textarea.value = "";
-    }
-  } catch (err) {
-    console.error("Gagal load Catatan:", err);
-    textarea.value = "Gagal memuat data."; // Beri feedback error
+  if (startPage > 1) {
+    html += createBtn(1, "1");
+    if (startPage > 2) html += `<span class="px-3 py-1">...</span>`;
   }
+
+  for (let i = startPage; i <= endPage; i++) {
+    html += createBtn(i, i, false, i === currentPage);
+  }
+
+  if (endPage < totalPages) {
+    if (endPage < totalPages - 1) html += `<span class="px-3 py-1">...</span>`;
+    html += createBtn(totalPages, totalPages);
+  }
+
+  // Tombol Next
+  html += createBtn(currentPage + 1, "Next »", currentPage === totalPages);
+  return html;
 }
 
-async function updateTermOfPayment() {
-  const textarea = document.getElementById("note_top");
-  const instruction = textarea.value.trim();
-  console.log("instruction = ", instruction);
+// =====================================================================
+// == CRUD Handlers (Notes, ToP, T&C) ==
+// =====================================================================
 
-  if (!instruction) {
-    Swal.fire("Oops", "Isi Term of Payment tidak boleh kosong", "warning");
-    return;
-  }
+// --- Notes ---
+function handleAddNote() {
+  showNotesTopModal("add", "notes");
+}
+function handleEditNote(id, pretext) {
+  showNotesTopModal("edit", "notes", id, pretext);
+}
+async function handleDeleteNote(id) {
+  await handleDeleteGeneric("notes", id, `${baseUrl}/delete/notes/${id}`);
+}
 
-  const payload = JSON.stringify({
-    owner_id: owner_id,
-    pretext: instruction,
+// --- T&C ---
+function handleAddTnc() {
+  showNotesTopModal("add", "tnc");
+}
+function handleEditTnc(id, pretext) {
+  showNotesTopModal("edit", "tnc", id, pretext);
+}
+async function handleDeleteTnc(id) {
+  await handleDeleteGeneric("tnc", id, `${baseUrl}/delete/terms/${id}`, "T&C");
+}
+
+// --- ToP ---
+function handleAddTop() {
+  showNotesTopModal("add", "top");
+}
+function handleEditTop(id, pretext) {
+  showNotesTopModal("edit", "top", id, pretext);
+}
+async function handleDeleteTop(id) {
+  await handleDeleteGeneric(
+    "top",
+    id,
+    `${baseUrl}/delete/term_of_payment/${id}`,
+    "Term of Payment"
+  );
+}
+
+/**
+ * Modal generik untuk Tambah / Edit Catatan, ToP, dan T&C
+ */
+async function showNotesTopModal(mode, dataType, id = null, pretext = "") {
+  const titles = {
+    notes: { add: "Tambah Catatan Baru", edit: "Edit Catatan" },
+    top: { add: "Tambah ToP Baru", edit: "Edit ToP" },
+    tnc: { add: "Tambah T&C Baru", edit: "Edit T&C" },
+  };
+  const title = titles[dataType][mode];
+
+  const { value: formValues } = await Swal.fire({
+    title: title,
+    html: `
+            <div class="space-y-3 text-left">
+                <div>
+                    <label for="swal_pretext" class="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
+                    <textarea id="swal_pretext" rows="5" placeholder="Tulis deskripsi di sini..." 
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">${pretext}</textarea>
+                </div>
+            </div>
+        `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: "Simpan",
+    preConfirm: () => {
+      const pretextValue = document.getElementById("swal_pretext").value;
+      if (!pretextValue) {
+        Swal.showValidationMessage("Deskripsi tidak boleh kosong");
+        return false;
+      }
+      return { pretext: pretextValue };
+    },
   });
-  console.log("Data = ", payload);
+
+  if (formValues) {
+    saveNotesTopData(mode, dataType, id, formValues);
+  }
+}
+
+/**
+ * Fungsi generik untuk menyimpan data (Add/Update) untuk Notes, ToP, T&C
+ */
+async function saveNotesTopData(mode, dataType, id, data) {
+  const isAdd = mode === "add";
+  const endpointMap = {
+    notes: "notes",
+    top: "term_of_payment",
+    tnc: "terms",
+  };
+  const endpointType = endpointMap[dataType];
+
+  const endpoint = isAdd
+    ? `${baseUrl}/add/${endpointType}`
+    : `${baseUrl}/update/${endpointType}/${id}`;
+
+  const method = isAdd ? "POST" : "PUT";
+
+  const payload = {
+    owner_id: owner_id,
+    pretext: data.pretext,
+  };
+
+  if (isAdd) {
+    if (dataType === "notes") {
+      payload.note = "Catatan";
+      payload.information_type = 1;
+    } else if (dataType === "top") {
+      payload.note = "Term of Payment";
+      payload.information_type = 3;
+    } else if (dataType === "tnc") {
+      payload.note = "Syarat dan Ketentuan";
+      payload.information_type = 2;
+    }
+  }
 
   try {
-    const res = await fetch(`${baseUrl}/update/term_of_payment/3`, {
-      method: "PUT",
+    const res = await fetch(endpoint, {
+      method: method,
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${API_TOKEN}`,
       },
-      body: payload,
+      body: JSON.stringify(payload),
     });
 
     const result = await res.json();
-    const data = result.data; // ambil isi dari "data"
-    if (data && data.success) {
-      Swal.fire(
-        "Sukses",
-        data.message || "Term of Payment berhasil diperbarui",
-        "success"
-      );
+    const responseData = result.data || result;
+
+    if (res.ok && (responseData.success || result.response === "200")) {
+      Swal.fire("Sukses!", "Data berhasil disimpan.", "success");
+      loadTableData(dataType, tableStates[dataType].currentPage);
     } else {
       Swal.fire(
-        "Gagal",
-        data.message || "Gagal memperbarui Term of Payment",
+        "Gagal!",
+        responseData.message || "Gagal menyimpan data.",
         "error"
       );
     }
   } catch (err) {
-    console.error("Error update Term of Payment:", err);
-    Swal.fire("Error", "Terjadi kesalahan server", "error");
+    Swal.fire("Error", `Koneksi gagal: ${err.message}`, "error");
   }
 }
 
-async function updateTermCondition() {
-  const textarea = document.getElementById("note_tnc");
-  const instruction = textarea.value.trim();
+/**
+ * Fungsi Hapus Generik (untuk Notes, ToP, T&C)
+ */
+async function handleDeleteGeneric(dataType, id, endpoint, title = "Data") {
+  const confirm = await Swal.fire({
+    title: `Hapus ${title}?`,
+    text: "Data yang dihapus tidak bisa dikembalikan.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    confirmButtonText: "Ya, hapus",
+  });
 
-  if (!instruction) {
-    Swal.fire("Oops", "Isi Term Condition tidak boleh kosong", "warning");
-    return;
+  if (confirm.isConfirmed) {
+    try {
+      // PERUBAHAN: Mengganti method dari PUT ke DELETE
+      const res = await fetch(endpoint, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${API_TOKEN}` },
+      });
+      const data = await res.json();
+      const responseData = data.data || data;
+      if (res.ok && (responseData.success || data.response === "200")) {
+        Swal.fire("Terhapus!", `${title} telah dihapus.`, "success");
+        loadTableData(dataType, tableStates[dataType].currentPage);
+      } else {
+        Swal.fire(
+          "Gagal!",
+          responseData.message || "Gagal menghapus data.",
+          "error"
+        );
+      }
+    } catch (err) {
+      Swal.fire("Error", err.message, "error");
+    }
   }
+}
+
+// =====================================================================
+// == CRUD Handlers (Unit / Satuan) - BARU ==
+// =====================================================================
+
+function handleAddUnit() {
+  showUnitModal("add");
+}
+
+function handleEditUnit(id, unitName) {
+  showUnitModal("edit", id, unitName);
+}
+
+async function handleDeleteUnit(id) {
+  await handleDeleteGeneric(
+    "unit",
+    id,
+    `${baseUrl}/delete/unit/${id}`,
+    "Satuan"
+  );
+}
+
+async function showUnitModal(mode, id = null, unitName = "") {
+  const title = mode === "add" ? "Tambah Satuan Baru" : "Edit Satuan";
+
+  const { value: formValues } = await Swal.fire({
+    title: title,
+    html: `
+            <div class="space-y-3 text-left">
+                <div>
+                    <label for="swal_unit" class="block text-sm font-medium text-gray-700 mb-1">Nama Satuan</label>
+                    <input id="swal_unit" type="text" placeholder="e.g., pcs, unit, set" 
+                           value="${unitName}"
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+        `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: "Simpan",
+    preConfirm: () => {
+      const unitValue = document.getElementById("swal_unit").value;
+      if (!unitValue) {
+        Swal.showValidationMessage("Nama satuan tidak boleh kosong");
+        return false;
+      }
+      return { unit: unitValue };
+    },
+  });
+
+  if (formValues) {
+    saveUnitData(mode, id, formValues);
+  }
+}
+
+async function saveUnitData(mode, id, data) {
+  const isAdd = mode === "add";
+  const endpoint = isAdd
+    ? `${baseUrl}/add/unit`
+    : `${baseUrl}/update/unit/${id}`;
+
+  const method = isAdd ? "POST" : "PUT";
+
+  const payload = {
+    owner_id: owner_id,
+    unit: data.unit,
+  };
 
   try {
-    const res = await fetch(`${baseUrl}/update/terms/2`, {
-      method: "PUT",
+    const res = await fetch(endpoint, {
+      method: method,
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${API_TOKEN}`,
       },
-      body: JSON.stringify({
-        owner_id: owner_id,
-        pretext: instruction,
-      }),
+      body: JSON.stringify(payload),
     });
 
     const result = await res.json();
-    const data = result.data; // ambil isi dari "data"
-    if (data && data.success) {
-      Swal.fire(
-        "Sukses",
-        data.message || "Term Condition berhasil diperbarui",
-        "success"
-      );
+    const responseData = result.data || result;
+
+    if (res.ok && (responseData.success || result.response === "200")) {
+      Swal.fire("Sukses!", "Data satuan berhasil disimpan.", "success");
+      loadTableData("unit", tableStates.unit.currentPage);
     } else {
       Swal.fire(
-        "Gagal",
-        data.message || "Gagal memperbarui Term Condition",
+        "Gagal!",
+        responseData.message || "Gagal menyimpan data.",
         "error"
       );
     }
   } catch (err) {
-    console.error("Error update Term Condition:", err);
-    Swal.fire("Error", "Terjadi kesalahan server", "error");
+    Swal.fire("Error", `Koneksi gagal: ${err.message}`, "error");
   }
 }
 
-async function updateNotes() {
-  const textarea = document.getElementById("note_catatan");
-  const instruction = textarea.value.trim();
+// =====================================================================
+// == FUNGSI LAMA YANG DIMODIFIKASI / DI-RETAIN ==
+// =====================================================================
 
-  if (!instruction) {
-    Swal.fire("Oops", "Isi Notes tidak boleh kosong", "warning");
-    return;
-  }
+async function loadTermOfPayment() {
+  loadTableData("top", 1);
+}
 
-  try {
-    const res = await fetch(`${baseUrl}/update/notes/1`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${API_TOKEN}`,
-      },
-      body: JSON.stringify({
-        owner_id: owner_id,
-        pretext: instruction,
-      }),
-    });
+async function loadTermCondition() {
+  loadTableData("tnc", 1);
+}
 
-    const result = await res.json();
-    const data = result.data; // ambil isi dari "data"
-    if (data && data.success) {
-      Swal.fire(
-        "Sukses",
-        data.message || "Notes berhasil diperbarui",
-        "success"
-      );
-    } else {
-      Swal.fire("Gagal", data.message || "Gagal memperbarui Notes", "error");
-    }
-  } catch (err) {
-    console.error("Error update Term of Payment:", err);
-    Swal.fire("Error", "Terjadi kesalahan server", "error");
-  }
+async function loadNotes() {
+  loadTableData("notes", 1);
+}
+
+async function loadUnits() {
+  loadTableData("unit", 1);
 }

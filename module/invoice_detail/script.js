@@ -215,7 +215,7 @@ async function loadDetailSales(Id, Detail) {
     } else {
       // Jika status BUKAN 3 (masih Unpaid/Partial), tampilkan tombol
       pembayaranButtonEl.innerHTML = `
-      <button onclick="openSalesReceiptModal('${data.pesanan_id}', '${data.pelanggan_id}', '${data.total}', '${data.remaining_balance}', '${dpString}')" 
+      <button onclick="openSalesReceiptModal('${data.pesanan_id}', '${data.pelanggan_id}', '${data.total}', '${data.remaining_balance}', '${dpString}', '${Id}')" 
         class="w-full py-1 px-2 border rounded bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs">
         ➕ Add Payment Receipt
       </button>`;
@@ -349,7 +349,7 @@ async function tambahUangMuka(pesananId) {
           <input type="number" id="amount" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring" placeholder="1000000" />
         </div>
         <div>
-          <label class="block text-sm text-gray-600 mb-1">Deskripsi</label>
+          <label class="block text-sm text-gray-600 mb-1">Keterangan</label>
           <textarea id="description" rows="2" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring" placeholder="Contoh: Uang muka 50% untuk proyek ABC"></textarea>
         </div>
       </div>
@@ -949,7 +949,7 @@ async function openUpdateDPModal(dpDataString) {
           }">
         </div>
         <div>
-          <label class="block text-sm text-gray-600 mb-1">Deskripsi</label>
+          <label class="block text-sm text-gray-600 mb-1">Keterangan</label>
           <textarea id="description_update" rows="2" class="w-full border rounded px-3 py-2">${
             dpData.description || ""
           }</textarea>

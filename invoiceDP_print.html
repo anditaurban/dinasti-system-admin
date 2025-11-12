@@ -51,6 +51,48 @@
       margin: 0 auto;
     }
 
+    /* == STYLE BARU DARI FILE KEDUA == */
+    .invoice-header {
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+    }
+
+    .company-name {
+      color: #b91c1c;
+      /* merah */
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .info-box {
+      border: 1px solid #111827;
+      padding: 6px 8px;
+      width: 200px;
+      text-align: left;
+      font-size: 11px;
+      background: #fff;
+    }
+
+    .table-solid th,
+    .table-solid td {
+      border: 1px solid #000 !important;
+    }
+
+    .table-solid thead {
+      background: #1e3a8a;
+      /* bg-blue-900 */
+      color: #fff;
+    }
+
+    .money {
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    /* == AKHIR STYLE BARU == */
+
+
     @media print {
       * {
         -webkit-print-color-adjust: exact !important;
@@ -128,7 +170,27 @@
       return String.fromCharCode(64 + num); // 1 -> A, 2 -> B
     }
 
+    // Fungsi baru dari file kedua
+    async function loadFinanceAccount(ownerId) {
+      try {
+        const res = await fetch(`${baseUrl}/list/finance_account_payment/${ownerId}`, {
+          headers: {
+            Authorization: `Bearer ${API_TOKEN}`
+          }
+        });
+        const result = await res.json();
+        const list = result.listData || [];
+        // ambil hanya akun dengan akun_id = 1
+        const bca = list.find(acc => acc.akun_id == 1);
+        return bca || null;
+      } catch (err) {
+        console.error("Gagal load rekening", err);
+        return null;
+      }
+    }
+
     async function loadSubCategories() {
+      // Fungsi ini tidak terpakai di DP, tapi dibiarkan
       try {
         const res = await fetch(`${baseUrl}/list/sub_category/1`, {
           headers: {
@@ -145,17 +207,18 @@
 
     async function loadPesananData() {
       try {
-        const [subCategories, pesananRes] = await Promise.all([
-          loadSubCategories(),
+        // Modifikasi Promise.all untuk memuat financeAccount
+        const [pesananRes, financeAccount] = await Promise.all([
           fetch(`${baseUrl}/detail/sales_dp/${pesanan_id}`, {
             headers: { Authorization: `Bearer ${API_TOKEN}` }
-          })
+          }),
+          loadFinanceAccount(user.owner_id) // Ditambahkan
         ]);
-
-
 
         const pesananResult = await pesananRes.json();
         const data = pesananResult?.detail;
+        if (!data) throw new Error("Data pesanan DP tidak ditemukan");
+
         const today = new Date();
         const options = {
           year: 'numeric',
@@ -165,141 +228,153 @@
         const tanggalFormatted = today.toLocaleDateString('id-ID', options);
 
         loadLogoWithAuth(user.logo_url)
+
+        // HTML DI BAWAH INI ADALAH GABUNGAN STYLE DARI FILE 2
+        // (HEADER, INFO BANK, TTD) DENGAN TABEL ASLI DARI FILE 1
         const html = `
-  <!-- Header -->
-  <div class="flex justify-between items-start mb-6">
-    <!-- Logo -->
-    <div class="shrink-0">
-      <img id="logo_preview" class="h-40 w-40 object-contain" />
-    </div>
+        <div class="invoice-header border-b-4 border-black pb-2">
+          <div class="relative flex items-start justify-center">
+            <div class="absolute left-0 top-0">
+              <img id="logo_preview" class="h-20 w-auto object-contain" alt="logo" />
+            </div>
 
-    <!-- Company Info -->
-    <div class="flex-1 px-4">
-      <h1 class="font-bold text-red-600 text-lg leading-tight">
-        ${user.company || "-"}
-      </h1>
-      <p class="font-bold text-sm">${user.tagline || ""}</p>
-      <p class="text-xs leading-snug mt-1">
-        ${user.address || ""}
-      </p>
-      <div class="text-xs mt-2 space-y-0.5">
-        <p class="font-medium">Social Media</p>
-        ${user.instagram ? `<p>Instagram: ${user.instagram}</p>` : ""}
-        ${user.other_sosmed ? `<p>Instagram: ${user.other_sosmed}</p>` : ""}
-      </div>
-    </div>
+            <div class="text-center">
+              <div class="company-name text-2xl font-bold text-red-700">
+                ${user.company || ''}
+              </div>
+              <div class="text-sm font-semibold mt-1 uppercase">
+                ${user.tagline || ''}
+              </div>
+              <div class="text-xs mt-2 leading-tight">
+                ${user.address || ''}
+              </div>
+              <div class="text-xs mt-1">
+                ${user.company_phone ? 'Telp: ' + user.company_phone : ''} 
+                ${user.company_email ? ' • ' + user.company_email : ''}
+              </div>
+            </div>
+          </div>
+        </div>
 
-    <!-- Document info Box -->
-    <div class="flex justify-end">
-      <div class="text-right shrink-0">
-        <h2 class="font-bold text-xl text-indigo-400">PROFORMA INVOICE</h2>
-        <table class="border-collapse text-xs mt-2">
-          <tr>
-            <td class="px-2 py-1 text-left">Document</td>
-            <td class="border px-3 py-1 text-center">${data.dp_number || "-"}</td>
-          </tr>
-          <tr>
-            <td class="px-2 py-1 text-left">Invoice</td>
-            <td class="border px-3 py-1 text-center">${data.inv_number || "-"}</td>
-          </tr>
-          <tr>
-            <td class="px-2 py-1 text-left">Ref</td>
-            <td class="border px-3 py-1 text-center">${data.inv_number || "-"}</td>
-          </tr>
-        </table>
-      </div>
-    </div>
-</div>
-  <!-- Recipient Info -->
-<div class="mb-4">
-  <div class="bg-indigo-800 text-white font-bold text-xs px-2 py-1 inline-block">
-    TO
-  </div>
-<div class="text-sm mt-1 leading-snug">
-  <p class="font-semibold">${data.pic_client}</p>
-  <p class="font-semibold">${data.pelanggan_nama}</p>
-  <p class="max-w-[500px] break-words">${data.alamat}</p>
+        <div class="text-center underline font-bold text-xl mb-2 py-3">PROFORMA INVOICE</div>
 
-  <hr class="my-2 border-t border-gray-300" />
+        <div class="flex justify-between items-start mt-4 mb-4 text-sm">
 
-  ${data.project_name
-            ? `<p class="text-lg font-bold text-gray-800 mt-2">${data.project_name}</p>`
+          <div class="w-1/2">
+            <div class="mt-1 leading-snug">
+              <p>Kepada Yth,</p>
+              <p class="font-semibold">${data.pelanggan_nama || ''}</p>
+              ${data.pic_client ? `<p>Up. ${data.pic_client}</p>` : ''}
+              <p class="max-w-[500px] break-words">${data.alamat || ''}</p>
+              ${data.project_name
+            ? `<p class="text-base font-bold text-gray-800 mt-2">${data.project_name}</p>`
             : ""}
-</div>
+            </div>
+          </div>
 
-</div>
-
-<table class="w-full border-collapse text-sm">
-  <thead>
-    <tr class="bg-gray-800 text-white">
-      <th class="text-left px-4 py-2">Deskripsi</th>
-      <th class="text-right px-4 py-2">Invoice Uang Muka</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr class="bg-gray-50">
-      <td class="px-4 py-2 align-top">
-        ${data.description}
-      </td>
-      <td class="px-4 py-2 text-right align-top">
-        <div>${finance(data.amount)}</div>
-        <div class="text-xs text-gray-600">(${data.percentage} Dari total tagihan)</div>
-      </td>
-    </tr>
-    <tr class="bg-gray-50 border-t">
-      <td colspan="2" class="px-4 py-2 text-sm">
-        <span class="font-semibold">Referensi Dokumen:</span>
-        ${data.inv_number} - ${finance(data.contract_amount)}
-      </td>
-    </tr>
-  </tbody>
-</table>
+          <div class="w-1/2 flex justify-end">
+            <table>
+              <tr>
+                <td class="px-2 font-medium">No</td>
+                <td class="px-2 ">: ${data.dp_number || '-'}</td>
+              </tr>
+              <tr>
+                <td class="px-2 font-medium">Tanggal</td>
+                <td class="px-2 ">: ${tanggalFormatted}</td>
+              </tr>
+              <tr>
+                <td class="px-2 font-medium">Ref. Invoice</td>
+                <td class="px-2 ">: ${data.inv_number || '-'}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
 
 
+        <table class="w-full border-collapse text-sm">
+          <thead>
+            <tr class="bg-gray-800 text-white">
+              <th class="text-left px-4 py-2">Deskripsi</th>
+              <th class="text-right px-4 py-2">Invoice Uang Muka</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="bg-gray-50">
+              <td class="px-4 py-2 align-top">
+                ${data.description}
+              </td>
+              <td class="px-4 py-2 text-right align-top">
+                <div>${finance(data.amount)}</div>
+                <div class="text-xs text-gray-600">(${data.percentage} Dari total tagihan)</div>
+              </td>
+            </tr>
+            <tr class="bg-gray-50 border-t">
+              <td colspan="2" class="px-4 py-2 text-sm">
+                <span class="font-semibold">Referensi Dokumen:</span>
+                ${data.inv_number} - ${finance(data.contract_amount)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
-<div class="flex justify-between items-start mt-6 text-xs">
-  <!-- Comments / Special Instructions -->
-  <div>
-    <!-- Header abu-abu -->
+        <div class="flex justify-between items-start mt-6 text-xs">
+          <div>
+            </div>
 
+          <div class="w-1/3">
+            <table class="text-xs w-full">
+              <tr class="font-bold border-t border-gray-300 total-row">
+                <td class="pr-3 py-1 text-right text-gray-900">TOTAL</td>
+                <td class="py-1 text-blue-800 bg-blue-100">
+                  <div class="flex justify-between">
+                    <span>Rp</span>
+                    <span>${finance(data.amount)}</span>
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>
+        <div class="flex justify-between mt-10 text-xs">
 
-    <!-- Isi -->
+          <div class="w-1/2">
+            <div class="flex items-start text-sm mb-2 leading-relaxed">
+              <span class="font-semibold w-20">Terbilang</span>
+              <span class="mr-1">:</span>
+              <p class="italic text-gray-800 flex-1 break-words">
+                # ${terbilang(data.amount)} Rupiah
+              </p>
+            </div>
 
-  </div>
+            <div>
+              <div class="font-semibold text-sm py-1">
+                Pembayaran melalui:
+              </div>
+              <div class="py-2 text-sm text-gray-700">
+                ${financeAccount
+            ? `
+                      <strong>Bank :</strong> ${financeAccount.nama_akun}<br>
+                      <strong>Nama :</strong> ${financeAccount.owner_account}<br>
+                      <strong>A/C No :</strong> ${financeAccount.number_account}
+                    `
+            : "<em>Informasi rekening tidak tersedia</em>"
+          }
+              </div>
+            </div>
+          </div>
 
-  <!-- Totals -->
-  <div class="w-1/3">
-<table class="text-xs w-full">
-  <tr class="font-bold border-t border-gray-300 total-row">
-    <td class="pr-3 py-1 text-right text-gray-900">TOTAL</td>
-    <td class="py-1 text-blue-800 bg-blue-100">
-      <div class="flex justify-between">
-        <span>Rp</span>
-        <span>${finance(data.amount)}</span>
-      </div>
-    </td>
-  </tr>
-</table>
+          <div class="w-1/3 text-center flex flex-col items-center justify-center ml-auto"> <p class="font-semibold">Jakarta, ${tanggalFormatted}</p>
 
-  </div>
-</div>
-<br><br><br>
+            <div id="qrcode-container" class="h-24 flex items-center justify-center mt-2">
+              <div class="inline-block p-2 bg-white rounded shadow"></div>
+            </div>
 
-        <div class="w-1/3 text-center flex flex-col items-center justify-center ml-auto">
-  <p class="font-semibold">Jakarta, ${tanggalFormatted}</p>
+            <p class="mt-2 font-semibold underline">Nanda Febby Yuliantina</p>
+            <p class="mt-2">Finance Manager</p>
+          </div>
 
-  <!-- QR Code -->
-  <div id="qrcode-container" class="h-24 flex items-center justify-center mt-2">
-    <div class="inline-block p-2 bg-white rounded shadow"></div>
-  </div>
-
-  <p class="mt-2 font-semibold underline">Nanda Febby Yuliantina</p>
-  <p class="mt-2">Finance Manager</p>
-</div>
-
-  
-
-`;
+        </div>
+        `;
 
         container.innerHTML = html;
 
@@ -307,7 +382,7 @@
           setTimeout(() => {
             html2pdf().set({
               margin: 0,
-              filename: `${data.inv_number}.pdf`,
+              filename: `${data.dp_number || 'proforma'}.pdf`, // Ubah nama file
               image: { type: "jpeg", quality: 0.98 },
               html2canvas: { scale: 2 },
               jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
@@ -323,7 +398,6 @@
 
     window.onload = loadPesananData;
   </script>
-  <!-- load QRCode.js -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
 

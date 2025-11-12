@@ -12,8 +12,19 @@ if (window.detail_id && window.detail_desc) {
   loadDetailSales(window.detail_id, window.detail_desc);
 } else {
   setTodayDate();
+  populateDropdown("/list/notes/", "catatan", "Pilih Catatan...");
+  populateDropdown(
+    "/list/terms/",
+    "syarat_ketentuan",
+    "Pilih Syarat & Ketentuan..."
+  );
+  populateDropdown(
+    "/list/term_of_payment/",
+    "term_pembayaran",
+    "Pilih Term of Payment..."
+  );
   loadSalesType();
-  loadPretextFromLocal();
+  // loadPretextFromLocal();
   loadCustomerList(owner_id);
   loadStatusOptions();
 
@@ -640,11 +651,22 @@ async function loadDetailSales(Id, Detail) {
     }
 
     const data = response.detail; // ⚡ Tunggu semua load async selesai
-
+    console.log("DATA DETAIL QO:", data);
     await Promise.all([
       loadCustomerList(),
       loadSalesType(),
-      loadStatusOptions(),
+      loadStatusOptions(), // ⬇️ Panggil fungsi dropdown baru ⬇️
+      populateDropdown("/list/notes/", "catatan", "Pilih Catatan..."),
+      populateDropdown(
+        "/list/terms/",
+        "syarat_ketentuan",
+        "Pilih Syarat & Ketentuan..."
+      ),
+      populateDropdown(
+        "/list/term_of_payment/",
+        "term_pembayaran",
+        "Pilih Term of Payment..."
+      ), // ⬆️ Batas tambahan ⬆️
     ]);
 
     const typeField = document.getElementById("type_id");
@@ -666,11 +688,16 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("revision_number").value =
       `R${data.revision_number}` || `R0`;
     document.getElementById("status").value = data.status || "Draft";
-    document.getElementById("catatan").value = data.catatan || "";
-    document.getElementById("syarat_ketentuan").value =
-      data.syarat_ketentuan || "";
-    document.getElementById("term_pembayaran").value =
-      data.term_pembayaran || "";
+    const cleanCatatan = (data.catatan || "").trim().replace(/\r\n|\r/g, "\n");
+    const cleanSnK = (data.syarat_ketentuan || "")
+      .trim()
+      .replace(/\r\n|\r/g, "\n");
+    const cleanToP = (data.term_pembayaran || "")
+      .trim()
+      .replace(/\r\n|\r/g, "\n");
+    document.getElementById("catatan").value = cleanCatatan;
+    document.getElementById("syarat_ketentuan").value = cleanSnK;
+    document.getElementById("term_pembayaran").value = cleanToP;
     document.getElementById("client_id").value = data.pelanggan_id || 0;
     document.getElementById("pic_name").value = data.pic_name || 0;
     document.getElementById("discount").value = finance(data.disc) || 0; // 🔹 Ambil nama client
@@ -1167,3 +1194,69 @@ async function saveInvoice(mode = "create", id = null) {
     Swal.fire("Error", err.message || "Terjadi kesalahan", "error");
   }
 }
+/**
+ * 💡 FUNGSI DIPERBARUI
+ * Mengisi <select> dari endpoint pretext.
+ * Menggunakan 'pretext' sebagai VALUE dan TEXT.
+ */
+async function populateDropdown(endpoint, selectElementId, placeholder) {
+  const selectElement = document.getElementById(selectElementId);
+  if (!selectElement) return; // Pastikan elemen ada
+
+  try {
+    // 1. Ambil data dari API
+    const response = await fetch(`${baseUrl}${endpoint}${owner_id}`, {
+      // <-- ✅ DIPERBAIKI
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.success && data.listData && data.listData.length > 0) {
+      selectElement.innerHTML = ""; // Kosongkan opsi "Memuat..."
+
+      // Tambahkan placeholder
+      const defaultOption = document.createElement("option");
+      defaultOption.value = "";
+      defaultOption.textContent = placeholder;
+      selectElement.appendChild(defaultOption);
+
+      // Loop dan buat <option>
+      data.listData.forEach((item) => {
+        const option = document.createElement("option");
+
+        // ⬇️ PERUBAHAN PENTING ADA DI SINI ⬇️
+        // Kita set VALUE dan TEXT ke 'pretext'
+        // Ini agar 'saveInvoice' dan 'loadDetailSales' tidak perlu diubah
+        option.value = item.pretext;
+        option.textContent = item.pretext;
+
+        selectElement.appendChild(option);
+      });
+    } else {
+      selectElement.innerHTML = `<option value="">Data tidak ditemukan</option>`;
+    }
+  } catch (error) {
+    console.error("Gagal memuat data untuk", selectElementId, error);
+    selectElement.innerHTML = `<option value="">Gagal memuat data</option>`;
+  }
+}
+
+// Panggil fungsi untuk setiap dropdown saat halaman dimuat
+// document.addEventListener("DOMContentLoaded", () => {
+//   populateDropdown("/list/notes/", "catatan", "Pilih Catatan...");
+//   populateDropdown(
+//     "/list/terms/",
+//     "syarat_ketentuan",
+//     "Pilih Syarat & Ketentuan..."
+//   );
+//   populateDropdown(
+//     "/list/term_of_payment/",
+//     "term_pembayaran",
+//     "Pilih Term of Payment..."
+//   );
+// });

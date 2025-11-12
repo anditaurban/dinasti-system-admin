@@ -82,6 +82,7 @@ async function loadDetailSales(Id, Detail) {
     if (addModeContainer) addModeContainer.classList.remove("hidden");
     if (convertToSalesBtn) convertToSalesBtn.classList.add("hidden");
     if (downloadBtn) downloadBtn.classList.add("hidden");
+    document.getElementById("pageTitle").textContent = "PROJECT INPUT";
 
     // 2. Pastikan Tab 1 aktif
     switchTab(tab1, tab1Btn);
@@ -129,7 +130,7 @@ async function loadDetailSales(Id, Detail) {
       // currentMode === "update"
       document.getElementById(
         "projectNameDisplay"
-      ).textContent = `Update Project: ${Detail}`;
+      ).textContent = `Update Project: ${Detail} / PRJ001`;
       if (convertToSalesBtn) convertToSalesBtn.classList.remove("hidden");
       saveNewProjectBtn.textContent = "💾 Simpan Perubahan";
       saveNewProjectBtn.onclick = () => saveProject("update", Id);
@@ -178,8 +179,9 @@ async function loadDetailSales(Id, Detail) {
       const data = projectDetailData;
 
       // 4. Tampilkan info card
-      document.getElementById("projectNameDisplay").textContent =
-        data.project_name || "Project Detail";
+      document.getElementById("projectNameDisplay").textContent = `${
+        data.project_name || "Project Detail"
+      } (${data.project_number || "---"})`;
       document.getElementById("projectAmount").innerHTML =
         finance(data.project_value) || 0;
       document.getElementById("plan_costing").innerHTML =
@@ -563,7 +565,9 @@ async function loadProjectDataForUpdate(Id) {
     // 1. ISI FORM UTAMA
     // ======================================================
     document.getElementById("add_project_name").value = data.project_name || "";
-
+    document.getElementById("projectNameDisplay").textContent = `${
+      data.project_name || "Project Detail"
+    } (${data.project_number || "---"})`;
     // ⬇️ ⬇️ PERBAIKAN LOGIKA CLIENT ⬇️ ⬇️
     // 'customerList' adalah variabel global dari 'loadCustomerList'
     if (customerList && customerList.length > 0) {
