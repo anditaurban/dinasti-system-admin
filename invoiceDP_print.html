@@ -283,39 +283,40 @@
                 <td class="px-2 ">: ${tanggalFormatted}</td>
               </tr>
               <tr>
-                <td class="px-2 font-medium">Ref. Invoice</td>
+                <td class="px-2 font-medium">Ref. Dokumen</td>
                 <td class="px-2 ">: ${data.inv_number || '-'}</td>
+              </tr>
+              <tr>
+                <td class="px-2 font-medium">No. PO</td>
+                <td class="px-2 ">: ${data.po_number || '-'}</td>
               </tr>
             </table>
           </div>
         </div>
 
 
-        <table class="w-full border-collapse text-sm">
+        <table class="w-full border border-black border-collapse text-sm">
           <thead>
-            <tr class="bg-gray-800 text-white">
-              <th class="text-left px-4 py-2">Deskripsi</th>
-              <th class="text-right px-4 py-2">Invoice Uang Muka</th>
+            <tr class="bg-white text-black border-b border-black">
+              <th class="text-left px-4 py-2 border border-black">Deskripsi</th>
+              <th class="text-right px-4 py-2 border border-black">Invoice Uang Muka</th>
             </tr>
           </thead>
           <tbody>
-            <tr class="bg-gray-50">
-              <td class="px-4 py-2 align-top">
+            <tr>
+              <td class="px-4 py-2 border border-black align-top">
                 ${data.description}
               </td>
-              <td class="px-4 py-2 text-right align-top">
+              <td class="px-4 py-2 text-right border border-black align-top">
                 <div>${finance(data.amount)}</div>
-                <div class="text-xs text-gray-600">(${data.percentage} Dari total tagihan)</div>
-              </td>
-            </tr>
-            <tr class="bg-gray-50 border-t">
-              <td colspan="2" class="px-4 py-2 text-sm">
-                <span class="font-semibold">Referensi Dokumen:</span>
-                ${data.inv_number} - ${finance(data.contract_amount)}
+                <div class="text-xs text-gray-600">
+                  (${data.percentage} Dari total tagihan)
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
+
 
         <div class="flex justify-between items-start mt-6 text-xs">
           <div>

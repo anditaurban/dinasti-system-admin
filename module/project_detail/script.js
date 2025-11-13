@@ -1,6 +1,6 @@
-pagemodule = "Project";
-subpagemodule = "Project Costing";
-renderHeader();
+// pagemodule = "Project";
+// subpagemodule = "Project Costing";
+// renderHeader();
 
 // ================================================================
 //  VARIABEL GLOBAL
@@ -43,14 +43,12 @@ tab2Btn.addEventListener("click", () => switchTab(tab2, tab2Btn));
 
 /**
  * FUNGSI UTAMA (LOAD DATA)
- * Mengatur halaman berdasarkan mode 'add', 'update', atau 'view'.
+ * Direfaktor untuk menangani mode 'add', 'update', dan 'view'.
  */
 async function loadDetailSales(Id, Detail) {
   // 1. Tentukan Mode (add, update, atau view)
   const intendedMode =
     sessionStorage.getItem("projectMode") || (Id ? "view" : "add");
-
-  // Hapus flag dari session agar tidak 'nyangkut' saat reload
   sessionStorage.removeItem("projectMode");
 
   currentMode = intendedMode; // Set global mode
@@ -72,6 +70,15 @@ async function loadDetailSales(Id, Detail) {
   // ➡️ A. LOGIKA MODE ADD / UPDATE (Menampilkan Form)
   // ----------------------------------------------------------------
   if (currentMode === "add" || currentMode === "update") {
+    
+    // ⬇️ ⬇️ PERUBAHAN DI SINI ⬇️ ⬇️
+    // Set Header & Nama Tab untuk mode Add/Update
+    pagemodule = "Project";
+    subpagemodule = "Project Input";
+    renderHeader(); // Panggil header di sini
+    document.getElementById("tab1Btn").textContent = "Project Input";
+    // ⬆️ ⬆️ BATAS PERUBAHAN ⬆️ ⬆️
+
     // 1. Atur visibilitas UI
     tab2Btn.classList.add("hidden");
     if (addProjectForm) addProjectForm.classList.remove("hidden");
@@ -82,60 +89,39 @@ async function loadDetailSales(Id, Detail) {
     if (addModeContainer) addModeContainer.classList.remove("hidden");
     if (convertToSalesBtn) convertToSalesBtn.classList.add("hidden");
     if (downloadBtn) downloadBtn.classList.add("hidden");
-    document.getElementById("pageTitle").textContent = "PROJECT INPUT";
 
     // 2. Pastikan Tab 1 aktif
     switchTab(tab1, tab1Btn);
 
-    // 3. Load semua dropdown (wajib untuk add & update)
+    // 3. Load semua dropdown
     try {
       await loadSalesType("add_type_id");
       await loadCustomerList("add_client");
       await loadProjectManagers("add_project_manager");
     } catch (err) {
       console.error("Gagal memuat data dropdown esensial:", err);
-      Swal.fire(
-        "Error Kritis",
-        "Gagal memuat data dropdown. Halaman tidak dapat lanjut.",
-        "error"
-      );
-      return; // Hentikan eksekusi jika dropdown gagal
+      Swal.fire("Error Kritis", "Gagal memuat data dropdown.", "error");
+      return;
     }
 
     // 4. Logika spesifik per mode
     if (currentMode === "add") {
-      document.getElementById("projectNameDisplay").textContent =
-        "Buat Project Baru";
-      if (convertToSalesBtn) convertToSalesBtn.classList.add("hidden");
-
-      // Kosongkan tabel 'add mode' dan beri pesan
+      document.getElementById("projectNameDisplay").textContent = "Buat Project Baru";
       const tabelAddBody = document.getElementById("tabelItemAdd");
       if (tabelAddBody) {
-        tabelAddBody.innerHTML = `
-                  <tr>
-                      <td colspan="3" class="text-center text-gray-500 italic py-4">
-                          Belum ada item ditambahkan.
-                      </td>
-                  </tr>
-              `;
+        tabelAddBody.innerHTML = `<tr><td colspan="3" class="text-center ...">Belum ada item ditambahkan.</td></tr>`;
       }
-
       saveNewProjectBtn.textContent = "✅ Simpan Project Baru";
-      saveNewProjectBtn.onclick = () => saveProject("create"); // Arahkan ke fungsi baru
-
-      // Set tanggal default untuk add
+      saveNewProjectBtn.onclick = () => saveProject("create");
       setTodayDate("add_tanggal");
       setTodayDate("add_finish_date");
+
     } else {
       // currentMode === "update"
-      document.getElementById(
-        "projectNameDisplay"
-      ).textContent = `Update Project: ${Detail} / PRJ001`;
+      document.getElementById("projectNameDisplay").textContent = `Update Project: ${Detail}`;
       if (convertToSalesBtn) convertToSalesBtn.classList.remove("hidden");
       saveNewProjectBtn.textContent = "💾 Simpan Perubahan";
       saveNewProjectBtn.onclick = () => saveProject("update", Id);
-
-      // Ambil data dan isi formnya
       await loadProjectDataForUpdate(Id);
     }
   }
@@ -143,6 +129,15 @@ async function loadDetailSales(Id, Detail) {
   // ➡️ B. LOGIKA MODE LIHAT (VIEW MODE)
   // ----------------------------------------------------------------
   else {
+    
+    // ⬇️ ⬇️ PERUBAHAN DI SINI ⬇️ ⬇️
+    // Set Header & Nama Tab untuk mode View
+    pagemodule = "Project";
+    subpagemodule = "Project Costing";
+    renderHeader(); // Panggil header di sini
+    document.getElementById("tab1Btn").textContent = "Costing";
+    // ⬆️ ⬆️ BATAS PERUBAHAN ⬆️ ⬆️
+
     // 1. Atur visibilitas UI
     tab2Btn.classList.remove("hidden");
     if (addProjectForm) addProjectForm.classList.add("hidden");
@@ -152,9 +147,8 @@ async function loadDetailSales(Id, Detail) {
     if (saveNewProjectBtn) saveNewProjectBtn.classList.add("hidden");
     if (viewModeContainer) viewModeContainer.classList.remove("hidden");
     if (addModeContainer) addModeContainer.classList.add("hidden");
-    if (convertToSalesBtn) convertToSalesBtn.classList.remove("hidden");
-    if (downloadBtn) downloadBtn.classList.remove("hidden");
     if (convertToSalesBtn) convertToSalesBtn.classList.add("hidden");
+    if (downloadBtn) downloadBtn.classList.remove("hidden");
 
     // 2. Tampilkan loading
     Swal.fire({
@@ -179,9 +173,8 @@ async function loadDetailSales(Id, Detail) {
       const data = projectDetailData;
 
       // 4. Tampilkan info card
-      document.getElementById("projectNameDisplay").textContent = `${
-        data.project_name || "Project Detail"
-      } (${data.project_number || "---"})`;
+      document.getElementById("projectNameDisplay").textContent =
+        `${data.project_name || "Project Detail"} / ${data.project_number || "---"}`;
       document.getElementById("projectAmount").innerHTML =
         finance(data.project_value) || 0;
       document.getElementById("plan_costing").innerHTML =
@@ -195,7 +188,7 @@ async function loadDetailSales(Id, Detail) {
       document.getElementById("detailNoInv").textContent = data.no_inv || "---";
       document.getElementById("detailNoPO").textContent = data.no_po || "---";
       document.getElementById("detailPIC").textContent =
-        data.project_manager_name || data.pic_name || "---"; // Sesuaikan key
+        data.project_manager_name || data.pic_name || "---";
 
       // 6. Render tabel 'view mode'
       const tbody = document.getElementById("tabelItemView");
@@ -207,7 +200,7 @@ async function loadDetailSales(Id, Detail) {
           if (!groups[item.sub_category]) groups[item.sub_category] = [];
           groups[item.sub_category].push(item);
         });
-
+        
         let nomor = 1;
         Object.keys(groups).forEach((subCat) => {
           const trHeader = document.createElement("tr");
@@ -326,11 +319,8 @@ async function loadDetailSales(Id, Detail) {
 
           let newLength = formattedValue.length;
           let lengthDifference = newLength - originalLength;
-
-          if (
-            e.target.selectionEnd === originalLength ||
-            cursorPosition === originalLength
-          ) {
+          
+          if (e.target.selectionEnd === originalLength || cursorPosition === originalLength) {
             e.target.setSelectionRange(
               cursorPosition + lengthDifference,
               cursorPosition + lengthDifference
@@ -342,8 +332,8 @@ async function loadDetailSales(Id, Detail) {
       // 8. Inisialisasi Tab 2 dan Event
       window.dataLoaded = true;
       await initRealCalculationTab();
-      toggleTambahItemBtn(); // Panggil di View Mode (walaupun tombol disembunyikan, jaga-jaga)
-
+      toggleTambahItemBtn();
+      
       if (savePlanCostBtn) {
         savePlanCostBtn.removeEventListener(
           "click",
@@ -351,9 +341,10 @@ async function loadDetailSales(Id, Detail) {
         );
         savePlanCostBtn.addEventListener("click", handleUpdateAllPlanCosting);
       }
-
+      
       switchTab(tab1, tab1Btn);
       Swal.close();
+      
     } catch (err) {
       console.error("Gagal load detail:", err);
       Swal.fire(
