@@ -45,9 +45,26 @@ document.getElementById("btnVersionHistory").addEventListener("click", (e) => {
   loadModuleContent("quotation_log", window.detail_id, no_qtn);
 });
 
+// ❗️ GANTI FUNGSI LAMA ANDA DENGAN INI
 document.getElementById("client").addEventListener("change", function () {
   const selectedClientId = this.value;
   document.getElementById("client_id").value = selectedClientId;
+
+  const picInput = document.getElementById("pic_name");
+
+  if (selectedClientId) {
+    // ❗️ Jika Client dipilih, enable input PIC
+    picInput.disabled = false;
+    picInput.value = ""; // Kosongkan input PIC
+    picInput.placeholder = "Ketik nama PIC...";
+    picInput.classList.remove("bg-gray-100");
+  } else {
+    // ❗️ Jika tidak ada Client, disable lagi
+    picInput.disabled = true;
+    picInput.value = "";
+    picInput.placeholder = "-- Pilih Client Dulu --";
+    picInput.classList.add("bg-gray-100");
+  }
 });
 
 document.addEventListener("click", (e) => {
@@ -289,13 +306,15 @@ async function loadCustomerList() {
   }
 }
 /**
- * ❗️ FUNGSI BARU
- * Mencari dan menampilkan suggestion untuk PIC Name saat diketik.
+ * ❗️ FUNGSI BARU (Versi Final)
+ * Mencari PIC berdasarkan Client ID yang sedang aktif
  */
 function filterPICSuggestions(inputElement) {
   const inputVal = inputElement.value.toLowerCase();
 
-  // Ambil <ul> suggestion box
+  // 1. Ambil Client ID yang sedang dipilih
+  const clientId = document.getElementById("client_id").value;
+
   const suggestionBox = inputElement.nextElementSibling;
   if (!suggestionBox || suggestionBox.tagName !== "UL") {
     console.error("Struktur HTML untuk suggestion box PIC salah.");
@@ -305,22 +324,30 @@ function filterPICSuggestions(inputElement) {
   // Hentikan timer (debounce) sebelumnya
   clearTimeout(picDebounceTimer);
 
-  // Jika input kosong, sembunyikan box
+  // 2. Cek apakah ada Client ID
+  if (!clientId) {
+    suggestionBox.innerHTML = `<li class="px-3 py-2 text-gray-500 italic">Harap pilih Client terlebih dahulu.</li>`;
+    suggestionBox.classList.remove("hidden");
+    return;
+  }
+
+  // 3. Jika input kosong, sembunyikan box
   if (inputVal.length < 1) {
     suggestionBox.innerHTML = "";
     suggestionBox.classList.add("hidden");
     return;
   }
 
-  // Set timer baru untuk memanggil API setelah 300ms
+  // 4. Set timer baru untuk memanggil API
   picDebounceTimer = setTimeout(async () => {
     suggestionBox.innerHTML = `<li class="px-3 py-2 text-gray-500 italic">Mencari...</li>`;
     suggestionBox.classList.remove("hidden");
 
     try {
-      // ❗️ Panggil API Contact baru Anda
+      // ❗️ Panggil API Contact yang support search DAN filter by client_id
+      // (Endpoint ini dari solusi sebelumnya, ini yang paling tepat)
       const res = await fetch(
-        `${baseUrl}/table/contact/${owner_id}/1?search=${inputVal}`, // Sesuai endpoint Anda
+        `${baseUrl}/table/contact/${clientId}/1?search=${inputVal}`,
         {
           headers: { Authorization: `Bearer ${API_TOKEN}` },
         }
@@ -330,28 +357,16 @@ function filterPICSuggestions(inputElement) {
 
       if (result.tableData && result.tableData.length > 0) {
         result.tableData.forEach((item) => {
-          // ❗️ Sesuaikan key berdasarkan respons API Anda
-          // (Saya asumsikan 'item.name' dan 'item.client' berdasarkan contoh lama Anda)
           const picName = item.name || "N/A";
-          const clientName = item.client || "Client tidak diketahui";
 
           const li = document.createElement("li");
-          // Tampilkan nama PIC dan nama Client-nya
-          li.innerHTML = `
-            <div class="font-medium">${picName}</div>
-            <div class="text-xs text-gray-500">${clientName}</div>
-          `;
+          li.innerHTML = `<div class="font-medium">${picName}</div>`;
           li.className = "px-3 py-2 hover:bg-gray-200 cursor-pointer";
 
           // Saat item diklik:
           li.addEventListener("click", () => {
             inputElement.value = picName; // 1. Isi input PIC
             suggestionBox.classList.add("hidden"); // 2. Sembunyikan box
-
-            // 3. ❗️ Auto-fill Client dan Client ID
-            document.getElementById("client_id").value =
-              item.pelanggan_id || "";
-            document.getElementById("client").value = item.pelanggan_id || "";
           });
           suggestionBox.appendChild(li);
         });
@@ -788,6 +803,15 @@ async function loadDetailSales(Id, Detail) {
       clientSelect.value = selectedClientOption.value;
     }
 
+    const picInput = document.getElementById("pic_name");
+    picInput.value = data.pic_name || "";
+
+    // ❗️ Jika ada data client, enable PIC input
+    if (data.pelanggan_id) {
+      picInput.disabled = false;
+      picInput.placeholder = "Ketik nama PIC...";
+      picInput.classList.remove("bg-gray-100");
+    }
     // ‼️ BARU: Set value PIC SETELAH dropdown-nya terisi
     // (Ganti || 0 menjadi || "" agar lebih aman untuk select)
     document.getElementById("pic_name").value = data.pic_name || "";
