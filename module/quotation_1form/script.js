@@ -46,8 +46,8 @@ document.getElementById("btnVersionHistory").addEventListener("click", (e) => {
 });
 
 document.getElementById("client").addEventListener("change", function () {
-  document.getElementById("client_id").value = this.value;
-  const selected = customerList.find((c) => c.client_id == this.value);
+  const selectedClientId = this.value;
+  document.getElementById("client_id").value = selectedClientId;
 });
 
 document.addEventListener("click", (e) => {
@@ -287,6 +287,82 @@ async function loadCustomerList() {
     console.error("Error load client:", error);
     customerList = [];
   }
+}
+/**
+ * ❗️ FUNGSI BARU
+ * Mencari dan menampilkan suggestion untuk PIC Name saat diketik.
+ */
+function filterPICSuggestions(inputElement) {
+  const inputVal = inputElement.value.toLowerCase();
+
+  // Ambil <ul> suggestion box
+  const suggestionBox = inputElement.nextElementSibling;
+  if (!suggestionBox || suggestionBox.tagName !== "UL") {
+    console.error("Struktur HTML untuk suggestion box PIC salah.");
+    return;
+  }
+
+  // Hentikan timer (debounce) sebelumnya
+  clearTimeout(picDebounceTimer);
+
+  // Jika input kosong, sembunyikan box
+  if (inputVal.length < 1) {
+    suggestionBox.innerHTML = "";
+    suggestionBox.classList.add("hidden");
+    return;
+  }
+
+  // Set timer baru untuk memanggil API setelah 300ms
+  picDebounceTimer = setTimeout(async () => {
+    suggestionBox.innerHTML = `<li class="px-3 py-2 text-gray-500 italic">Mencari...</li>`;
+    suggestionBox.classList.remove("hidden");
+
+    try {
+      // ❗️ Panggil API Contact baru Anda
+      const res = await fetch(
+        `${baseUrl}/table/contact/${owner_id}/1?search=${inputVal}`, // Sesuai endpoint Anda
+        {
+          headers: { Authorization: `Bearer ${API_TOKEN}` },
+        }
+      );
+      const result = await res.json();
+      suggestionBox.innerHTML = ""; // Hapus "Mencari..."
+
+      if (result.tableData && result.tableData.length > 0) {
+        result.tableData.forEach((item) => {
+          // ❗️ Sesuaikan key berdasarkan respons API Anda
+          // (Saya asumsikan 'item.name' dan 'item.client' berdasarkan contoh lama Anda)
+          const picName = item.name || "N/A";
+          const clientName = item.client || "Client tidak diketahui";
+
+          const li = document.createElement("li");
+          // Tampilkan nama PIC dan nama Client-nya
+          li.innerHTML = `
+            <div class="font-medium">${picName}</div>
+            <div class="text-xs text-gray-500">${clientName}</div>
+          `;
+          li.className = "px-3 py-2 hover:bg-gray-200 cursor-pointer";
+
+          // Saat item diklik:
+          li.addEventListener("click", () => {
+            inputElement.value = picName; // 1. Isi input PIC
+            suggestionBox.classList.add("hidden"); // 2. Sembunyikan box
+
+            // 3. ❗️ Auto-fill Client dan Client ID
+            document.getElementById("client_id").value =
+              item.pelanggan_id || "";
+            document.getElementById("client").value = item.pelanggan_id || "";
+          });
+          suggestionBox.appendChild(li);
+        });
+      } else {
+        suggestionBox.innerHTML = `<li class="px-3 py-2 text-gray-500 italic">Tidak ditemukan</li>`;
+      }
+    } catch (err) {
+      console.error("Gagal fetch PIC:", err);
+      suggestionBox.innerHTML = `<li class="px-3 py-2 text-red-500 italic">Gagal memuat data</li>`;
+    }
+  }, 300); // Jeda 300 milidetik
 }
 
 async function printInvoice(pesanan_id) {
@@ -699,7 +775,6 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("syarat_ketentuan").value = cleanSnK;
     document.getElementById("term_pembayaran").value = cleanToP;
     document.getElementById("client_id").value = data.pelanggan_id || 0;
-    document.getElementById("pic_name").value = data.pic_name || 0;
     document.getElementById("discount").value = finance(data.disc) || 0; // 🔹 Ambil nama client
 
     const clientSelect = document.getElementById("client");
@@ -707,7 +782,15 @@ async function loadDetailSales(Id, Detail) {
     const selectedClientOption = clientOptions.find(
       (opt) => opt.value == data.pelanggan_id
     );
-    if (selectedClientOption) clientSelect.value = selectedClientOption.value;
+
+    // Set value client
+    if (selectedClientOption) {
+      clientSelect.value = selectedClientOption.value;
+    }
+
+    // ‼️ BARU: Set value PIC SETELAH dropdown-nya terisi
+    // (Ganti || 0 menjadi || "" agar lebih aman untuk select)
+    document.getElementById("pic_name").value = data.pic_name || "";
 
     const logBtn = document.getElementById("logBtn");
     if (logBtn) {

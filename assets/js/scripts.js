@@ -32,6 +32,7 @@ const day = String(today.getDate()).padStart(2, "0");
 const formattedDate = `${year}-${month}-${day}`;
 let cashier_id = 0;
 let unitDebounceTimer;
+let picDebounceTimer;
 
 let current_date = formattedDate;
 

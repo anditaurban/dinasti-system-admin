@@ -403,17 +403,19 @@ function toggleDropdown(row, event) {
 
 // Toggle dropdown secara general
 function toggleDropdownButton(menuId) {
-  document.querySelectorAll('.dropdown-menu').forEach(el => {
-    if (el.id !== menuId) el.classList.add('hidden'); // Tutup semua dropdown lain
+  document.querySelectorAll(".dropdown-menu").forEach((el) => {
+    if (el.id !== menuId) el.classList.add("hidden"); // Tutup semua dropdown lain
   });
   const menu = document.getElementById(menuId);
-  if (menu) menu.classList.toggle('hidden');
+  if (menu) menu.classList.toggle("hidden");
 }
 
-document.addEventListener('click', function (e) {
+document.addEventListener("click", function (e) {
   // Tutup semua dropdown di dalam tabel ketika klik di luar <tr>
-  if (!e.target.closest('tr')) {
-    document.querySelectorAll('.dropdown-menu').forEach(el => el.classList.add('hidden'));
+  if (!e.target.closest("tr")) {
+    document
+      .querySelectorAll(".dropdown-menu")
+      .forEach((el) => el.classList.add("hidden"));
   }
 
   // Tutup filter dropdown
@@ -434,8 +436,6 @@ document.addEventListener('click', function (e) {
     }
   }
 });
-
-
 
 // ---------------------------------------
 // DELETE DATA FUNCTIONS
@@ -577,6 +577,8 @@ function handleUpdate(id, formData) {
 
   // Check if formData is FormData (file upload) or a regular object
   const isMultipart = formData instanceof FormData;
+
+  console.log("Payload yang dikirim ke API:", formData);
 
   if (!isMultipart) {
     formData.owner_id = owner_id;

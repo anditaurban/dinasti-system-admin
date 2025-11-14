@@ -54,11 +54,15 @@
           <input type="hidden" id="client_id" />
         </div>
 
-        <!-- PIC Name (Full width) -->
         <div class="col-span-2">
           <label class="block text-xs text-gray-500 mb-1">PIC Name</label>
-          <input type="text" id="pic_name" name="pic_name" class="w-full border rounded px-3 py-2 text-sm"
-            placeholder="Nama PIC" />
+          <div class="relative">
+            <input type="text" id="pic_name" name="pic_name" class="w-full border rounded px-3 py-2 text-sm"
+              placeholder="Ketik nama PIC untuk mencari..." oninput="filterPICSuggestions(this)" autocomplete="off">
+            <ul
+              class="absolute z-20 w-full bg-white border rounded mt-1 text-sm shadow hidden max-h-48 overflow-y-auto">
+            </ul>
+          </div>
         </div>
       </div>
 

@@ -1,8 +1,10 @@
- const mode = 'development'
- const baseUrl = mode === 'development'
-  ? 'https://dev.dinastielektrik.cloud'
-  : 'https://prod.dinastielektrik.cloud';
-const API_TOKEN = 'e29c2e3db5f5299dc954eae580893689c35ecde79f40213365f56fb54850f9b1';
+const mode = "development";
+const baseUrl =
+  mode === "development"
+    ? "https://dev.dinastielektrik.cloud"
+    : "https://prod.dinastielektrik.cloud";
+const API_TOKEN =
+  "e29c2e3db5f5299dc954eae580893689c35ecde79f40213365f56fb54850f9b1";
 
 let url = null;
 let currentDataSearch = "";
@@ -45,12 +47,12 @@ const endpointList = [
   "product_bundling",
   "user",
   "client",
+  "contact",
   "employee",
   "business_category",
   "account_receivable",
   "account_payable",
-  "cashflow",
-  
+  "cashflow"
 ];
 
 const state = endpointList.reduce((acc, type) => {
@@ -75,8 +77,8 @@ async function loadLogoWithAuth(url) {
   try {
     const res = await fetch(url, {
       headers: {
-        "Authorization": `Bearer ${API_TOKEN}`
-      }
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
     });
     if (!res.ok) throw new Error("Gagal load logo");
 
@@ -91,14 +93,23 @@ async function loadLogoWithAuth(url) {
   }
 }
 
-
+// Di dalam file api.js
 
 async function fetchData(type, page = 1, id = null) {
   try {
-    let url = id
-      ? `${endpoints[type].table}/${id}/${page}?search=${currentDataSearch}`
-      : `${endpoints[type].table}/${page}?search=${currentDataSearch}`;
-    // console.log(url);
+    let url; 
+
+    // ----- INI ADALAH LOGIKA BARUNYA -----
+    if (type === "contact" && id !== null) {
+      url = `${baseUrl}/table/contact/${id}/${page}?search=${currentDataSearch}`;
+    } else if (id !== null) {
+      url = `${endpoints[type].table}/${id}/${page}?search=${currentDataSearch}`;
+    } else {
+      url = `${endpoints[type].table}/${page}?search=${currentDataSearch}`;
+    }
+   
+
+    // console.log("Final URL:", url); // <-- Hapus komentar ini untuk debug
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${API_TOKEN}` },
     });
