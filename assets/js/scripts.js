@@ -33,6 +33,7 @@ const formattedDate = `${year}-${month}-${day}`;
 let cashier_id = 0;
 let unitDebounceTimer;
 let picDebounceTimer;
+let clientDebounceTimer;
 
 let current_date = formattedDate;
 

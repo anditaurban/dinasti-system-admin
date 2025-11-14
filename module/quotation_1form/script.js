@@ -25,7 +25,7 @@ if (window.detail_id && window.detail_desc) {
   );
   loadSalesType();
   // loadPretextFromLocal();
-  loadCustomerList(owner_id);
+  // loadCustomerList(owner_id);
   loadStatusOptions();
 
   document.getElementById("status").value = "Draft";
@@ -305,68 +305,59 @@ async function loadCustomerList() {
     customerList = [];
   }
 }
-/**
- * ❗️ FUNGSI BARU (Versi Final)
- * Mencari PIC berdasarkan Client ID yang sedang aktif
- */
-function filterPICSuggestions(inputElement) {
+
+function filterClientSuggestions(inputElement) {
   const inputVal = inputElement.value.toLowerCase();
-
-  // 1. Ambil Client ID yang sedang dipilih
-  const clientId = document.getElementById("client_id").value;
-
   const suggestionBox = inputElement.nextElementSibling;
-  if (!suggestionBox || suggestionBox.tagName !== "UL") {
-    console.error("Struktur HTML untuk suggestion box PIC salah.");
-    return;
-  }
 
-  // Hentikan timer (debounce) sebelumnya
-  clearTimeout(picDebounceTimer);
+  if (!suggestionBox || suggestionBox.tagName !== "UL") return;
 
-  // 2. Cek apakah ada Client ID
-  if (!clientId) {
-    suggestionBox.innerHTML = `<li class="px-3 py-2 text-gray-500 italic">Harap pilih Client terlebih dahulu.</li>`;
-    suggestionBox.classList.remove("hidden");
-    return;
-  }
+  clearTimeout(clientDebounceTimer);
 
-  // 3. Jika input kosong, sembunyikan box
+  // Jika input kosong, reset PIC
   if (inputVal.length < 1) {
     suggestionBox.innerHTML = "";
     suggestionBox.classList.add("hidden");
+    populatePICDropdown([]); // ❗️ Kosongkan PIC
     return;
   }
 
-  // 4. Set timer baru untuk memanggil API
-  picDebounceTimer = setTimeout(async () => {
+  clientDebounceTimer = setTimeout(async () => {
     suggestionBox.innerHTML = `<li class="px-3 py-2 text-gray-500 italic">Mencari...</li>`;
     suggestionBox.classList.remove("hidden");
 
     try {
-      // ❗️ Panggil API Contact yang support search DAN filter by client_id
-      // (Endpoint ini dari solusi sebelumnya, ini yang paling tepat)
+      // ❗️ Panggil API Client (yang ada 'contacts'-nya)
       const res = await fetch(
-        `${baseUrl}/table/contact/${clientId}/1?search=${inputVal}`,
+        `${baseUrl}/table/client/${owner_id}/1?search=${inputVal}`,
         {
           headers: { Authorization: `Bearer ${API_TOKEN}` },
         }
       );
       const result = await res.json();
-      suggestionBox.innerHTML = ""; // Hapus "Mencari..."
+      suggestionBox.innerHTML = "";
 
       if (result.tableData && result.tableData.length > 0) {
         result.tableData.forEach((item) => {
-          const picName = item.name || "N/A";
+          const clientName = item.nama || "N/A";
+          const clientAlias = item.alias ? `(${item.alias})` : "";
 
           const li = document.createElement("li");
-          li.innerHTML = `<div class="font-medium">${picName}</div>`;
+          li.innerHTML = `
+            <div class="font-medium">${clientName}</div>
+            <div class="text-xs text-gray-500">${clientAlias}</div>
+          `;
           li.className = "px-3 py-2 hover:bg-gray-200 cursor-pointer";
 
-          // Saat item diklik:
+          // ❗️ Saat Client DIKLIK
           li.addEventListener("click", () => {
-            inputElement.value = picName; // 1. Isi input PIC
+            inputElement.value = clientName; // 1. Isi input Client
             suggestionBox.classList.add("hidden"); // 2. Sembunyikan box
+            document.getElementById("client_id").value =
+              item.pelanggan_id || ""; // 3. Set Client ID
+
+            // 4. ❗️ Panggil helper untuk mengisi PIC
+            populatePICDropdown(item.contacts || []);
           });
           suggestionBox.appendChild(li);
         });
@@ -374,10 +365,83 @@ function filterPICSuggestions(inputElement) {
         suggestionBox.innerHTML = `<li class="px-3 py-2 text-gray-500 italic">Tidak ditemukan</li>`;
       }
     } catch (err) {
-      console.error("Gagal fetch PIC:", err);
+      console.error("Gagal fetch client:", err);
       suggestionBox.innerHTML = `<li class="px-3 py-2 text-red-500 italic">Gagal memuat data</li>`;
     }
-  }, 300); // Jeda 300 milidetik
+  }, 300);
+}
+/**
+ * ❗️ PASTIKAN FUNGSI INI ADA
+ * Dibutuhkan oleh loadDetailSales untuk mengisi dropdown PIC.
+ */
+async function loadPICList(clientId) {
+  const picSelect = document.getElementById("pic_name");
+  if (!picSelect) return;
+
+  if (!clientId || clientId === "") {
+    picSelect.innerHTML = `<option value="">-- Client tidak valid --</option>`;
+    picSelect.disabled = true;
+    picSelect.classList.add("bg-gray-100");
+    return;
+  }
+
+  picSelect.innerHTML = `<option value="">Memuat PIC...</option>`;
+  picSelect.disabled = true;
+
+  try {
+    // Panggil API /list/contact/ (yang hanya berisi list PIC)
+    const response = await fetch(`${baseUrl}/list/contact/${clientId}`, {
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+    });
+    if (!response.ok) throw new Error("Gagal mengambil data PIC");
+
+    const result = await response.json();
+
+    if (result.listData && result.listData.length > 0) {
+      picSelect.innerHTML = `<option value="">-- Pilih PIC --</option>`;
+      result.listData.forEach((item) => {
+        const option = document.createElement("option");
+        option.value = item.name;
+        option.textContent = item.name;
+        picSelect.appendChild(option);
+      });
+      picSelect.disabled = false;
+      picSelect.classList.remove("bg-gray-100");
+    } else {
+      picSelect.innerHTML = `<option value="">-- Tidak ada PIC --</option>`;
+      picSelect.disabled = true;
+      picSelect.classList.add("bg-gray-100");
+    }
+  } catch (error) {
+    console.error("Gagal load PIC list:", error);
+    picSelect.innerHTML = `<option value="">Gagal memuat PIC</option>`;
+    picSelect.disabled = true;
+  }
+}
+
+function populatePICDropdown(contactsArray) {
+  const picSelect = document.getElementById("pic_name");
+  if (!picSelect) return;
+
+  picSelect.innerHTML = ""; // Kosongkan
+
+  if (contactsArray && contactsArray.length > 0) {
+    picSelect.innerHTML = `<option value="">-- Pilih PIC --</option>`;
+
+    contactsArray.forEach((contact) => {
+      const option = document.createElement("option");
+      option.value = contact.name; // Key dari JSON Anda
+      option.textContent = contact.name; // Key dari JSON Anda
+      picSelect.appendChild(option);
+    });
+
+    picSelect.disabled = false;
+    picSelect.classList.remove("bg-gray-100");
+  } else {
+    picSelect.innerHTML = `<option value="">-- Tidak ada PIC --</option>`;
+    picSelect.disabled = true;
+    picSelect.classList.add("bg-gray-100");
+  }
 }
 
 async function printInvoice(pesanan_id) {
@@ -720,7 +784,7 @@ function hapusItem(button) {
 // GANTI SELURUH FUNGSI ANDA DENGAN INI
 async function loadDetailSales(Id, Detail) {
   window.detail_id = Id;
-  window.detail_desc = Detail; // 🔹 Tampilkan loading
+  window.detail_desc = Detail;
 
   Swal.fire({
     title: "Loading...",
@@ -741,12 +805,17 @@ async function loadDetailSales(Id, Detail) {
       throw new Error("Invalid API response structure - missing detail");
     }
 
-    const data = response.detail; // ⚡ Tunggu semua load async selesai
+    const data = response.detail;
     console.log("DATA DETAIL QO:", data);
+
+    // ❗️ Ini sudah BENAR.
+    // loadCustomerList() dihapus, dan loadPICList() dipanggil
+    // untuk mengisi dropdown PIC Name.
     await Promise.all([
-      loadCustomerList(),
+      // loadCustomerList(), // <-- Dihapus (Benar)
       loadSalesType(),
-      loadStatusOptions(), // ⬇️ Panggil fungsi dropdown baru ⬇️
+      loadPICList(data.pelanggan_id), // <-- Mengisi dropdown PIC (Benar)
+      loadStatusOptions(),
       populateDropdown("/list/notes/", "catatan", "Pilih Catatan..."),
       populateDropdown(
         "/list/terms/",
@@ -757,7 +826,7 @@ async function loadDetailSales(Id, Detail) {
         "/list/term_of_payment/",
         "term_pembayaran",
         "Pilih Term of Payment..."
-      ), // ⬆️ Batas tambahan ⬆️
+      ),
     ]);
 
     const typeField = document.getElementById("type_id");
@@ -790,30 +859,16 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("syarat_ketentuan").value = cleanSnK;
     document.getElementById("term_pembayaran").value = cleanToP;
     document.getElementById("client_id").value = data.pelanggan_id || 0;
-    document.getElementById("discount").value = finance(data.disc) || 0; // 🔹 Ambil nama client
+    document.getElementById("discount").value = finance(data.disc) || 0;
 
-    const clientSelect = document.getElementById("client");
-    const clientOptions = Array.from(clientSelect.options);
-    const selectedClientOption = clientOptions.find(
-      (opt) => opt.value == data.pelanggan_id
-    );
+    // ‼️ REVISI 1: Perbaikan untuk 'client' (Input Text)
+    // Hapus blok 'clientSelect' yang lama. Ganti dengan ini:
+    // Asumsi 'data.client' berisi NAMA client dari API detail.
+    document.getElementById("client").value = data.pelanggan_nama || "";
 
-    // Set value client
-    if (selectedClientOption) {
-      clientSelect.value = selectedClientOption.value;
-    }
-
-    const picInput = document.getElementById("pic_name");
-    picInput.value = data.pic_name || "";
-
-    // ❗️ Jika ada data client, enable PIC input
-    if (data.pelanggan_id) {
-      picInput.disabled = false;
-      picInput.placeholder = "Ketik nama PIC...";
-      picInput.classList.remove("bg-gray-100");
-    }
-    // ‼️ BARU: Set value PIC SETELAH dropdown-nya terisi
-    // (Ganti || 0 menjadi || "" agar lebih aman untuk select)
+    // ‼️ REVISI 2: Perbaikan untuk 'pic_name' (Select Dropdown)
+    // Hapus blok 'picInput' yang lama (yang ada 'if data.pelanggan_id').
+    // Cukup baris ini untuk set value dropdown SETELAH loadPICList() selesai.
     document.getElementById("pic_name").value = data.pic_name || "";
 
     const logBtn = document.getElementById("logBtn");
@@ -835,7 +890,7 @@ async function loadDetailSales(Id, Detail) {
           loadModuleContent("quotation_log", Id);
         };
       }
-    } // 🔹 Load subcategories
+    } // 🔹 Load subcategories (Biarkan)
 
     const subcategoryRes = await fetch(
       `${baseUrl}/list/sub_category/${owner_id}`,
@@ -849,7 +904,7 @@ async function loadDetailSales(Id, Detail) {
     const subcatResponse = await subcategoryRes.json();
     const subcats = Array.isArray(subcatResponse.listData)
       ? subcatResponse.listData
-      : []; // 🔹 Render item rows
+      : []; // 🔹 Render item rows (Biarkan)
 
     const tbody = document.getElementById("tabelItem");
     tbody.innerHTML = "";
@@ -877,14 +932,13 @@ async function loadDetailSales(Id, Detail) {
             );
             row.querySelector(".itemHarga").value = finance(
               item.unit_price || 0
-            ); // <-- BARU: Isi data HPP untuk Item Utama --> // CATATAN: Ini HANYA akan berfungsi jika backend mengirim "item.hpp"
-
+            );
             row.querySelector(".itemHpp").value = finance(item.hpp || 0);
             row.querySelector(".itemMarkupNominal").value = finance(
               item.markup_nominal || 0
             );
             row.querySelector(".itemMarkupPersen").value =
-              item.markup_percent || 0; // <-- AKHIR BARU -->
+              item.markup_percent || 0;
             if (item.materials?.length) {
               for (const material of item.materials) {
                 tambahSubItem(row.querySelector(".btnTambahSubItem"));
@@ -894,20 +948,17 @@ async function loadDetailSales(Id, Detail) {
                 );
 
                 if (subTr) {
-                  // <-- PERBAIKAN KEY DI SINI -->
                   subTr.querySelector(".subItemMaterial").value =
-                    material.name || ""; // Sebelumnya 'material.name'
+                    material.name || "";
                   subTr.querySelector(".subItemSpec").value =
-                    material.specification || ""; // Sebelumnya 'material.specification'
-                  // <-- AKHIR PERBAIKAN KEY -->
+                    material.specification || "";
 
                   subTr.querySelector(".subItemQty").value = material.qty || 0;
                   subTr.querySelector(".subItemUnit").value =
                     material.unit || "";
                   subTr.querySelector(".subItemHarga").value = finance(
                     material.unit_price || 0
-                  ); // <-- BARU: Isi data HPP untuk Sub-Item --> // CATATAN: Ini HANYA akan berfungsi jika backend mengirim "material.hpp"
-
+                  );
                   subTr.querySelector(".subItemHpp").value = finance(
                     material.hpp || 0
                   );
@@ -915,7 +966,7 @@ async function loadDetailSales(Id, Detail) {
                     material.markup_nominal || 0
                   );
                   subTr.querySelector(".subItemMarkupPersen").value =
-                    material.markup_percent || 0; // <-- AKHIR BARU -->
+                    material.markup_percent || 0;
                   subTr.querySelector(".subItemTotal").innerText = finance(
                     material.total || material.qty * material.unit_price
                   );
