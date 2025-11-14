@@ -245,8 +245,17 @@
               <label for="calcUnit" class="block text-sm font-medium text-gray-700">
                 Unit <span class="text-red-500">*</span>
               </label>
-              <input type="text" id="calcUnit" name="calcUnit" required placeholder="lot"
-                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+              <div class="relative w-full">
+                <input type="text" id="calcUnit" name="calcUnit" required placeholder="lot"
+                  class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  oninput="filterUnitSuggestions(this)" autocomplete="off" />
+
+                <ul
+                  class="unit-suggestion absolute left-0 right-0 z-10 bg-white border rounded mt-1 text-sm shadow hidden max-h-48 overflow-y-auto">
+                  <!-- Suggestions appear here -->
+                </ul>
+              </div>
+
             </div>
           </div>
 

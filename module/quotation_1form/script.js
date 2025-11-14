@@ -860,15 +860,7 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("term_pembayaran").value = cleanToP;
     document.getElementById("client_id").value = data.pelanggan_id || 0;
     document.getElementById("discount").value = finance(data.disc) || 0;
-
-    // ‼️ REVISI 1: Perbaikan untuk 'client' (Input Text)
-    // Hapus blok 'clientSelect' yang lama. Ganti dengan ini:
-    // Asumsi 'data.client' berisi NAMA client dari API detail.
     document.getElementById("client").value = data.pelanggan_nama || "";
-
-    // ‼️ REVISI 2: Perbaikan untuk 'pic_name' (Select Dropdown)
-    // Hapus blok 'picInput' yang lama (yang ada 'if data.pelanggan_id').
-    // Cukup baris ini untuk set value dropdown SETELAH loadPICList() selesai.
     document.getElementById("pic_name").value = data.pic_name || "";
 
     const logBtn = document.getElementById("logBtn");
