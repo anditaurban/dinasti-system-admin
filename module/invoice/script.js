@@ -358,7 +358,6 @@ async function openCreateProject(pesanan_id, nilai_kontrak) {
     const data = await res.json();
 
     if (data.listData && data.listData.length > 0) {
-      
       pmOptions = data.listData
         .map(
           (pm) =>
@@ -394,7 +393,6 @@ async function openCreateProject(pesanan_id, nilai_kontrak) {
     preConfirm: async () => {
       const project_manager_id =
         document.getElementById("project_manager_id").value;
-      const plan_costing = document.getElementById("plan_costing").value;
       const start_date = document.getElementById("start_date").value;
       const finish_date = document.getElementById("finish_date").value;
 
@@ -408,7 +406,6 @@ async function openCreateProject(pesanan_id, nilai_kontrak) {
           body: JSON.stringify({
             pesanan_id,
             project_manager_id: Number(project_manager_id),
-            plan_costing: Number(plan_costing),
             start_date,
             finish_date,
           }),

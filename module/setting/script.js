@@ -36,8 +36,12 @@ window.notesTopRowTemplate = function (item, dataType) {
   // Ubah newline (\n) menjadi <br> agar tampil rapi di HTML
   const pretextHtml = item.pretext.replace(/\n/g, "<br>");
 
+  // --- AWAL PERBAIKAN ---
   // Gunakan JSON.stringify agar aman passing string ke fungsi onclick
   const pretextJson = JSON.stringify(item.pretext);
+  // Escape tanda kutip ganda agar tidak merusak atribut onclick
+  const safePretextJson = pretextJson.replace(/"/g, "&quot;");
+  // --- AKHIR PERBAIKAN ---
 
   return `
   <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50">
@@ -50,7 +54,7 @@ window.notesTopRowTemplate = function (item, dataType) {
     <td class="px-6 py-4 text-sm text-gray-700 sm:border-0 flex justify-between sm:table-cell" style="width: 150px;">
       <span class="font-medium sm:hidden">Actions</span>
       <div class="flex gap-2 justify-end w-full sm:w-auto">
-        <button onclick="${editFunc}(${item.setting_id}, ${pretextJson})" class="text-blue-500 hover:text-blue-700 p-1">
+        <button onclick="${editFunc}(${item.setting_id}, ${safePretextJson})" class="text-blue-500 hover:text-blue-700 p-1">
           <i class="fas fa-edit"></i> Edit
         </button>
         <button onclick="${deleteFunc}(${item.setting_id})" class="text-red-500 hover:text-red-700 p-1">
@@ -66,7 +70,11 @@ window.notesTopRowTemplate = function (item, dataType) {
  * (DIPINDAHKAN KE ATAS)
  */
 window.unitRowTemplate = function (item, dataType) {
+  // --- AWAL PERBAIKAN ---
   const unitNameJson = JSON.stringify(item.unit);
+  const safeUnitNameJson = unitNameJson.replace(/"/g, "&quot;");
+  // --- AKHIR PERBAIKAN ---
+
   return `
     <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50">
         <td class="px-6 py-4 text-sm border-b sm:border-0 flex justify-between sm:table-cell">
@@ -76,7 +84,7 @@ window.unitRowTemplate = function (item, dataType) {
         <td class="px-6 py-4 text-sm text-gray-700 sm:border-0 flex justify-between sm:table-cell" style="width: 150px;">
             <span class="font-medium sm:hidden">Actions</span>
             <div class="flex gap-2 justify-end w-full sm:w-auto">
-                <button onclick="handleEditUnit(${item.unit_id}, ${unitNameJson})" class="text-blue-500 hover:text-blue-700 p-1">
+                <button onclick="handleEditUnit(${item.unit_id}, ${safeUnitNameJson})" class="text-blue-500 hover:text-blue-700 p-1">
                     <i class="fas fa-edit"></i> Edit
                 </button>
                 <button onclick="handleDeleteUnit(${item.unit_id})" class="text-red-500 hover:text-red-700 p-1">
@@ -1012,6 +1020,9 @@ async function saveNotesTopData(mode, dataType, id, data) {
 /**
  * Fungsi Hapus Generik (untuk Notes, ToP, T&C)
  */
+/**
+ * Fungsi Hapus Generik (untuk Notes, ToP, T&C, DAN Unit)
+ */
 async function handleDeleteGeneric(dataType, id, endpoint, title = "Data") {
   const confirm = await Swal.fire({
     title: `Hapus ${title}?`,
@@ -1024,23 +1035,31 @@ async function handleDeleteGeneric(dataType, id, endpoint, title = "Data") {
 
   if (confirm.isConfirmed) {
     try {
-      // PERUBAHAN: Mengganti method dari PUT ke DELETE
       const res = await fetch(endpoint, {
-        method: "PUT",
+        method: "PUT", // Sesuai kode Anda sebelumnya
         headers: { Authorization: `Bearer ${API_TOKEN}` },
       });
-      const data = await res.json();
-      const responseData = data.data || data;
-      if (res.ok && (responseData.success || data.response === "200")) {
-        Swal.fire("Terhapus!", `${title} telah dihapus.`, "success");
+      const result = await res.json(); // Menggunakan nama 'result' agar lebih jelas
+
+      // --- AWAL PERUBAHAN ---
+      // Periksa apakah response OK (200-299) dan ada objek 'data.message'
+      if (res.ok && result.data && result.data.message) {
+        Swal.fire(
+          "Terhapus!",
+          result.data.message, // Ambil pesan dari API
+          "success"
+        );
+        // Muat ulang tabel yang sesuai (dataType)
         loadTableData(dataType, tableStates[dataType].currentPage);
       } else {
-        Swal.fire(
-          "Gagal!",
-          responseData.message || "Gagal menghapus data.",
-          "error"
-        );
+        // Tampilkan pesan error dari API jika ada, atau pesan default
+        const errorMessage =
+          (result.data && result.data.message) ||
+          result.message ||
+          "Gagal menghapus data.";
+        Swal.fire("Gagal!", errorMessage, "error");
       }
+      // --- AKHIR PERUBAHAN ---
     } catch (err) {
       Swal.fire("Error", err.message, "error");
     }
@@ -1124,19 +1143,24 @@ async function saveUnitData(mode, id, data) {
       body: JSON.stringify(payload),
     });
 
-    const result = await res.json();
-    const responseData = result.data || result;
+    const result = await res.json(); // --- AWAL PERUBAHAN --- // Periksa apakah response OK (200-299) dan ada objek 'data.message'
 
-    if (res.ok && (responseData.success || result.response === "200")) {
-      Swal.fire("Sukses!", "Data satuan berhasil disimpan.", "success");
+    if (res.ok && result.data && result.data.message) {
+      Swal.fire(
+        "Sukses!",
+        result.data.message, // Ambil pesan dari API
+        "success"
+      ); // Muat ulang tabel unit sesuai permintaan
       loadTableData("unit", tableStates.unit.currentPage);
     } else {
-      Swal.fire(
-        "Gagal!",
-        responseData.message || "Gagal menyimpan data.",
-        "error"
-      );
+      // Tampilkan pesan error dari API jika ada, atau pesan default
+      const errorMessage =
+        (result.data && result.data.message) ||
+        result.message ||
+        "Gagal menyimpan data.";
+      Swal.fire("Gagal!", errorMessage, "error");
     }
+    // --- AKHIR PERUBAHAN ---
   } catch (err) {
     Swal.fire("Error", `Koneksi gagal: ${err.message}`, "error");
   }

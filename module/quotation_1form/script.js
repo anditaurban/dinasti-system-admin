@@ -556,7 +556,7 @@ async function tambahItem() {
       <div class="grid grid-cols-4 gap-2">
         <div>
           <label class="block text-xs text-gray-500">Qty</label>
-          <input type="number" class="w-full border rounded px-2 itemQty text-right" value="1" oninput="recalculateTotal()">
+          <input type="number" class="w-full border rounded px-2 itemQty text-right" value="0" oninput="recalculateTotal()">
         </div>
         <div>
           <label class="block text-xs text-gray-500">Unit</label>
@@ -666,7 +666,7 @@ function tambahSubItem(btn) {
         <div class="grid grid-cols-4 gap-2">
           <div>
             <label class="block text-xs text-gray-500">Qty</label>
-            <input type="number" class="w-full border rounded px-2 text-right subItemQty" value="1" oninput="recalculateTotal()">
+            <input type="number" class="w-full border rounded px-2 text-right subItemQty" value="0" oninput="recalculateTotal()">
           </div>
          <div>
           <label class="block text-xs text-gray-500">Unit</label>
@@ -1152,7 +1152,7 @@ async function saveInvoice(mode = "create", id = null) {
       const product = row.querySelector(".itemProduct")?.value.trim() || "";
       const description = row.querySelector(".itemDesc")?.value.trim() || "";
       const qty = parseInt(row.querySelector(".itemQty")?.value || 0);
-      const unit = row.querySelector(".itemUnit")?.value.trim() || "pcs";
+      const unit = row.querySelector(".itemUnit")?.value.trim() || "";
       const unit_price = parseRupiah(
         row.querySelector(".itemHarga")?.value || 0
       );
