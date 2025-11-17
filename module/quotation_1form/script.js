@@ -306,6 +306,7 @@ async function loadCustomerList() {
   }
 }
 
+// 2. Fungsi untuk Client Suggestion
 function filterClientSuggestions(inputElement) {
   const inputVal = inputElement.value.toLowerCase();
   const suggestionBox = inputElement.nextElementSibling;
@@ -314,11 +315,9 @@ function filterClientSuggestions(inputElement) {
 
   clearTimeout(clientDebounceTimer);
 
-  // Jika input kosong, reset PIC
   if (inputVal.length < 1) {
     suggestionBox.innerHTML = "";
     suggestionBox.classList.add("hidden");
-    populatePICDropdown([]); // ❗️ Kosongkan PIC
     return;
   }
 
@@ -327,12 +326,10 @@ function filterClientSuggestions(inputElement) {
     suggestionBox.classList.remove("hidden");
 
     try {
-      // ❗️ Panggil API Client (yang ada 'contacts'-nya)
+      // Panggil API Client
       const res = await fetch(
         `${baseUrl}/table/client/${owner_id}/1?search=${inputVal}`,
-        {
-          headers: { Authorization: `Bearer ${API_TOKEN}` },
-        }
+        { headers: { Authorization: `Bearer ${API_TOKEN}` } }
       );
       const result = await res.json();
       suggestionBox.innerHTML = "";
@@ -349,15 +346,15 @@ function filterClientSuggestions(inputElement) {
           `;
           li.className = "px-3 py-2 hover:bg-gray-200 cursor-pointer";
 
-          // ❗️ Saat Client DIKLIK
+          // SAAT CLIENT DIKLIK:
           li.addEventListener("click", () => {
-            inputElement.value = clientName; // 1. Isi input Client
-            suggestionBox.classList.add("hidden"); // 2. Sembunyikan box
+            inputElement.value = clientName;
+            suggestionBox.classList.add("hidden");
             document.getElementById("client_id").value =
-              item.pelanggan_id || ""; // 3. Set Client ID
+              item.pelanggan_id || "";
 
-            // 4. ❗️ Panggil helper untuk mengisi PIC
-            populatePICDropdown(item.contacts || []);
+            // ❗️ Kosongkan PIC, karena Client baru dipilih
+            document.getElementById("pic_name").value = "";
           });
           suggestionBox.appendChild(li);
         });
@@ -370,53 +367,81 @@ function filterClientSuggestions(inputElement) {
     }
   }, 300);
 }
-/**
- * ❗️ PASTIKAN FUNGSI INI ADA
- * Dibutuhkan oleh loadDetailSales untuk mengisi dropdown PIC.
- */
-async function loadPICList(clientId) {
-  const picSelect = document.getElementById("pic_name");
-  if (!picSelect) return;
 
-  if (!clientId || clientId === "") {
-    picSelect.innerHTML = `<option value="">-- Client tidak valid --</option>`;
-    picSelect.disabled = true;
-    picSelect.classList.add("bg-gray-100");
+// 3. Fungsi untuk PIC Suggestion
+/**
+ * ❗️ FUNGSI BARU (Versi Final)
+ * Mencari PIC berdasarkan Client ID yang sedang aktif
+ */
+function filterPICSuggestions(inputElement) {
+  const inputVal = inputElement.value.toLowerCase();
+
+  // 1. Ambil Client ID yang sedang dipilih
+  const clientId = document.getElementById("client_id").value;
+
+  const suggestionBox = inputElement.nextElementSibling;
+  if (!suggestionBox || suggestionBox.tagName !== "UL") {
+    console.error("Struktur HTML untuk suggestion box PIC salah.");
     return;
   }
 
-  picSelect.innerHTML = `<option value="">Memuat PIC...</option>`;
-  picSelect.disabled = true;
+  // Hentikan timer (debounce) sebelumnya
+  clearTimeout(picDebounceTimer);
 
-  try {
-    // Panggil API /list/contact/ (yang hanya berisi list PIC)
-    const response = await fetch(`${baseUrl}/list/contact/${clientId}`, {
-      headers: { Authorization: `Bearer ${API_TOKEN}` },
-    });
-    if (!response.ok) throw new Error("Gagal mengambil data PIC");
-
-    const result = await response.json();
-
-    if (result.listData && result.listData.length > 0) {
-      picSelect.innerHTML = `<option value="">-- Pilih PIC --</option>`;
-      result.listData.forEach((item) => {
-        const option = document.createElement("option");
-        option.value = item.name;
-        option.textContent = item.name;
-        picSelect.appendChild(option);
-      });
-      picSelect.disabled = false;
-      picSelect.classList.remove("bg-gray-100");
-    } else {
-      picSelect.innerHTML = `<option value="">-- Tidak ada PIC --</option>`;
-      picSelect.disabled = true;
-      picSelect.classList.add("bg-gray-100");
-    }
-  } catch (error) {
-    console.error("Gagal load PIC list:", error);
-    picSelect.innerHTML = `<option value="">Gagal memuat PIC</option>`;
-    picSelect.disabled = true;
+  // 2. Cek apakah ada Client ID
+  if (!clientId) {
+    suggestionBox.innerHTML = `<li class="px-3 py-2 text-gray-500 italic">Harap pilih Client terlebih dahulu.</li>`;
+    suggestionBox.classList.remove("hidden");
+    return;
   }
+
+  // 3. Jika input kosong, sembunyikan box
+  if (inputVal.length < 1) {
+    suggestionBox.innerHTML = "";
+    suggestionBox.classList.add("hidden");
+    return;
+  }
+
+  // 4. Set timer baru untuk memanggil API
+  picDebounceTimer = setTimeout(async () => {
+    suggestionBox.innerHTML = `<li class="px-3 py-2 text-gray-500 italic">Mencari...</li>`;
+    suggestionBox.classList.remove("hidden");
+
+    try {
+      // ❗️ Panggil API Contact yang support search DAN filter by client_id
+      // (Endpoint ini dari solusi sebelumnya, ini yang paling tepat)
+      const res = await fetch(
+        `${baseUrl}/table/contact/${clientId}/1?search=${inputVal}`,
+        {
+          headers: { Authorization: `Bearer ${API_TOKEN}` },
+        }
+      );
+      const result = await res.json();
+      suggestionBox.innerHTML = ""; // Hapus "Mencari..."
+
+      if (result.tableData && result.tableData.length > 0) {
+        result.tableData.forEach((item) => {
+          const picName = item.name || "N/A";
+
+          const li = document.createElement("li");
+          li.innerHTML = `<div class="font-medium">${picName}</div>`;
+          li.className = "px-3 py-2 hover:bg-gray-200 cursor-pointer";
+
+          // Saat item diklik:
+          li.addEventListener("click", () => {
+            inputElement.value = picName; // 1. Isi input PIC
+            suggestionBox.classList.add("hidden"); // 2. Sembunyikan box
+          });
+          suggestionBox.appendChild(li);
+        });
+      } else {
+        suggestionBox.innerHTML = `<li class="px-3 py-2 text-gray-500 italic">Tidak ditemukan</li>`;
+      }
+    } catch (err) {
+      console.error("Gagal fetch PIC:", err);
+      suggestionBox.innerHTML = `<li class="px-3 py-2 text-red-500 italic">Gagal memuat data</li>`;
+    }
+  }, 300); // Jeda 300 milidetik
 }
 
 function populatePICDropdown(contactsArray) {

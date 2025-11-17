@@ -70,7 +70,6 @@ async function loadDetailSales(Id, Detail) {
   // ➡️ A. LOGIKA MODE ADD / UPDATE (Menampilkan Form)
   // ----------------------------------------------------------------
   if (currentMode === "add" || currentMode === "update") {
-    
     // ⬇️ ⬇️ PERUBAHAN DI SINI ⬇️ ⬇️
     // Set Header & Nama Tab untuk mode Add/Update
     pagemodule = "Project";
@@ -106,19 +105,24 @@ async function loadDetailSales(Id, Detail) {
 
     // 4. Logika spesifik per mode
     if (currentMode === "add") {
-      document.getElementById("projectNameDisplay").textContent = "Buat Project Baru";
+      document.getElementById("projectNameDisplay").textContent =
+        "Buat Project Baru";
       const tabelAddBody = document.getElementById("tabelItemAdd");
       if (tabelAddBody) {
-        tabelAddBody.innerHTML = `<tr><td colspan="3" class="text-center ...">Belum ada item ditambahkan.</td></tr>`;
+        tabelAddBody.innerHTML = `
+<tr class="rowEmpty">
+  <td colspan="3" class="text-center text-gray-500 italic">Belum ada item ditambahkan.</td>
+</tr>`;
       }
       saveNewProjectBtn.textContent = "✅ Simpan Project Baru";
       saveNewProjectBtn.onclick = () => saveProject("create");
       setTodayDate("add_tanggal");
       setTodayDate("add_finish_date");
-
     } else {
       // currentMode === "update"
-      document.getElementById("projectNameDisplay").textContent = `Update Project: ${Detail}`;
+      document.getElementById(
+        "projectNameDisplay"
+      ).textContent = `Update Project: ${Detail}`;
       if (convertToSalesBtn) convertToSalesBtn.classList.remove("hidden");
       saveNewProjectBtn.textContent = "💾 Simpan Perubahan";
       saveNewProjectBtn.onclick = () => saveProject("update", Id);
@@ -129,7 +133,6 @@ async function loadDetailSales(Id, Detail) {
   // ➡️ B. LOGIKA MODE LIHAT (VIEW MODE)
   // ----------------------------------------------------------------
   else {
-    
     // ⬇️ ⬇️ PERUBAHAN DI SINI ⬇️ ⬇️
     // Set Header & Nama Tab untuk mode View
     pagemodule = "Project";
@@ -173,8 +176,9 @@ async function loadDetailSales(Id, Detail) {
       const data = projectDetailData;
 
       // 4. Tampilkan info card
-      document.getElementById("projectNameDisplay").textContent =
-        `${data.project_name || "Project Detail"} / ${data.project_number || "---"}`;
+      document.getElementById("projectNameDisplay").textContent = `${
+        data.project_name || "Project Detail"
+      } / ${data.project_number || "---"}`;
       document.getElementById("projectAmount").innerHTML =
         finance(data.project_value) || 0;
       document.getElementById("plan_costing").innerHTML =
@@ -184,9 +188,11 @@ async function loadDetailSales(Id, Detail) {
       document.getElementById("margin").innerHTML = finance(data.margin) || 0;
 
       // 5. Tampilkan info detail project (Box baru)
-      document.getElementById("detailNoQO").textContent = data.no_qo || "---";
-      document.getElementById("detailNoInv").textContent = data.no_inv || "---";
-      document.getElementById("detailNoPO").textContent = data.no_po || "---";
+      document.getElementById("detailNoQO").textContent = data.no_qtn || "---";
+      document.getElementById("detailNoInv").textContent =
+        data.inv_number || "---";
+      document.getElementById("detailNoPO").textContent =
+        data.po_number || "---";
       document.getElementById("detailPIC").textContent =
         data.project_manager_name || data.pic_name || "---";
 
@@ -200,7 +206,7 @@ async function loadDetailSales(Id, Detail) {
           if (!groups[item.sub_category]) groups[item.sub_category] = [];
           groups[item.sub_category].push(item);
         });
-        
+
         let nomor = 1;
         Object.keys(groups).forEach((subCat) => {
           const trHeader = document.createElement("tr");
@@ -319,8 +325,11 @@ async function loadDetailSales(Id, Detail) {
 
           let newLength = formattedValue.length;
           let lengthDifference = newLength - originalLength;
-          
-          if (e.target.selectionEnd === originalLength || cursorPosition === originalLength) {
+
+          if (
+            e.target.selectionEnd === originalLength ||
+            cursorPosition === originalLength
+          ) {
             e.target.setSelectionRange(
               cursorPosition + lengthDifference,
               cursorPosition + lengthDifference
@@ -333,7 +342,7 @@ async function loadDetailSales(Id, Detail) {
       window.dataLoaded = true;
       await initRealCalculationTab();
       toggleTambahItemBtn();
-      
+
       if (savePlanCostBtn) {
         savePlanCostBtn.removeEventListener(
           "click",
@@ -341,10 +350,9 @@ async function loadDetailSales(Id, Detail) {
         );
         savePlanCostBtn.addEventListener("click", handleUpdateAllPlanCosting);
       }
-      
+
       switchTab(tab1, tab1Btn);
       Swal.close();
-      
     } catch (err) {
       console.error("Gagal load detail:", err);
       Swal.fire(
@@ -1251,10 +1259,9 @@ async function tambahItem(selectedSubCategoryId = "") {
   const tbody = document.getElementById("tabelItemAdd");
 
   // Hapus pesan 'Belum ada item' jika ada
-  const emptyRow = tbody.querySelector('td[colspan="3"]');
-  if (emptyRow) {
-    tbody.innerHTML = "";
-  }
+  // Hapus baris "Belum ada item" saja, TIDAK untuk semua td[colspan=3]
+  const emptyRow = tbody.querySelector(".rowEmpty");
+  if (emptyRow) emptyRow.remove();
 
   const tr = document.createElement("tr");
   tr.classList.add("itemRow");

@@ -60,9 +60,13 @@
 
         <div class="col-span-2">
           <label class="block text-xs text-gray-500 mb-1">PIC Name</label>
-          <select id="pic_name" name="pic_name" class="w-full border rounded px-3 py-2 text-sm bg-gray-100" disabled>
-            <option value="">-- Pilih Client Terlebih Dahulu --</option>
-          </select>
+          <div class="relative">
+            <input type="text" id="pic_name" name="pic_name" class="w-full border rounded px-3 py-2 text-sm"
+              placeholder="Ketik nama PIC..." oninput="filterPICSuggestions(this)" autocomplete="off">
+            <ul
+              class="absolute z-20 w-full bg-white border rounded mt-1 text-sm shadow hidden max-h-48 overflow-y-auto">
+            </ul>
+          </div>
         </div>
       </div>
 

@@ -261,12 +261,13 @@ async function loadDetailSales(Id, Detail) {
         div.innerHTML = `
         <div class="flex justify-between items-start">
           <div>
-            <div class="flex justify-between">
-              <span>${dp.dp_number || "DP"}</span>
-              <span class="font-medium text-green-700">${formatNumber(
-                dp.amount || 0
-              )}</span>
-            </div>
+           <div>
+            <span class="block">${dp.dp_number || "DP"}</span>
+            <span class="block font-medium text-green-700 mt-1">
+              ${formatNumber(dp.amount || 0)}
+            </span>
+          </div>
+
             <div class="flex justify-between text-xs text-gray-500 mt-1">
               <span>${dp.description || "-"}</span>
               <span>${dp.status_payment || "Unpaid"}</span>
