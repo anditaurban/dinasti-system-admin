@@ -5,15 +5,12 @@ window.globalVersions = window.globalVersions || [];
 
 async function loadPesananData(pesananId, isDownload = false) {
   showLoading();
-  console.log('Data:',pesananId , isDownload)
+  console.log("Data:", pesananId, isDownload);
 
   try {
-    const response = await fetch(
-      `${baseUrl}/detail/sales_log/${pesananId}`,
-      {
-        headers: { Authorization: `Bearer ${API_TOKEN}` },
-      }
-    );
+    const response = await fetch(`${baseUrl}/detail/sales_log/${pesananId}`, {
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+    });
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -77,7 +74,7 @@ async function fetchSubCategories() {
   }
 }
 
-async function renderInvoice(invoiceData){
+async function renderInvoice(invoiceData) {
   const container = document.getElementById("invoiceContent");
   const isWon =
     invoiceData.status_id == 2 || invoiceData.status_sales === "Won";
@@ -90,16 +87,18 @@ async function renderInvoice(invoiceData){
       ? `${invoiceData.revision_status}`
       : "-";
   const detailTitle = isWon ? "Invoice" : "Quotation";
-          // mapping sub_category name ke item
-  const itemsWithCategory = invoiceData.items.map(item => {
-    const category = subCategories.find(c => c.sub_category_id == item.sub_category_id);
+  // mapping sub_category name ke item
+  const itemsWithCategory = invoiceData.items.map((item) => {
+    const category = subCategories.find(
+      (c) => c.sub_category_id == item.sub_category_id
+    );
     return {
       ...item,
-      categoryName: category ? category.nama : 'Lainnya'
+      categoryName: category ? category.nama : "Lainnya",
     };
   });
 
-        // grouping by sub_category
+  // grouping by sub_category
   const groupedItems = itemsWithCategory.reduce((acc, item) => {
     if (!acc[item.categoryName]) acc[item.categoryName] = [];
     acc[item.categoryName].push(item);
@@ -107,45 +106,67 @@ async function renderInvoice(invoiceData){
   }, {});
   let rowNumber = 1;
   let globalIndex = 1;
-  const tableRows = Object.entries(groupedItems).map(([category, items]) => {
-          return `
+  const tableRows = Object.entries(groupedItems)
+    .map(([category, items]) => {
+      return `
     <tr class="bg-white">
       <td colspan="7" class="p-1 font-bold text-black text-xs border border-black">${category}</td>
     </tr>
-    ${items.map(item => `
+    ${items
+      .map(
+        (item) => `
       <tr class="bg-material italic">
         <td class="text-center text-gray-700 border border-black">${globalIndex++}</td>
         <td colspan="2" class="p-1 text-black border border-black">
-          ${item.product || '-'}
-          ${item.description ? `<div class="text-xs text-gray-500">${item.description}</div>` : ''}
+          ${item.product || "-"}
+          ${
+            item.description
+              ? `<div class="text-xs text-gray-500">${item.description}</div>`
+              : ""
+          }
         </td>
 ${
-      (item.materials && item.materials.length > 0)
-        ? `
+  item.materials && item.materials.length > 0
+    ? `
           <td colspan="4" class="text-center border border-black"></td>
         `
-        : `
+    : `
           <td class="text-center border border-black">${item.qty}</td>
           <td class="text-center border border-black">${item.unit}</td>
-          <td class="text-right border border-black">${finance(item.unit_price)}</td>
-          <td class="text-right font-medium border border-black">${finance(item.total)}</td>
+          <td class="text-right border border-black">${finance(
+            item.unit_price
+          )}</td>
+          <td class="text-right font-medium border border-black">${finance(
+            item.total
+          )}</td>
         `
-    }
+}
       </tr>
-      ${item.materials.map(mat => `
+      ${item.materials
+        .map(
+          (mat) => `
         <tr>
           <td></td>
           <td class="border border-black">${rowNumber++}. ${mat.name}</td>
-          <td class="border border-black">${mat.specification || '-'}</td>
+          <td class="border border-black">${mat.specification || "-"}</td>
           <td class="text-center border border-black">${mat.qty}</td>
           <td class="text-center border border-black">${mat.unit}</td>
-          <td class="text-right border border-black">${finance(mat.unit_price)}</td>
-          <td class="text-right font-medium border border-black">${finance(mat.total)}</td>
+          <td class="text-right border border-black">${finance(
+            mat.unit_price
+          )}</td>
+          <td class="text-right font-medium border border-black">${finance(
+            mat.total
+          )}</td>
         </tr>
-      `).join('')}
-    `).join('')}
+      `
+        )
+        .join("")}
+    `
+      )
+      .join("")}
   `;
-        }).join('');
+    })
+    .join("");
 
   const html = `
 <!-- Header -->
@@ -179,7 +200,9 @@ ${
     <table class="border-collapse text-xs mt-2">
       <tr>
         <td class="px-2 py-1 text-left">DATE</td>
-        <td class="border px-3 py-1 text-center">${invoiceData.tanggal_invoice}</td>
+        <td class="border px-3 py-1 text-center">${
+          invoiceData.tanggal_invoice
+        }</td>
       </tr>
       <tr>
         <td class="px-2 py-1 text-left">NO</td>
@@ -187,7 +210,9 @@ ${
       </tr>
       <tr>
         <td class="px-2 py-1 text-left">REV</td>
-        <td class="border px-3 py-1 text-center">${invoiceData.revision_status}</td>
+        <td class="border px-3 py-1 text-center">${
+          invoiceData.revision_status
+        }</td>
       </tr>
     </table>
   </div>
@@ -207,9 +232,11 @@ ${
 
   <hr class="my-2 border-t border-gray-300" />
 
-  ${invoiceData.project_name 
-    ? `<p class="text-lg font-bold text-gray-800 mt-2">${invoiceData.project_name}</p>` 
-    : ""}
+  ${
+    invoiceData.project_name
+      ? `<p class="text-lg font-bold text-gray-800 mt-2">${invoiceData.project_name}</p>`
+      : ""
+  }
 </div>
 
 </div>
@@ -220,12 +247,18 @@ ${
   <thead class="bg-blue-900">
     <tr class="text-white">
       <th class="text-center w-8 border border-black">No.</th>
-      ${invoiceData.salestype == 3 ? `
+      ${
+        invoiceData.salestype == 3
+          ? `
       <th class="text-center border border-black">DESCRIPTION</th>`
-      : `<th colspan='2' class='text-center border border-black'>DESCRIPTION</th>`}
-      ${invoiceData.salestype == 3 ? `
+          : `<th colspan='2' class='text-center border border-black'>DESCRIPTION</th>`
+      }
+      ${
+        invoiceData.salestype == 3
+          ? `
       <th class="text-center border border-black">SPESIFICATION</th>`
-      : ""}
+          : ""
+      }
       <th class="text-center w-12 border border-black">QTY</th>
       <th class="text-center w-12 border border-black">UNIT</th>
       <th class="text-center w-24 border border-black">UNIT PRICE</th>
@@ -249,23 +282,35 @@ ${
     <div class="px-3 py-2 text-gray-700">
       <p><span class="font-semibold">Terms of Payment :</span></p>
       <p>
-        ${invoiceData.term_pembayaran && invoiceData.term_pembayaran.trim() !== "" && invoiceData.term_pembayaran !== "-" 
-          ? invoiceData.term_pembayaran 
-          : "-"}
+        ${
+          invoiceData.term_pembayaran &&
+          invoiceData.term_pembayaran.trim() !== "" &&
+          invoiceData.term_pembayaran !== "-"
+            ? invoiceData.term_pembayaran
+            : "-"
+        }
       </p>
       <br>
       <p><span class="font-semibold">Terms and Conditions :</span></p>
       <p>
-        ${invoiceData.syarat_ketentuan && invoiceData.syarat_ketentuan.trim() !== "" && invoiceData.syarat_ketentuan !== "-" 
-          ? invoiceData.syarat_ketentuan 
-          : "-"}
+        ${
+          invoiceData.syarat_ketentuan &&
+          invoiceData.syarat_ketentuan.trim() !== "" &&
+          invoiceData.syarat_ketentuan !== "-"
+            ? invoiceData.syarat_ketentuan
+            : "-"
+        }
       </p>
        <br>
       <p><span class="font-semibold">Notes :</span></p>
       <p>
-        ${invoiceData.catatan && invoiceData.catatan.trim() !== "" && invoiceData.catatan !== "-" 
-          ? invoiceData.catatan 
-          : "-"}
+        ${
+          invoiceData.catatan &&
+          invoiceData.catatan.trim() !== "" &&
+          invoiceData.catatan !== "-"
+            ? invoiceData.catatan
+            : "-"
+        }
       </p>
     </div>
   </div>
@@ -275,29 +320,39 @@ ${
     <table class="text-xs w-full">
       <tr>
         <td class="pr-3 py-0.5 text-right font-semibold text-gray-700">SUBTOTAL</td>
-        <td class="py-0.5 text-right text-gray-800">${finance(invoiceData.subtotal)}</td>
+        <td class="py-0.5 text-right text-gray-800">${finance(
+          invoiceData.subtotal
+        )}</td>
       </tr>
       <tr>
         <td class="pr-3 py-0.5 text-right font-semibold text-gray-700">DISC</td>
-        <td class="py-0.5 text-right text-gray-800">${invoiceData.disc ? `${finance(invoiceData.disc)}` : "-"}</td>
+        <td class="py-0.5 text-right text-gray-800">${
+          invoiceData.disc ? `${finance(invoiceData.disc)}` : "-"
+        }</td>
       </tr>
       <tr>
         <td class="pr-3 py-0.5 text-right font-semibold text-gray-700">SHIPPING</td>
-        <td class="py-0.5 text-right text-gray-800">${invoiceData.shipping ? `${finance(invoiceData.shipping)}` : "-"}</td>
+        <td class="py-0.5 text-right text-gray-800">${
+          invoiceData.shipping ? `${finance(invoiceData.shipping)}` : "-"
+        }</td>
       </tr>
       <tr>
         <td class="pr-3 py-0.5 text-right font-semibold text-gray-700">PPN 11%</td>
-        <td class="py-0.5 text-right text-gray-800">${finance(invoiceData.ppn)}</td>
+        <td class="py-0.5 text-right text-gray-800">${finance(
+          invoiceData.ppn
+        )}</td>
       </tr>
       <tr class="font-bold border-t border-gray-300 total-row">
         <td class="pr-3 py-1 text-right text-gray-900">TOTAL</td>
-        <td class="py-1 text-right text-blue-800 bg-blue-100">${finance(invoiceData.total)}</td>
+        <td class="py-1 text-right text-blue-800 bg-blue-100">${finance(
+          invoiceData.total
+        )}</td>
       </tr>
     </table>
   </div>
 </div>
 `;
-container.innerHTML = html;
+  container.innerHTML = html;
 }
 
 function renderVersionHistory(versions) {
@@ -308,7 +363,7 @@ function renderVersionHistory(versions) {
     return;
   }
 
-  console.log('Versi= ', versions);
+  console.log("Versi= ", versions);
 
   versionCount.textContent = versions.length;
 
@@ -331,7 +386,7 @@ function renderVersionHistory(versions) {
                         }</div>
                     </div>
                     ${
-                      index === versions.length - 1
+                      index === 0
                         ? '<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Current</span>'
                         : ""
                     }
@@ -379,5 +434,3 @@ function loadVersionFromList(index) {
     showError(`Failed to load version: ${error.message}`);
   }
 }
-
-
