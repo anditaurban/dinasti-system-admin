@@ -307,6 +307,9 @@ async function loadCustomerList() {
 }
 
 // 2. Fungsi untuk Client Suggestion
+/**
+ * Mencari Client & mengisi dropdown PIC saat dipilih.
+ */
 function filterClientSuggestions(inputElement) {
   const inputVal = inputElement.value.toLowerCase();
   const suggestionBox = inputElement.nextElementSibling;
@@ -315,9 +318,11 @@ function filterClientSuggestions(inputElement) {
 
   clearTimeout(clientDebounceTimer);
 
+  // Jika input kosong, reset PIC
   if (inputVal.length < 1) {
     suggestionBox.innerHTML = "";
     suggestionBox.classList.add("hidden");
+    populatePICDropdown([]); // Kosongkan PIC
     return;
   }
 
@@ -326,7 +331,7 @@ function filterClientSuggestions(inputElement) {
     suggestionBox.classList.remove("hidden");
 
     try {
-      // Panggil API Client
+      // Panggil API Client (yang ada 'contacts'-nya)
       const res = await fetch(
         `${baseUrl}/table/client/${owner_id}/1?search=${inputVal}`,
         { headers: { Authorization: `Bearer ${API_TOKEN}` } }
@@ -348,13 +353,13 @@ function filterClientSuggestions(inputElement) {
 
           // SAAT CLIENT DIKLIK:
           li.addEventListener("click", () => {
-            inputElement.value = clientName;
-            suggestionBox.classList.add("hidden");
+            inputElement.value = clientName; // 1. Isi input Client
+            suggestionBox.classList.add("hidden"); // 2. Sembunyikan box
             document.getElementById("client_id").value =
-              item.pelanggan_id || "";
+              item.pelanggan_id || ""; // 3. Set Client ID
 
-            // ❗️ Kosongkan PIC, karena Client baru dipilih
-            document.getElementById("pic_name").value = "";
+            // 4. Panggil helper untuk mengisi PIC
+            populatePICDropdown(item.contacts || []);
           });
           suggestionBox.appendChild(li);
         });
@@ -466,6 +471,51 @@ function populatePICDropdown(contactsArray) {
     picSelect.innerHTML = `<option value="">-- Tidak ada PIC --</option>`;
     picSelect.disabled = true;
     picSelect.classList.add("bg-gray-100");
+  }
+}
+async function loadPICList(clientId) {
+  const picSelect = document.getElementById("pic_name");
+  if (!picSelect) return;
+
+  // Jika tidak ada clientId (misal data lama), jangan error
+  if (!clientId || clientId === "") {
+    picSelect.innerHTML = `<option value="">-- Client tidak valid --</option>`;
+    picSelect.disabled = true;
+    picSelect.classList.add("bg-gray-100");
+    return;
+  }
+
+  picSelect.innerHTML = `<option value="">Memuat PIC...</option>`;
+  picSelect.disabled = true; // Nonaktifkan sementara loading
+
+  try {
+    // Panggil API /list/contact/ (yang hanya berisi list PIC)
+    const response = await fetch(`${baseUrl}/list/contact/${clientId}`, {
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+    });
+    if (!response.ok) throw new Error("Gagal mengambil data PIC");
+
+    const result = await response.json();
+
+    if (result.listData && result.listData.length > 0) {
+      picSelect.innerHTML = `<option value="">-- Pilih PIC --</option>`;
+      result.listData.forEach((item) => {
+        const option = document.createElement("option");
+        option.value = item.name;
+        option.textContent = item.name;
+        picSelect.appendChild(option);
+      });
+      picSelect.disabled = false;
+      picSelect.classList.remove("bg-gray-100");
+    } else {
+      picSelect.innerHTML = `<option value="">-- Tidak ada PIC --</option>`;
+      picSelect.disabled = true; // Tetap nonaktif jika tidak ada PIC
+      picSelect.classList.add("bg-gray-100");
+    }
+  } catch (error) {
+    console.error("Gagal load PIC list:", error);
+    picSelect.innerHTML = `<option value="">Gagal memuat PIC</option>`;
+    picSelect.disabled = true;
   }
 }
 
@@ -839,7 +889,7 @@ async function loadDetailSales(Id, Detail) {
     await Promise.all([
       // loadCustomerList(), // <-- Dihapus (Benar)
       loadSalesType(),
-      // loadPICList(data.pelanggan_id), // <-- Mengisi dropdown PIC (Benar)
+      loadPICList(data.pelanggan_id), // <-- Mengisi dropdown PIC (Benar)
       loadStatusOptions(),
       populateDropdown("/list/notes/", "catatan", "Pilih Catatan..."),
       populateDropdown(

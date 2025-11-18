@@ -35,6 +35,7 @@ let unitDebounceTimer;
 let picDebounceTimer;
 let clientDebounceTimer;
 
+
 let current_date = formattedDate;
 
 // Function to load JavaScript files dynamically
