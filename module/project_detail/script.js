@@ -1959,56 +1959,144 @@ function showActualCostDetail(korelasiPekerjaan, korelasiMaterial) {
 // FUNGSI BARU: BUKA MODAL KONVERSI KE SALES
 // ===========================================================
 async function openConvertToSalesModal() {
-  // 1. Cek apakah data project sudah ada
+  // 1. Cek Data Project
   if (!projectDetailData) {
     Swal.fire("Error", "Data project belum ter-load penuh.", "error");
     return;
   }
 
-  // 2. Ambil tanggal hari ini untuk default value
-  const today = new Date().toISOString().split("T")[0];
+  // 2. Ambil Nama & ID Customer
+  const customerName =
+    projectDetailData.customer || projectDetailData.client_name || "";
+  let clientId = projectDetailData.pelanggan_id || projectDetailData.client_id;
 
-  // 3. Tampilkan modal
-  const { value: formValues } = await Swal.fire({
-    title: "Buat Quotation",
-    width: "600px",
-    html: `
-      <div class="space-y-3 text-left p-2">
-        <p class="text-sm text-gray-600">
+  if (!customerName && !clientId) {
+    Swal.fire("Error", "Data Client tidak ditemukan.", "error");
+    return;
+  }
+
+  Swal.fire({
+    title: "Memuat Data...",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
+  });
+
+  try {
+    // ---------------------------------------------------------
+    // STEP 1: Cari ID Client jika belum ada (Fallback Search)
+    // ---------------------------------------------------------
+    if (!clientId) {
+      const searchUrl = `${baseUrl}/table/client/${owner_id}/1?search=${encodeURIComponent(
+        customerName
+      )}`;
+      const searchRes = await fetch(searchUrl, {
+        headers: { Authorization: `Bearer ${API_TOKEN}` },
+      });
+      const searchResult = await searchRes.json();
+
+      if (searchResult.tableData && searchResult.tableData.length > 0) {
+        // Ambil yang paling mirip
+        const matched =
+          searchResult.tableData.find((c) => c.nama === customerName) ||
+          searchResult.tableData[0];
+        clientId = matched.pelanggan_id;
+      } else {
+        throw new Error("ID Client tidak ditemukan di database.");
+      }
+    }
+
+    // ---------------------------------------------------------
+    // STEP 2: Ambil Contact (PIC)
+    // ---------------------------------------------------------
+    const contactRes = await fetch(`${baseUrl}/list/contact/${clientId}`, {
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+    });
+    const contactResult = await contactRes.json();
+
+    let contactOptions = '<option value="">-- Pilih PIC --</option>';
+    if (contactResult.listData?.length > 0) {
+      contactResult.listData.forEach((c) => {
+        contactOptions += `<option value="${c.name}">${c.name}</option>`;
+      });
+    } else {
+      contactOptions = '<option value="" disabled>Tidak ada kontak</option>';
+    }
+
+    Swal.close(); // Tutup loading
+
+    // ---------------------------------------------------------
+    // STEP 3: Tampilkan Modal Input
+    // ---------------------------------------------------------
+    const today = new Date().toISOString().split("T")[0];
+
+    const { value: formValues } = await Swal.fire({
+      title: "Buat Quotation",
+      width: "600px",
+      // Pastikan ID di sini unik dan tidak typo
+      html: `
+        <div class="text-left p-2 space-y-4">
+          <p class="text-sm text-gray-600">
           Ini akan mengonversi data project costing saat ini menjadi
           Quotation baru.
         </p>
-        <div>
-          <label class="block text-sm text-gray-600 mb-1">Tanggal Order</label>
-          <input type="date" id="sales_order_date" class="w-full border rounded px-3 py-2" value="${today}">
-        </div>
-        <div>
-          <label class="block text-sm text-gray-600 mb-1">Nama PIC</label>
-          <input type="text" id="sales_pic_name" class="w-full border rounded px-3 py-2" 
-            placeholder="Masukkan nama PIC Client">
-        </div>
-      </div>
-    `,
-    focusConfirm: false,
-    showCancelButton: true,
-    confirmButtonText: "Simpan Sales Order",
-    cancelButtonText: "Batal",
-    preConfirm: () => {
-      // 4. Ambil dan Validasi data modal
-      const order_date = document.getElementById("sales_order_date").value;
-      const pic_name = document.getElementById("sales_pic_name").value;
+          
+          <input type="hidden" id="swal_client_id" value="${clientId}">
 
-      if (!order_date || !pic_name) {
-        Swal.showValidationMessage("Tanggal Order dan Nama PIC wajib diisi.");
-        return false;
-      }
-      return { order_date, pic_name };
-    },
-  });
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">TANGGAL ORDER</label>
+            <input type="date" id="swal_order_date" class="w-full border p-2 rounded" value="${today}">
+          </div>
 
-  // 5. Jika user klik "Simpan" dan validasi lolos
-  if (formValues) {
-    await handleSaveConvertToSales(formValues);
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">NAMA PIC</label>
+            <select id="swal_pic_name" class="w-full border p-2 rounded bg-white">
+              ${contactOptions}
+            </select>
+          </div>
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: "Simpan Sales Order",
+      preConfirm: () => {
+        // Ambil value berdasarkan ID yang kita buat di html string di atas
+        const orderDateEl = document.getElementById("swal_order_date");
+        const picNameEl = document.getElementById("swal_pic_name");
+        const clientIdEl = document.getElementById("swal_client_id");
+
+        // Validasi elemen null (Jaga-jaga)
+        if (!orderDateEl || !picNameEl || !clientIdEl) {
+          Swal.showValidationMessage("Terjadi kesalahan render form.");
+          return false;
+        }
+
+        const order_date = orderDateEl.value;
+        const pic_name = picNameEl.value;
+        const final_client_id = clientIdEl.value;
+
+        if (!order_date) {
+          Swal.showValidationMessage("Tanggal Order wajib diisi.");
+          return false;
+        }
+        if (!pic_name) {
+          Swal.showValidationMessage("Pilih PIC Name.");
+          return false;
+        }
+
+        // Return object untuk diproses selanjutnya
+        return { order_date, pic_name, final_client_id };
+      },
+    });
+
+    // ---------------------------------------------------------
+    // STEP 4: Eksekusi Simpan jika user klik OK
+    // ---------------------------------------------------------
+    if (formValues) {
+      await handleSaveConvertToSales(formValues);
+    }
+  } catch (err) {
+    console.error(err);
+    Swal.fire("Error", err.message || "Gagal memproses data client.", "error");
   }
 }
 
@@ -2019,69 +2107,61 @@ async function openConvertToSalesModal() {
 // FUNGSI SIMPAN KONVERSI KE API (PERBAIKAN FINAL)
 // ===========================================================
 async function handleSaveConvertToSales(formData) {
-  // formData berisi: { order_date: "...", pic_name: "..." }
+  // formData berisi: { order_date, pic_name, final_client_id }
 
   Swal.fire({
     title: "Menyimpan...",
-    text: "Mengonversi project menjadi sales order...",
+    text: "Mengirim data ke Sales Order...",
     allowOutsideClick: false,
     didOpen: () => Swal.showLoading(),
   });
 
   try {
-    // 1. Transformasi data 'items' dan 'materials'
-    // (Kode ini sudah benar dan tidak diubah)
+    // 1. Mapping Items sesuai format endpoint JSON Anda
     const transformedItems = projectDetailData.items.map((item) => {
-      const transformedMaterials = item.materials.map((mat) => {
-        return {
-          subItemMaterial: mat.name,
-          subItemSpec: mat.specification,
-          subItemQty: mat.qty,
-          subItemHpp: mat.hpp || 0,
-          subItemMarkupNominal: mat.markup_nominal || 0,
-          subItemMarkupPercent: mat.markup_percent || 0,
-          subItemUnit: mat.unit,
-          subItemHarga: mat.unit_price,
-        };
-      });
+      // Mapping Materials
+      const materials = (item.materials || []).map((mat) => ({
+        subItemMaterial: mat.name || "",
+        subItemSpec: mat.specification || "",
+        subItemQty: parseInt(mat.qty) || 0,
+        subItemHpp: parseFormattedNumber(mat.hpp) || 0,
+        subItemMarkupNominal: parseFormattedNumber(mat.markup_nominal) || 0,
+        subItemMarkupPercent: parseFloat(mat.markup_percent) || 0,
+        subItemUnit: mat.unit || "pcs",
+        subItemHarga: parseFormattedNumber(mat.unit_price) || 0,
+      }));
 
+      // Mapping Item Utama
       return {
-        product: item.product,
-        sub_category_id: item.sub_category_id,
-        description: item.description,
-        qty: item.qty,
-        hpp: item.hpp || 0,
-        markup_nominal: item.markup_nominal || 0,
-        markup_percent: item.markup_percent || 0,
-        unit: item.unit,
-        unit_price: item.unit_price,
-        materials: transformedMaterials,
+        product: item.product || "",
+        sub_category_id: parseInt(item.sub_category_id) || 0,
+        description: item.description || "",
+        qty: parseInt(item.qty) || 1,
+        hpp: parseFormattedNumber(item.hpp) || 0,
+        markup_nominal: parseFormattedNumber(item.markup_nominal) || 0,
+        markup_percent: parseFloat(item.markup_percent) || 0,
+        unit: item.unit || "unit",
+        unit_price: parseFormattedNumber(item.unit_price) || 0,
+        materials: materials, // Array materials dimasukkan di sini
       };
     });
 
-    const selectedPelangganId = parseInt(
-      document.getElementById("add_client").value || 0
-    );
-
-    if (selectedPelangganId === 0) {
-      throw new Error(
-        "Client tidak valid. Pastikan dropdown Client sudah terisi dengan benar."
-      );
-    }
-
+    // 2. Siapkan Payload Akhir
     const payload = {
       owner_id: user.owner_id,
       user_id: user.user_id,
-      project_id: projectDetailData.project_id,
-      type_id: projectDetailData.type_id,
-      pelanggan_id: selectedPelangganId, // <-- MENGGUNAKAN NILAI DARI DROPDOWN
-      pic_name: formData.pic_name, // Dari modal
-      order_date: formData.order_date, // Dari modal
+      project_id: parseInt(projectDetailData.project_id),
+      type_id: parseInt(projectDetailData.type_id),
+
+      // GUNAKAN ID DARI MODAL, BUKAN DARI DOM FORM ADD
+      pelanggan_id: parseInt(formData.final_client_id),
+
+      pic_name: formData.pic_name,
+      order_date: formData.order_date,
       items: transformedItems,
     };
-    // ⬆️ ⬆️ BATAS PERBAIKAN ⬆️ ⬆️
 
-    console.log("Payload SIAP KIRIM:", JSON.stringify(payload, null, 2));
+    console.log("Payload Sent:", JSON.stringify(payload, null, 2));
 
     // 3. Kirim ke API
     const res = await fetch(`${baseUrl}/add/project_sales`, {
@@ -2094,29 +2174,36 @@ async function handleSaveConvertToSales(formData) {
     });
 
     const result = await res.json();
+
     if (!res.ok) {
       throw new Error(result.message || "Gagal menyimpan Sales Order.");
     }
 
-    // 4. Pola Sukses
+    // 4. Sukses
     await Swal.fire({
       icon: "success",
-      title: "Berhasil",
-      text: result.message || "Project berhasil dikonversi.",
+      title: "Berhasil!",
+      text: "Project berhasil dikonversi menjadi Sales Order.",
     });
 
-    // 5. Refresh halaman
-    sessionStorage.setItem("projectMode", "view");
+    // Refresh halaman untuk melihat update status (jika ada)
     loadDetailSales(window.detail_id, window.detail_desc);
   } catch (err) {
-    // 6. Pola Error
-    console.error("Gagal konversi ke sales:", err);
+    console.error("Gagal convert:", err);
     await Swal.fire({
       icon: "error",
       title: "Gagal",
       text: err.message,
     });
   }
+}
+
+// Helper kecil jika belum ada
+function parseFormattedNumber(val) {
+  if (!val) return 0;
+  // Hapus format ribuan (titik) dan ganti koma jadi titik desimal jika perlu, atau ambil angka murni
+  // Sesuaikan dengan format angka di database/frontend Anda
+  return parseFloat(String(val).replace(/\./g, "").replace(/,/g, ".")) || 0;
 }
 // ================================================================
 // EVENT LISTENER GLOBAL
