@@ -10,7 +10,9 @@ if (window.detail_id && window.detail_desc) {
   // const downloadBtn = document.getElementById('downloadBtn');
   // downloadBtn?.classList.add("hidden");
   loadDetailSales(window.detail_id, window.detail_desc);
+  // ✅ GANTI DENGAN BLOK INI
 } else {
+  // Bagian ini tetap sama
   setTodayDate();
   populateDropdown("/list/notes/", "catatan", "Pilih Catatan...");
   populateDropdown(
@@ -29,12 +31,29 @@ if (window.detail_id && window.detail_desc) {
   loadStatusOptions();
 
   document.getElementById("status").value = "Draft";
-  document
-    .getElementById("tanggal")
-    .addEventListener("change", tryGenerateNoQtn);
-  document
-    .getElementById("type_id")
-    .addEventListener("change", tryGenerateNoQtn);
+
+  // --- 💡 VALIDASI BARU DITAMBAHKAN DI SINI ---
+
+  // 1. Ambil elemen-elemen terkait
+  const tanggalInput = document.getElementById("tanggal");
+  const typeSelect = document.getElementById("type_id");
+  const picInput = document.getElementById("pic_name"); // Ambil input PIC
+
+  // 2. Tambahkan listener untuk generate No QTN (ini sudah ada)
+  tanggalInput.addEventListener("change", tryGenerateNoQtn);
+  typeSelect.addEventListener("change", tryGenerateNoQtn);
+
+  // 3. Tambahkan listener untuk update visibilitas tombol
+  // Panggil saat Tipe berubah
+  typeSelect.addEventListener("change", updateButtonVisibility);
+  // Panggil saat PIC berubah (event 'input' menangkap ketikan atau perubahan value)
+  picInput.addEventListener("input", updateButtonVisibility);
+
+  // 4. Panggil sekali saat halaman load (mode create)
+  // Ini akan langsung menyembunyikan tombol "Tambah Item" dan "Simpan"
+  updateButtonVisibility();
+
+  // --- Akhir Validasi Baru ---
 }
 
 // document.getElementById("tanggal").addEventListener("change", tryGenerateNoQtn);
@@ -1485,3 +1504,40 @@ async function populateDropdown(endpoint, selectElementId, placeholder) {
 //     "Pilih Term of Payment..."
 //   );
 // });
+// 💡 GANTI FUNGSI toggleTambahItemBtn LAMA ANDA DENGAN FUNGSI INI
+/**
+ * Memeriksa apakah Tipe dan PIC sudah diisi,
+ * lalu menampilkan/menyembunyikan tombol "Tambah Item" dan "Simpan".
+ */
+function updateButtonVisibility() {
+  // 1. Ambil elemen yang relevan
+  const typeSelect = document.getElementById("type_id");
+  const picInput = document.getElementById("pic_name");
+
+  const tambahBtn = document.getElementById("tambahItembtn");
+  const simpanBtn = document.getElementById("simpanBtn"); // Tombol "Simpan" (mode create)
+
+  // 2. Cek kondisi
+  const typeIsValid = typeSelect.value !== "" && typeSelect.value !== "0";
+  // Cek apakah PIC input tidak kosong (setelah diisi dari suggestion/select)
+  const picIsValid = picInput.value.trim() !== "";
+
+  // 3. Atur visibilitas Tombol "Tambah Item"
+  if (tambahBtn) {
+    if (typeIsValid && picIsValid) {
+      tambahBtn.classList.remove("hidden");
+    } else {
+      tambahBtn.classList.add("hidden");
+    }
+  }
+
+  // 4. Atur visibilitas Tombol "Simpan" (hanya jika ada, di mode create)
+  if (simpanBtn) {
+    // Tombol simpan juga memerlukan Tipe dan PIC
+    if (typeIsValid && picIsValid) {
+      simpanBtn.classList.remove("hidden");
+    } else {
+      simpanBtn.classList.add("hidden");
+    }
+  }
+}
