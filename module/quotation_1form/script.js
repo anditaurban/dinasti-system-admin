@@ -839,7 +839,7 @@ async function loadDetailSales(Id, Detail) {
     await Promise.all([
       // loadCustomerList(), // <-- Dihapus (Benar)
       loadSalesType(),
-      loadPICList(data.pelanggan_id), // <-- Mengisi dropdown PIC (Benar)
+      // loadPICList(data.pelanggan_id), // <-- Mengisi dropdown PIC (Benar)
       loadStatusOptions(),
       populateDropdown("/list/notes/", "catatan", "Pilih Catatan..."),
       populateDropdown(
