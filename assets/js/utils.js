@@ -323,3 +323,10 @@ document.querySelectorAll(".formatNumber").forEach((input) => {
     e.target.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   });
 });
+
+function parseRupiah(v) {
+  return parseInt(String(v).replace(/[^\d]/g, "") || 0);
+}
+function finance(x) {
+  return x ? x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : "0";
+}

@@ -35,7 +35,6 @@ let unitDebounceTimer;
 let picDebounceTimer;
 let clientDebounceTimer;
 
-
 let current_date = formattedDate;
 
 // Function to load JavaScript files dynamically
@@ -220,6 +219,7 @@ async function loadModuleContent(module, Id, Detail) {
     setActiveMenu(module);
     currentDataSearch = "";
 
+    // 1. Load HTML
     const htmlResponse = await fetch(
       `./module/${module}/data.html?v=${Date.now()}`
     );
@@ -230,66 +230,59 @@ async function loadModuleContent(module, Id, Detail) {
     const htmlContent = await htmlResponse.text();
     document.getElementById("content").innerHTML = htmlContent;
 
-    // Simpan ke variabel global biar bisa dipakai di script.js
-    if (htmlContent.trim() !== "") {
-      window.detail_id = Id || null;
-      window.detail_desc = Detail || null;
-    }
+    // 2. Set Global Variables (PENTING: Sebelum load script)
+    // Pastikan nilai null jika undefined
+    window.detail_id = Id || null;
+    window.detail_desc = Detail || null;
 
-    // Hapus script sebelumnya
+    // Debugging: Cek apakah ID terbaca
+    console.log(
+      `Loading Module: ${module}, ID: ${window.detail_id}, Desc: ${window.detail_desc}`
+    );
+
+    // 3. Hapus script lama
     if (currentScript) {
       document.body.removeChild(currentScript);
+      currentScript = null; // Reset variable
     }
 
-    // Load script baru
+    // 4. Load Script Baru
     await new Promise((resolve, reject) => {
       currentScript = document.createElement("script");
       currentScript.src = `./module/${module}/script.js?v=${Date.now()}`;
-      currentScript.onload = () => {
-        // console.log(`Script ${module} loaded successfully.`);
 
-        if (module === "project_detail") {
-          if (typeof loadDetailProject === "function") {
-            loadDetailProject(Id, Detail);
-          } else {
-            console.warn("loadDetailProject belum terdefinisi.");
-          }
-        }
-        if (module === "invoice_detail") {
-          if (typeof loadDetailSales === "function") {
-            loadDetailSales(Id, Detail);
-          } else {
-            console.warn("loadDetailSales belum terdefinisi.");
-          }
-        }
-        if (module === "invoice_detail_turnkey") {
-          if (typeof loadDetailSalesTurnKey === "function") {
-            loadDetailSalesTurnKey(Id, Detail);
-          } else {
-            console.warn("loadDetailSalesTurnKey belum terdefinisi.");
-          }
-        }
-        if (module === "quotation_log_detail") {
-          if (typeof loadPesananData === "function") {
-            loadPesananData(Id);
-          } else {
-            console.warn("loadPesananData belum terdefinisi.");
-          }
-        }
-        if (module === "quotation_log_turnkey") {
-          if (typeof loadPesananData === "function") {
-            loadPesananData(Id);
-          } else {
-            console.warn("loadPesananData belum terdefinisi.");
-          }
+      currentScript.onload = () => {
+        // Karena modul baru menggunakan IIFE (Self-Executing),
+        // kita TIDAK PERLU memanggil fungsi init secara manual di sini.
+        // Script akan otomatis jalan setelah di-load.
+
+        // Logika legacy untuk modul LAMA (Invoice, Quotation Log) biarkan saja
+        if (
+          module === "invoice_detail" &&
+          typeof loadDetailSales === "function"
+        ) {
+          loadDetailSales(Id, Detail);
+        } else if (
+          module === "invoice_detail_turnkey" &&
+          typeof loadDetailSalesTurnKey === "function"
+        ) {
+          loadDetailSalesTurnKey(Id, Detail);
+        } else if (
+          (module === "quotation_log_detail" ||
+            module === "quotation_log_turnkey") &&
+          typeof loadPesananData === "function"
+        ) {
+          loadPesananData(Id);
         }
 
         resolve();
       };
+
       currentScript.onerror = () => {
         console.error(`Gagal memuat script: ${module}`);
         reject();
       };
+
       document.body.appendChild(currentScript);
     });
   } catch (error) {

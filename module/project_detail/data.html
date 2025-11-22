@@ -1,312 +1,97 @@
 <div class="bg-white p-6 rounded-lg shadow">
-  <section class="space-y-6">
-
-    <div class="flex flex-wrap items-start justify-between mb-4 gap-4">
-      <div>
-        <h1 id="pageTitle" class="text-2xl font-bold mb-1"></h1>
-        <nav id="breadcrumb" class="text-gray-500 text-sm flex items-center flex-wrap gap-1"></nav>
-      </div>
+  <div class="flex flex-wrap items-start justify-between mb-4 gap-4">
+    <div>
+      <h1 id="pageTitle" class="text-2xl font-bold mb-1"></h1>
+      <nav id="breadcrumb" class="text-gray-500 text-sm flex items-center flex-wrap gap-1"></nav>
     </div>
+  </div>
 
-    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 text-sm">
-      <div class="w-full md:w-auto">
-        <span class="text-lg font-semibold" id="projectNameDisplay"></span>
-      </div>
-      <div class="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto">
-        <!-- <button id="downloadBtn" onclick="printInvoice(detail_id)"
-          class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded text-sm">
-          📄 Download PDF
-        </button> -->
-        <button onclick="loadModuleContent('project')" class="bg-gray-300 text-sm px-4 py-2 rounded">
-          ⬅️ Back
-        </button>
-      </div>
+  <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 text-sm mb-6 border-b pb-4">
+    <div class="w-full md:w-auto">
+      <h1 class="text-xl font-bold text-gray-800"><span id="projectNameDisplay">Loading...</span></h1>
     </div>
-
-    <div class="flex border-b mb-4">
-      <button id="tab1Btn" class="px-4 py-2 font-semibold border-b-2 border-blue-600 text-blue-600 focus:outline-none">
-        Costing
-      </button>
-      <button id="tab2Btn" class="px-4 py-2 font-semibold text-gray-500 hover:text-gray-700 focus:outline-none">
-        Real Calculation
+    <div class="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto">
+      <button onclick="loadModuleContent('project')"
+        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium text-sm px-4 py-2 rounded transition flex items-center gap-2">
+        ⬅️ Back
       </button>
     </div>
+  </div>
 
-    <div id="tab1" class="tab-content space-y-6">
+  <div class="flex gap-2 border-b mb-6">
+    <button onclick="loadModuleContent('project_detail', window.detail_id, window.detail_desc)" class="px-4 py-2 font-semibold transition hover:text-gray-700
+            ${pagemodule === 'Project Costing' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}">
+      📊 Costing Overview
+    </button>
 
-      <div id="addProjectForm" class="hidden space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <label class="block text-xs text-gray-500 mb-1">Project Name</label>
-            <input type="text" id="add_project_name" class="w-full border rounded px-3 py-2 text-sm"
-              placeholder="Nama Project">
-          </div>
-          <div>
-            <label class="block text-xs text-gray-500 mb-1">Client</label>
-            <select id="add_client" class="w-full border px-3 py-2 rounded text-sm">
-              <option value="">-- Pilih Client --</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs text-gray-500 mb-1">Start Date</label>
-            <input type="date" id="add_tanggal" class="w-full border px-3 py-2 rounded text-sm" />
-          </div>
-          <div>
-            <label class="block text-xs text-gray-500 mb-1">Finish Date</label>
-            <input type="date" id="add_finish_date" class="w-full border px-3 py-2 rounded text-sm" />
-          </div>
-          <div>
-            <label class="block text-xs text-gray-500 mb-1">Tipe Project</label>
-            <select id="add_type_id" class="w-full border px-3 py-2 rounded text-sm" onchange="toggleTambahItemBtn()">
-              <option value="">Pilih Tipe</option>
-            </select>
-          </div>
+    <button onclick="loadModuleContent('project_actual', window.detail_id, window.detail_desc)" class="px-4 py-2 font-semibold transition hover:text-gray-700
+            ${subpagemodule === 'Real Calculation' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}">
+      💰 Real Calculation
+    </button>
 
-          <div>
-            <label class="block text-xs text-gray-500 mb-1">Project Manager</label>
-            <select id="add_project_manager" class="w-full border px-3 py-2 rounded text-sm">
-              <option value="">-- Pilih PM --</option>
-            </select>
-          </div>
-        </div>
-      </div>
+    <button onclick="loadModuleContent('project_purchase', window.detail_id, window.detail_desc)"
+      class="px-4 py-2 font-semibold transition hover:text-gray-700 text-gray-500">
+      💳 Purchase
+    </button>
+  </div>
 
-      <div id="viewProjectCards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white rounded-xl shadow p-5">
-          <span class="font-semibold">Project Value</span>
-          <div id="projectAmount" class="text-2xl text-right font-bold tracking-wider mb-3">---</div>
-        </div>
-        <div class="bg-white rounded-xl shadow p-5">
-          <span class="font-semibold">Plan Costing</span>
-          <div id="plan_costing" class="text-2xl text-right font-bold text-gray-800 mb-3">---</div>
-        </div>
-        <div class="bg-white rounded-xl shadow p-5">
-          <span class="font-semibold">Actual Costing</span>
-          <div id="actual_costing" class="text-2xl text-right font-bold text-gray-800 mb-3">---</div>
-        </div>
-        <div class="bg-white rounded-xl shadow p-5">
-          <span class="font-semibold">Margin</span>
-          <div id="margin" class="text-2xl text-right font-bold tracking-wider mb-3">---</div>
-        </div>
-      </div>
-
-      <div class="mt-6 bg-white p-4 rounded-lg shadow border border-gray-200">
-        <h3 class="text-lg font-semibold mb-3 border-b pb-2">Detail Informasi Project</h3>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <span class="text-gray-500 block">NO QO</span>
-            <span id="detailNoQO" class="font-semibold">---</span>
-          </div>
-          <div>
-            <span class="text-gray-500 block">NO INV</span>
-            <span id="detailNoInv" class="font-semibold">---</span>
-          </div>
-          <div>
-            <span class="text-gray-500 block">No PO</span>
-            <span id="detailNoPO" class="font-semibold">---</span>
-          </div>
-          <div>
-            <span class="text-gray-500 block">PIC / PM</span>
-            <span id="detailPIC" class="font-semibold">---</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex justify-between items-center p-2">
-        <div>
-          <button id="addItemBtn" type="button" onclick="tambahItem()"
-            class="hidden bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded shadow-lg">
-            + Tambah Item
-          </button>
-        </div>
-
-        <div class="flex justify-end gap-2">
-          <button id="convertToSalesBtn" onclick="openConvertToSalesModal()"
-            class="hidden bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2 rounded shadow-lg">
-            + Add to Sales
-          </button>
-          <button id="saveAllPlanCostBtn"
-            class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold px-4 py-2 rounded shadow-lg">
-            💾 Update Plan Costing
-          </button>
-
-          <button id="saveNewProjectBtn" onclick="handleSaveNewProject()"
-            class="hidden bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2 rounded shadow-lg">
-            ✅ Simpan Project Baru
-          </button>
-        </div>
-      </div>
-
-      <div id="viewModeContainer">
-        <section>
-          <div class="overflow-auto border rounded">
-            <table class="w-full text-sm">
-              <thead class="bg-gray-100">
-                <tr>
-                  <th class="px-3 py-2 w-[3%] border text-center">No</th>
-                  <th class="px-3 py-2 border text-left">Produk</th>
-                  <th class="px-3 py-2 w-[5%] border text-right">Qty</th>
-                  <th class="px-3 py-2 w-[5%] border text-right">Unit</th>
-                  <th class="px-3 py-2 w-[5%] border text-right">Harga</th>
-                  <th class="px-3 py-2 w-[5%] border text-right">Subtotal</th>
-                  <th class="px-3 py-2 w-[10%] border text-right">Costing</th>
-                  <th class="px-3 py-2 w-[10%] border text-right">Actual</th>
-                </tr>
-              </thead>
-              <tbody id="tabelItemView" class="bg-white"></tbody>
-            </table>
-          </div>
-        </section>
-      </div>
-
-      <div id="addModeContainer" class="hidden">
-        <section>
-          <div class="overflow-auto border rounded">
-            <table class="w-full text-sm">
-              <thead class="bg-gray-100">
-                <tr>
-                  <th class="px-3 py-2 border text-left w-[5%]">No</th>
-                  <th class="px-3 py-2 border text-left">Produk</th>
-                  <th class="px-3 py-2 border text-center w-[10%]">Aksi</th>
-                </tr>
-              </thead>
-              <tbody id="tabelItemAdd" class="bg-white"></tbody>
-            </table>
-          </div>
-        </section>
-      </div>
-
+  <div id="viewProjectCards" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200"><span
+        class="text-gray-500 text-sm font-semibold uppercase">Project Value</span>
+      <div id="projectAmount" class="text-2xl text-right font-bold mt-2">---</div>
     </div>
-    <div id="tab2" class="hidden tab-content space-y-6">
-      <div class="bg-gray-50 p-4 rounded-lg border shadow-sm">
-        <h3 class="text-lg font-semibold mb-3">Input Detail Pengeluaran</h3>
-
-        <form id="realCalcForm" class="grid grid-cols-1 gap-4">
-          <!-- Korelasi -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label for="calcKorelasiPekerjaan" class="block text-sm font-medium text-gray-700">
-                Korelasi Pekerjaan <span class="text-red-500">*</span>
-              </label>
-              <select id="calcKorelasiPekerjaan" name="calcKorelasiPekerjaan" required
-                class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                <option value="">-- Pilih Pekerjaan Dulu --</option>
-              </select>
-            </div>
-
-            <div>
-              <label for="calcKorelasiMaterial" class="block text-sm font-medium text-gray-700">
-                Korelasi Material (Opsional)
-              </label>
-              <select id="calcKorelasiMaterial" name="calcKorelasiMaterial" disabled
-                class="mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                <option value="">-- Pilih Material --</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Produk -->
-          <div>
-            <label for="calcProduct" class="block text-sm font-medium text-gray-700">
-              Product / Item <span class="text-red-500">*</span>
-            </label>
-            <input type="text" id="calcProduct" name="calcProduct" required placeholder="Cth: Semen Tiga Roda"
-              class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" />
-          </div>
-
-          <!-- Notes -->
-          <div>
-            <label for="calcNotes" class="block text-sm font-medium text-gray-700">
-              Notes (Opsional)
-            </label>
-            <textarea id="calcNotes" name="calcNotes" rows="2" placeholder="Cth: Dibeli dari Toko X, DP 50%"
-              class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
-          </div>
-
-          <!-- Harga, Qty, Unit -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-            <div>
-              <label for="calcUnitPrice" class="block text-sm font-medium text-gray-700">
-                Harga Satuan (Rp) <span class="text-red-500">*</span>
-              </label>
-              <input type="text" id="calcUnitPrice" name="calcUnitPrice" required placeholder="200.000"
-                class="formatNumber mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" />
-            </div>
-
-            <div>
-              <label for="calcQty" class="block text-sm font-medium text-gray-700">
-                Qty <span class="text-red-500">*</span>
-              </label>
-              <input type="number" id="calcQty" name="calcQty" required value="1" placeholder="1"
-                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" />
-            </div>
-
-            <div>
-              <label for="calcUnit" class="block text-sm font-medium text-gray-700">
-                Unit <span class="text-red-500">*</span>
-              </label>
-              <div class="relative w-full">
-                <input type="text" id="calcUnit" name="calcUnit" required placeholder="lot"
-                  class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  oninput="filterUnitSuggestions(this)" autocomplete="off" />
-
-                <ul
-                  class="unit-suggestion absolute left-0 right-0 z-10 bg-white border rounded mt-1 text-sm shadow hidden max-h-48 overflow-y-auto">
-                  <!-- Suggestions appear here -->
-                </ul>
-              </div>
-
-            </div>
-          </div>
-
-          <!-- Total & Tombol -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-            <div class="md:col-span-2">
-              <label for="calcHarga" class="block text-sm font-medium text-gray-700">
-                Total Harga (Rp)
-              </label>
-              <input type="text" id="calcHarga" name="calcHarga" readonly placeholder="0"
-                class="formatNumber mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" />
-            </div>
-
-            <div class="flex gap-2">
-              <button type="submit" id="submitCalcFormBtn"
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm transition">
-                + Tambah Data
-              </button>
-              <button id="cancelUpdateBtn" type="button"
-                class="hidden w-full bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm transition">
-                Batal
-              </button>
-            </div>
-          </div>
-        </form>
-
-      </div>
-      <h3 class="text-lg font-semibold mb-3">Real Calculation Details</h3>
-      <div class="overflow-auto border rounded">
-        <table class="w-full text-sm">
-
-          <thead class="bg-gray-100">
-            <tr>
-              <th class="px-3 py-2 border text-left">Korelasi Pekerjaan</th>
-              <th class="px-3 py-2 border text-left">Produk</th>
-              <th class="px-3 py-2 border text-left">Notes</th>
-              <th class="px-3 py-2 border text-right">Unit Price</th>
-              <th class="px-3 py-2 border text-right">Qty</th>
-              <th class="px-3 py-2 border text-right">Unit</th>
-              <th class="px-3 py-2 border text-right">Total Harga</th>
-              <th class="px-3 py-2 border text-center w-[100px]">Action</th>
-            </tr>
-          </thead>
-
-          <tbody id="realCalcBody" class="bg-white">
-            <tr>
-              <td colspan="8" class="text-center italic text-gray-500 py-3">Belum ada data</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200"><span
+        class="text-gray-500 text-sm font-semibold uppercase">Plan Costing</span>
+      <div id="plan_costing" class="text-2xl text-right font-bold text-gray-800 mt-2">---</div>
     </div>
-  </section>
+    <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200"><span
+        class="text-gray-500 text-sm font-semibold uppercase">Actual Costing</span>
+      <div id="actual_costing" class="text-2xl text-right font-bold mt-2">---</div>
+    </div>
+    <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200"><span
+        class="text-gray-500 text-sm font-semibold uppercase">Margin</span>
+      <div id="margin" class="text-2xl text-right font-bold mt-2">---</div>
+    </div>
+  </div>
+
+  <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6 text-sm">
+    <h3 class="font-semibold mb-3 border-b pb-2">Informasi Project</h3>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div><span class="block text-xs text-gray-500 uppercase">NO QO</span><span id="detailNoQO"
+          class="font-bold block text-gray-800">---</span></div>
+      <div><span class="block text-xs text-gray-500 uppercase">NO INV</span><span id="detailNoInv"
+          class="font-bold block text-gray-800">---</span></div>
+      <div><span class="block text-xs text-gray-500 uppercase">NO PO</span><span id="detailNoPO"
+          class="font-bold block text-gray-800">---</span></div>
+      <div><span class="block text-xs text-gray-500 uppercase">PIC</span><span id="detailPIC"
+          class="font-bold block text-gray-800">---</span></div>
+    </div>
+  </div>
+
+  <div class="flex justify-end gap-2 mb-4">
+    <!-- <button id="convertToSalesBtn" onclick="openConvertToSalesModal()"
+      class="bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2 rounded shadow hidden transition text-sm">+
+      Jadikan Sales Order</button> -->
+    <button id="saveAllPlanCostBtn"
+      class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold px-4 py-2 rounded shadow transition text-sm">💾
+      Update Plan Costing</button>
+  </div>
+
+  <div class="overflow-auto border rounded">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-100 text-gray-700">
+        <tr>
+          <th class="px-3 py-2 border w-[3%] text-center">No</th>
+          <th class="px-3 py-2 border">Produk</th>
+          <th class="px-3 py-2 border text-right w-[5%]">Qty</th>
+          <th class="px-3 py-2 border text-center w-[5%]">Unit</th>
+          <th class="px-3 py-2 border text-right">Harga</th>
+          <th class="px-3 py-2 border text-right">Subtotal</th>
+          <th class="px-3 py-2 border text-center w-[12%]">Costing</th>
+          <th class="px-3 py-2 border text-center w-[12%]">Actual</th>
+        </tr>
+      </thead>
+      <tbody id="tabelItemView" class="bg-white"></tbody>
+    </table>
+  </div>
 </div>

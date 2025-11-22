@@ -6,7 +6,8 @@ setDataType("project");
 fetchAndUpdateData();
 
 document.getElementById("addButton").addEventListener("click", async () => {
-  setProjectModeAndLoad("add");
+  sessionStorage.setItem("projectMode", "create");
+  loadModuleContent("project_manual");
 });
 function setProjectModeAndLoad(mode, id = null, desc = null) {
   sessionStorage.setItem("projectMode", mode);
@@ -61,36 +62,41 @@ window.rowTemplate = function (item, index, perPage = 10) {
         </span>
 
         <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
-          
-          <button
-            onclick="event.stopPropagation(); setProjectModeAndLoad('view', '${
-              item.project_id
-            }', '${cleanProjectName}');"
-            class="block w-full text-left px-4 py-2 hover:bg-gray-100"
-          >
-            👁️ View Project
-          </button>
 
-          ${
-            // Tampilkan tombol "Update" HANYA jika 'pesanan_id' tidak ada (null, undefined, atau 0)
-            !item.pesanan_id
-              ? `
-          <button
-            onclick="event.stopPropagation(); setProjectModeAndLoad('update', '${item.project_id}', '${cleanProjectName}');"
-            class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600"
-          >
-            ✏️ Update Project
-          </button>
-          `
-              : "" // Jika 'pesanan_id' ada, jangan tampilkan tombol update
-          }
-          <button
-            onclick="handleDelete('${item.project_id}')"
-            class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
-          >
-            🗑 Delete Project
-          </button>
-        </div>
+    <!-- View Project -->
+    <button
+      onclick="event.stopPropagation(); loadModuleContent('project_detail', '${
+        item.project_id
+      }', '${cleanProjectName}')"
+      class="block w-full text-left px-4 py-2 hover:bg-gray-100"
+    >
+      👁️ View Project
+    </button>
+
+    ${
+      !item.pesanan_id
+        ? `
+      <!-- Update Project -->
+      <button
+        onclick="event.stopPropagation(); sessionStorage.setItem('projectMode', 'update'); loadModuleContent('project_manual', '${item.project_id}', '${cleanProjectName}')"
+        class="block w-full text-left px-4 py-2 hover:bg-gray-100"
+      >
+        ✏️ Update Project
+      </button>
+    `
+        : ""
+    }
+
+    <!-- Delete Project -->
+    <button
+      onclick="event.stopPropagation(); handleDelete('${item.project_id}')"
+      class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
+    >
+      🗑 Delete Project
+    </button>
+
+</div>
+
       </td>
     </tr>
   `;
