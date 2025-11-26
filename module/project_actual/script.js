@@ -156,11 +156,9 @@ async function loadActualCostingTable(page) {
 async function handleActualCostSubmit(e) {
   e.preventDefault();
 
-  // 1. Ambil value ID dari Hidden Input (Pastikan logic pemilihan vendor mengisi value ini)
   const valVendorId = document.getElementById("calcVendorId").value || "0";
   const valContactId = document.getElementById("calcContactId").value || "0";
 
-  // Logika cek Material ID
   const matSel = document.getElementById("calcKorelasiMaterial");
   let matId = "0";
   if (!matSel.disabled && matSel.selectedIndex > 0) {
@@ -169,17 +167,16 @@ async function handleActualCostSubmit(e) {
 
   // Persiapan Payload
   const payload = {
-    project_id: projectId.toString(), // Pastikan variable global projectId ada
+    project_id: projectId.toString(),
     project_item_id: document.getElementById("calcKorelasiPekerjaan").value,
     project_materials_id: matId,
-
-    // --- UPDATE DI SINI (Menggunakan ID) ---
-    vendor_id: parseInt(valVendorId), // Mengirim ID Vendor (Int)
-    contact_id: parseInt(valContactId), // Mengirim ID PIC/Contact (Int)
+    vendor_id: parseInt(valVendorId),
+    contact_id: parseInt(valContactId),
     no_po: document.getElementById("calcNoTagihan").value || "",
-    // nama_vendor & nama_pic bisa dihapus jika backend hanya butuh ID,
-    // atau tetap dikirim sebagai pelengkap (opsional).
-    // ---------------------------------------
+
+    // --- TAMBAHAN BARU ---
+    po_date: document.getElementById("calcPoDate").value || "",
+    // ---------------------
 
     name: document.getElementById("calcProduct").value,
     unit: document.getElementById("calcUnit").value,
@@ -191,16 +188,6 @@ async function handleActualCostSubmit(e) {
     notes: document.getElementById("calcNotes").value,
   };
 
-  // 🔍 DEBUGGING
-  console.group("🚀 DEBUG: Submit Actual Cost");
-  console.log("IDs Selected:", {
-    VendorID: payload.vendor_id,
-    ContactID: payload.contact_id,
-  });
-  console.log("Full Payload:", payload);
-  console.groupEnd();
-
-  // Validasi
   if (!payload.project_item_id || !payload.name || !payload.qty) {
     return Swal.fire("Gagal", "Lengkapi data wajib (*)", "warning");
   }
@@ -225,7 +212,7 @@ async function handleActualCostSubmit(e) {
     if (res.ok && json.data?.success !== false) {
       Swal.fire("Berhasil", "Data tersimpan", "success");
       resetCalcForm();
-      // loadActualCostingTable(1); // Uncomment jika ada fungsi ini
+      loadActualCostingTable(1); // Refresh tabel
     } else {
       throw new Error(json.message || "Gagal menyimpan data");
     }
@@ -256,47 +243,38 @@ async function handleDeleteActualCost(id) {
 }
 
 function populateFormForUpdate(id) {
-  // 1. Cari data berdasarkan ID
   const item = realCalculationData.find((d) => d.cost_id == id);
   if (!item) return;
 
   currentUpdateCostId = item.cost_id;
 
-  // --- MAPPING DATA UTAMA ---
   document.getElementById("calcProduct").value = item.cost_name;
   document.getElementById("calcKorelasiPekerjaan").value = item.project_item_id;
-  handlePekerjaanChange(); // Trigger agar dropdown material aktif (jika ada logic disana)
+  handlePekerjaanChange();
 
   document.getElementById("calcNoTagihan").value = item.no_po || "";
 
-  // --- PERBAIKAN VENDOR & PIC DISINI ---
+  // --- TAMBAHAN BARU ---
+  // Pastikan format dari API adalah YYYY-MM-DD agar terbaca oleh input type="date"
+  document.getElementById("calcPoDate").value = item.po_date || "";
+  // ---------------------
 
-  // A. Vendor Name & ID
-  // JSON kamu pakai key "vendor", bukan "nama_vendor"
   document.getElementById("calcNamaVendor").value =
     item.vendor || item.vendor_name || "";
 
   const vId = item.vendor_id || 0;
   document.getElementById("calcVendorId").value = vId;
 
-  // B. Contact (PIC) ID
-  // Ambil contact_id dari JSON
   const cId = item.contact_id || 0;
-  document.getElementById("calcContactId").value = cId; // Isi hidden input PIC
+  document.getElementById("calcContactId").value = cId;
 
-  // C. Load List PIC & Auto Select
   if (vId != 0) {
-    // Panggil fungsi load dengan parameter (VendorID, ContactID)
-    // Kita pakai ContactID (cId) agar dropdown otomatis memilih nama yang sesuai ID tersebut
     loadVendorPICList(vId, cId);
   } else {
     resetPICDropdown();
   }
-  // -------------------------------------
 
-  // Logic Material (mencoba mencocokkan nama cost_name dengan option material)
   const matSel = document.getElementById("calcKorelasiMaterial");
-  // Pastikan matSel tidak disabled agar bisa dibaca options-nya
   if (matSel) {
     const opt = Array.from(matSel.options).find(
       (o) => o.text.trim() === item.cost_name.trim()
@@ -304,14 +282,12 @@ function populateFormForUpdate(id) {
     if (opt) matSel.value = opt.value;
   }
 
-  // Isi sisa form
   document.getElementById("calcNotes").value = item.notes || "";
   document.getElementById("calcQty").value = item.qty;
   document.getElementById("calcUnit").value = item.unit;
   document.getElementById("calcUnitPrice").value = finance(item.unit_price);
   updateFormTotal();
 
-  // Update UI Tombol
   const btn = document.getElementById("submitCalcFormBtn");
   btn.textContent = "Update";
   btn.classList.remove("bg-blue-600", "hover:bg-blue-700");
@@ -321,7 +297,7 @@ function populateFormForUpdate(id) {
 }
 
 function resetCalcForm() {
-  document.getElementById("realCalcForm").reset();
+  document.getElementById("realCalcForm").reset(); // Ini sudah mereset calcPoDate
   currentUpdateCostId = null;
   document.getElementById("calcVendorId").value = "0";
   resetPICDropdown();

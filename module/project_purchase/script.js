@@ -134,21 +134,19 @@ async function loadPurchaseTable(page) {
       data.forEach((d) => {
         tbody.innerHTML += `
             <tr class="border-b hover:bg-gray-50 text-sm">
-                <td class="px-3 py-2 whitespace-nowrap">${
-                  d.transaction_date
-                }</td>
+                <td class="px-3 py-2 whitespace-nowrap">${d.payable_date}</td>
                 <td class="px-3 py-2 whitespace-nowrap">${d.po_date || "-"}</td>
                 <td class="px-3 py-2">${d.no_po || "-"}</td>
                 <td class="px-3 py-2 font-mono text-blue-600">${
-                  d.no_payable || "-"
+                  d.payable_number || "-"
                 }</td>
-                <td class="px-3 py-2">${d.vendor_name || "-"}</td>
-                <td class="px-3 py-2">${d.account_name || "-"}</td>
+                <td class="px-3 py-2">${d.vendor || "-"}</td>
+                <td class="px-3 py-2">${d.vendor_pic || "-"}</td>
                 <td class="px-3 py-2 text-right font-semibold">${finance(
-                  d.amount
+                  d.nominal
                 )}</td>
                 <td class="px-3 py-2 text-xs text-gray-500 max-w-[150px] truncate">${
-                  d.notes || "-"
+                  d.keterangan || "-"
                 }</td>
                 <td class="px-3 py-2 text-center whitespace-nowrap">
                     <button class="edit-btn text-blue-600 mr-2 hover:text-blue-800" data-id="${
@@ -174,39 +172,70 @@ async function loadPurchaseTable(page) {
 
 // --- LOGIC FORM ---
 
+// --- LOGIC FORM ---
+
 function handlePoChange() {
   const selectedNoPo = document.getElementById("purchNoPo").value;
   const elNominal = document.getElementById("purchNominal");
   const elVendorId = document.getElementById("purchVendorId");
-  const elPoDate = document.getElementById("purchPoDate");
   const elInfo = document.getElementById("poInfoText");
 
+  // Reset field jika tidak ada yang dipilih
   if (!selectedNoPo) {
     elNominal.value = "";
+    elNominal.dataset.maxVal = "0"; // Reset batas max
     elVendorId.value = "0";
-    elPoDate.value = "";
     elInfo.textContent = "";
     return;
   }
 
-  // Cari data detail PO dari list yang sudah di-load
+  // Cari data PO dari list
   const poData = poList.find((p) => p.no_po === selectedNoPo);
 
   if (poData) {
-    elNominal.value = finance(poData.total_po || 0);
-    // PENTING: API List PO harus return vendor_id
-    elVendorId.value = poData.vendor_id || 0;
-    elPoDate.value = poData.po_date || ""; // Pastikan format YYYY-MM-DD
+    // 1. Validasi Status Paid / Lunas
+    // Cek jika status tertulis "Paid" ATAU total_tagihan <= 0
+    const sisaTagihan = parseFloat(poData.total_tagihan);
 
+    if (poData.status === "Paid" || sisaTagihan <= 0) {
+      Swal.fire({
+        icon: "warning",
+        title: "PO Sudah Lunas",
+        text: `Nomor PO ${selectedNoPo} sudah lunas (Paid). Tidak dapat menambah pembayaran.`,
+      });
+
+      // Reset dropdown agar user harus memilih ulang
+      document.getElementById("purchNoPo").value = "";
+      elInfo.textContent = "";
+      elNominal.value = "";
+      return;
+    }
+
+    // 2. Isi Data Form
+    elVendorId.value = poData.vendor_id || 0;
+
+    // Set Nominal sesuai sisa TAGIHAN (bukan total PO)
+    elNominal.value = finance(sisaTagihan);
+
+    // Simpan nilai max tagihan di atribut data-max-val untuk validasi submit nanti
+    elNominal.dataset.maxVal = sisaTagihan;
+
+    // Tampilkan Info text
     const vendorName = poData.vendor || "Vendor Tidak Diketahui";
-    elInfo.textContent = `Vendor: ${vendorName}`;
+    elInfo.innerHTML = `Vendor: <b>${vendorName}</b> <br> Sisa Tagihan: Rp ${finance(
+      sisaTagihan
+    )}`;
   }
 }
 
 async function handlePurchaseSubmit(e) {
   e.preventDefault();
 
-  // 1. Validasi Input Dasar
+  const elNominal = document.getElementById("purchNominal");
+  const nominalVal = parseRupiah(elNominal.value);
+  const maxVal = parseFloat(elNominal.dataset.maxVal || 0);
+
+  // --- 1. VALIDASI ---
   if (!document.getElementById("purchAkun").value) {
     return Swal.fire("Gagal", "Silakan pilih Akun Pembayaran", "warning");
   }
@@ -214,10 +243,20 @@ async function handlePurchaseSubmit(e) {
     return Swal.fire("Gagal", "Silakan pilih No PO", "warning");
   }
 
-  // 2. Susun FormData (Sesuai Postman Image)
+  // Validasi Nominal (Hanya jika maxVal > 0)
+  if (maxVal > 0 && nominalVal > maxVal) {
+    return Swal.fire({
+      icon: "error",
+      title: "Nominal Berlebih",
+      text: `Nominal pembayaran (Rp ${finance(
+        nominalVal
+      )}) melebihi sisa tagihan (Rp ${finance(maxVal)}).`,
+    });
+  }
+
+  // --- 2. SUSUN FORMDATA ---
   const formData = new FormData();
 
-  // Field statis/hidden
   formData.append("owner_id", user.owner_id);
   formData.append("user_id", user.user_id);
   formData.append("project_id", projectId);
@@ -225,21 +264,10 @@ async function handlePurchaseSubmit(e) {
     "vendor_id",
     document.getElementById("purchVendorId").value || "0"
   );
-
-  // Field dari Form
   formData.append("akun", document.getElementById("purchAkun").value);
   formData.append("payable_date", document.getElementById("purchDate").value);
-  formData.append("po_date", document.getElementById("purchPoDate").value);
   formData.append("no_po", document.getElementById("purchNoPo").value);
-  const elPayableNumber = document.getElementById("purchPayableNumber");
-  formData.append(
-    "payable_number",
-    elPayableNumber ? elPayableNumber.value : "-"
-  ); // Optional?
-  formData.append(
-    "nominal",
-    parseRupiah(document.getElementById("purchNominal").value)
-  );
+  formData.append("nominal", nominalVal);
   formData.append("keterangan", document.getElementById("purchNotes").value);
 
   // File Upload
@@ -248,47 +276,69 @@ async function handlePurchaseSubmit(e) {
     formData.append("file", fileInput.files[0]);
   }
 
-  // 🔍 DEBUG: Cek isi FormData di Console sebelum dikirim
-  console.group("🚀 Submitting Project Payable");
-  for (var pair of formData.entries()) {
-    console.log(pair[0] + ": " + pair[1]);
-  }
-  console.groupEnd();
-
-  // Tentukan URL & Method
+  // --- 3. TENTUKAN URL & METHOD ---
   const url = currentUpdatePurchId
     ? `${baseUrl}/update/project_payable/${currentUpdatePurchId}`
     : `${baseUrl}/add/project_payable`;
 
-  // Method POST untuk add/update jika menggunakan FormData (biasanya update juga POST di CI/Laravel tertentu untuk handle file, tapi kalau RESTful murni pakai PUT/POST spoofing)
-  // Berdasarkan postman, endpoint add pakai POST.
+  // UBAH DISINI: Jika Update pakai PUT, jika Add pakai POST
+  const method = currentUpdatePurchId ? "PUT" : "POST";
 
   Swal.fire({ title: "Menyimpan...", didOpen: () => Swal.showLoading() });
 
   try {
     const res = await fetch(url, {
-      method: "POST", // Selalu POST untuk FormData (kecuali ada _method PUT)
+      method: method, // Method dinamis
       headers: {
         Authorization: `Bearer ${API_TOKEN}`,
-        // JANGAN set Content-Type: application/json saat pakai FormData!
-        // Browser otomatis set Content-Type: multipart/form-data boundary...
+        // Jangan set Content-Type manual saat pakai FormData!
       },
       body: formData,
     });
 
     const json = await res.json();
 
-    if (res.ok && (json.success || json.response == "200")) {
-      Swal.fire("Berhasil", "Data tersimpan", "success");
+    // --- 4. HANDLE RESPONSE ---
+    // Cek response 201 (Created) atau 200 (OK)
+    if (
+      res.ok &&
+      (json.response == "201" ||
+        json.response == "200" ||
+        json.data?.success === true)
+    ) {
+      const msg = json.data?.message || "Data berhasil disimpan";
+
+      Swal.fire("Berhasil", msg, "success");
       resetForm();
       loadPurchaseTable(1);
     } else {
-      throw new Error(json.message || "Gagal menyimpan data");
+      const errorMsg =
+        json.data?.message || json.message || "Gagal menyimpan data";
+      throw new Error(errorMsg);
     }
   } catch (e) {
     console.error(e);
     Swal.fire("Error", e.message, "error");
   }
+}
+function resetForm() {
+  document.getElementById("purchaseForm").reset();
+  currentUpdatePurchId = null;
+
+  const btn = document.getElementById("submitPurchBtn");
+  btn.textContent = "+ Tambah";
+  btn.classList.replace("bg-green-600", "bg-blue-600");
+
+  document.getElementById("cancelUpdateBtn").classList.add("hidden");
+  document.getElementById("poInfoText").textContent = "";
+  document.getElementById("purchVendorId").value = "0";
+
+  // Reset max value dataset
+  document.getElementById("purchNominal").dataset.maxVal = "0";
+
+  // Set tanggal default lagi
+  const today = new Date().toISOString().split("T")[0];
+  document.getElementById("purchDate").value = today;
 }
 
 async function handleDelete(id) {
@@ -317,29 +367,75 @@ async function handleDelete(id) {
   }
 }
 
-function populateForm(id) {
-  // Ambil data sementara dari tabel (karena endpoint detail belum tentu ada)
-  // Cara yang lebih aman adalah fetch detail by ID jika endpoint tersedia
-  Swal.fire(
-    "Info",
-    "Fitur Edit akan segera hadir (Memerlukan endpoint detail)",
-    "info"
-  );
-}
+async function populateForm(id) {
+  try {
+    // 1. Fetch Detail Data dari API
+    const res = await fetch(`${baseUrl}/detail/project_payable/${id}`, {
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+    });
+    const json = await res.json();
 
-function resetForm() {
-  document.getElementById("purchaseForm").reset();
-  currentUpdatePurchId = null;
+    // Validasi jika data tidak ditemukan atau gagal
+    if (!json.success || !json.data) {
+      throw new Error(json.message || "Gagal memuat detail data");
+    }
 
-  const btn = document.getElementById("submitPurchBtn");
-  btn.textContent = "+ Tambah";
-  btn.classList.replace("bg-green-600", "bg-blue-600");
+    const data = json.data;
 
-  document.getElementById("cancelUpdateBtn").classList.add("hidden");
-  document.getElementById("poInfoText").textContent = "";
-  document.getElementById("purchVendorId").value = "0";
+    // Set Global ID agar sistem tahu ini mode EDIT, bukan ADD
+    currentUpdatePurchId = data.payable_id;
 
-  // Set tanggal default lagi
-  const today = new Date().toISOString().split("T")[0];
-  document.getElementById("purchDate").value = today;
+    // 2. Mapping Data JSON ke Input Form
+
+    // Tanggal Transaksi
+    document.getElementById("purchDate").value = data.payable_date;
+
+    // Akun Pembayaran
+    document.getElementById("purchAkun").value = data.akun_id;
+
+    // Keterangan
+    document.getElementById("purchNotes").value = data.keterangan || "";
+
+    // Hidden Input Vendor ID
+    document.getElementById("purchVendorId").value = data.vendor_id;
+
+    // Dropdown No PO
+    // Pastikan value PO ada di dalam list option.
+    document.getElementById("purchNoPo").value = data.no_po;
+
+    // 3. Handling Nominal & Validasi
+    const elNominal = document.getElementById("purchNominal");
+
+    // Format angka ke format rupiah/finance
+    elNominal.value = finance(data.nominal);
+
+    // PENTING: Update dataset maxVal
+    // Kita set maxVal minimal sebesar nominal saat ini.
+    // Ini bertujuan agar saat klik tombol "Update", validasi "Nominal melebihi sisa tagihan"
+    // tidak memblokir data yang sedang diedit ini.
+    elNominal.dataset.maxVal = data.nominal;
+
+    // 4. Update Info Text Manual (Tanpa trigger event change)
+    // Kita isi manual agar tidak memicu validasi "Status Paid" yang mungkin memblokir form
+    const elInfo = document.getElementById("poInfoText");
+    const vendorName = data.vendor || "Vendor";
+    elInfo.innerHTML = `Vendor: <b>${vendorName}</b> <span class="text-green-600 font-semibold">(Mode Edit)</span>`;
+
+    // 5. Ubah Tampilan Tombol (UI)
+    const btn = document.getElementById("submitPurchBtn");
+    btn.textContent = "Update";
+    btn.classList.remove("bg-blue-600", "hover:bg-blue-700"); // Hapus warna biru
+    btn.classList.add("bg-green-600", "hover:bg-green-700"); // Ganti warna hijau
+
+    // Munculkan tombol Batal
+    document.getElementById("cancelUpdateBtn").classList.remove("hidden");
+
+    // Scroll otomatis ke form agar user melihat data yang terisi
+    document
+      .getElementById("purchaseForm")
+      .scrollIntoView({ behavior: "smooth", block: "center" });
+  } catch (e) {
+    console.error("Error populateForm:", e);
+    Swal.fire("Error", "Gagal memuat data edit: " + e.message, "error");
+  }
 }

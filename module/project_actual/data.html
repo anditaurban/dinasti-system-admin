@@ -40,25 +40,34 @@
     <form id="realCalcForm" class="grid grid-cols-1 gap-4 text-sm">
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div><label class="block mb-1 font-medium">Korelasi Pekerjaan <span class="text-red-500">*</span></label><select
-            id="calcKorelasiPekerjaan" class="w-full border p-2 rounded">
+        <div>
+          <label class="block mb-1 font-medium">Korelasi Pekerjaan <span class="text-red-500">*</span></label>
+          <select id="calcKorelasiPekerjaan" class="w-full border p-2 rounded">
             <option value="">-- Pilih --</option>
-          </select></div>
-        <div><label class="block mb-1 font-medium">Korelasi Material</label><select id="calcKorelasiMaterial"
-            class="w-full border p-2 rounded bg-gray-100" disabled>
+          </select>
+        </div>
+        <div>
+          <label class="block mb-1 font-medium">Korelasi Material</label>
+          <select id="calcKorelasiMaterial" class="w-full border p-2 rounded bg-gray-100" disabled>
             <option value="">-- Pilih --</option>
-          </select></div>
+          </select>
+        </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
           <label class="block mb-1 font-medium">No Tagihan</label>
           <input type="text" id="calcNoTagihan" class="w-full border p-2 rounded" placeholder="INV-XXX">
         </div>
+
+        <div>
+          <label class="block mb-1 font-medium">Tanggal PO</label>
+          <input type="date" id="calcPoDate" class="w-full border p-2 rounded">
+        </div>
         <div>
           <label class="block mb-1 font-medium">Nama Vendor</label>
           <div class="relative">
-            <input type="text" id="calcNamaVendor" class="w-full border p-2 rounded" placeholder="Ketik nama vendor..."
+            <input type="text" id="calcNamaVendor" class="w-full border p-2 rounded" placeholder="Cari vendor..."
               autocomplete="off" oninput="filterVendorSuggestions(this)">
             <ul
               class="absolute z-20 w-full bg-white border rounded mt-1 text-sm shadow hidden max-h-48 overflow-y-auto">
@@ -78,6 +87,7 @@
 
       <div><label class="block mb-1 font-medium">Produk / Item <span class="text-red-500">*</span></label><input
           type="text" id="calcProduct" class="w-full border p-2 rounded" placeholder="Cth: Semen"></div>
+
       <div><label class="block mb-1 font-medium">Notes</label><textarea id="calcNotes" rows="2"
           class="w-full border p-2 rounded"></textarea></div>
 
