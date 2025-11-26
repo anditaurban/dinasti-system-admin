@@ -1,3 +1,4 @@
+// --- SETUP HEADER ---
 pagemodule = "Project";
 subpagemodule = "Real Calculation";
 renderHeader();
@@ -7,61 +8,234 @@ var dataItemDropdown = [];
 var realCalculationData = [];
 var currentUpdateCostId = null;
 
-(async function initActual() {
-  // Fetch project detail dulu
-  const res = await fetch(`${baseUrl}/detail/project/${projectId}`, {
-    headers: { Authorization: `Bearer ${API_TOKEN}` },
-  });
-  const json = await res.json();
-
-  // Set nama project
-  const detail = json.detail || {};
-  const projectText = detail.project_name
-    ? `${detail.project_name} (${detail.project_number || "-"})`
-    : window.detail_desc || "Project";
-
-  document.getElementById("projectNameDisplay").textContent = projectText;
-  if (json.success) {
-    dataItemDropdown = json.detail.items;
-    populatePekerjaanDropdown();
+// --- 1. FUNGSI UTAMA: FETCH & RENDER (DENGAN JEDA 3 DETIK SAAT LOAD AWAL) ---
+async function fetchAndRenderActual(isRefresh = false) {
+  // A. TAMPILKAN LOADING (Hanya jika bukan refresh background)
+  if (!isRefresh) {
+    Swal.fire({
+      title: "Memuat Data...",
+      html: "Mohon tunggu, sedang mengambil data terbaru...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
   }
 
-  loadActualCostingTable(1);
+  try {
+    // B. PROSES PARALEL (Fetch Detail + Fetch Tabel + Timer 3 Detik)
+    const [resDetail, resTable] = await Promise.all([
+      // 1. Fetch Detail Project (Header & Dropdown Item)
+      fetch(`${baseUrl}/detail/project/${projectId}`, {
+        headers: { Authorization: `Bearer ${API_TOKEN}` },
+      }),
+      // 2. Fetch Tabel Actual Costing
+      fetch(`${baseUrl}/table/actual_costing/${projectId}/1`, {
+        headers: { Authorization: `Bearer ${API_TOKEN}` },
+      }),
+      // 3. Timer 3 Detik (Hanya jika bukan refresh diam-diam)
+      new Promise((resolve) => setTimeout(resolve, isRefresh ? 0 : 3000)),
+    ]);
 
-  document
-    .getElementById("realCalcForm")
-    .addEventListener("submit", handleActualCostSubmit);
-  document
-    .getElementById("calcKorelasiPekerjaan")
-    .addEventListener("change", handlePekerjaanChange);
-  document
-    .getElementById("cancelUpdateBtn")
-    .addEventListener("click", resetCalcForm);
+    // C. PROCESS DATA
+    const jsonDetail = await resDetail.json();
+    const jsonTable = await resTable.json();
 
-  document.querySelectorAll(".formatNumber").forEach((i) => {
-    i.addEventListener("input", (e) => {
-      e.target.value = finance(e.target.value.replace(/\D/g, ""));
-      updateFormTotal();
+    // --- RENDER HEADER & DROPDOWN ---
+    const detail = jsonDetail.detail || {};
+    const projectText = detail.project_name
+      ? `${detail.project_name} (${detail.project_number || "-"})`
+      : window.detail_desc || "Project";
+
+    document.getElementById("projectNameDisplay").textContent = projectText;
+
+    if (jsonDetail.success) {
+      dataItemDropdown = jsonDetail.detail.items || [];
+      // Kita hanya populate dropdown jika ini load awal (agar tidak mereset pilihan user jika sedang edit)
+      // Tapi karena ini refresh halaman, kita populate ulang saja untuk data terbaru
+      populatePekerjaanDropdown();
+    }
+
+    // --- RENDER TABEL ---
+    realCalculationData = jsonTable.tableData || [];
+    renderTableHtml(realCalculationData);
+
+    // Tutup Loading hanya jika bukan refresh background
+    if (!isRefresh) Swal.close();
+  } catch (err) {
+    console.error(err);
+    Swal.fire("Error", "Gagal memuat data", "error");
+  }
+}
+
+// Fungsi Render HTML Tabel (Dipisah biar rapi)
+function renderTableHtml(data) {
+  const tbody = document.getElementById("realCalcBody");
+  tbody.innerHTML = "";
+
+  if (data.length) {
+    data.forEach((d) => {
+      tbody.innerHTML += `
+        <tr class="border-b hover:bg-gray-50">
+            <td class="px-3 py-2 font-medium text-gray-700">${d.product}</td>
+            <td class="px-3 py-2">${d.no_po || "-"}</td>
+            <td class="px-3 py-2">${d.vendor || "-"}
+                <div class="text-xs text-gray-400">${d.vendor_pic || ""}</div>
+            </td>
+            <td class="px-3 py-2">${d.cost_name}
+                <div class="text-xs text-gray-400">${d.notes || ""}</div>
+            </td>
+            <td class="px-3 py-2 text-right whitespace-nowrap">${finance(
+              d.unit_price
+            )}</td>
+            <td class="px-3 py-2 text-right whitespace-nowrap">${d.qty} ${
+        d.unit
+      }</td>
+            <td class="px-3 py-2 text-right font-semibold whitespace-nowrap">${finance(
+              d.total
+            )}</td>
+            <td class="px-3 py-2 text-center whitespace-nowrap">
+                <button class="edit-cost-btn text-blue-600 mr-2 hover:text-blue-800" data-cost-id="${
+                  d.cost_id
+                }" type="button">✏️</button>
+                <button class="delete-cost-btn text-red-600 hover:text-red-800" data-cost-id="${
+                  d.cost_id
+                }" type="button">🗑️</button>
+            </td>
+        </tr>
+      `;
     });
-  });
-  document.getElementById("calcQty").addEventListener("input", updateFormTotal);
+  } else {
+    tbody.innerHTML =
+      '<tr><td colspan="9" class="text-center py-4 text-gray-500">Belum ada data</td></tr>';
+  }
+}
 
-  document.getElementById("realCalcBody").addEventListener("click", (e) => {
-    if (e.target.closest(".edit-cost-btn")) {
-      const id = e.target.closest(".edit-cost-btn").dataset.costId;
-      populateFormForUpdate(id);
-    }
-    if (e.target.closest(".delete-cost-btn")) {
-      const id = e.target.closest(".delete-cost-btn").dataset.costId;
-      handleDeleteActualCost(id);
-    }
-  });
-})();
+// --- 2. HANDLE SUBMIT (CREATE / UPDATE) DENGAN JEDA 3 DETIK ---
+async function handleActualCostSubmit(e) {
+  e.preventDefault();
 
-// --- FUNCTIONS ---
+  const valVendorId = document.getElementById("calcVendorId").value || "0";
+  const valContactId = document.getElementById("calcContactId").value || "0";
+
+  const matSel = document.getElementById("calcKorelasiMaterial");
+  let matId = "0";
+  if (!matSel.disabled && matSel.selectedIndex > 0) {
+    matId = matSel.options[matSel.selectedIndex].dataset.matId || "0";
+  }
+
+  // Persiapan Payload
+  const payload = {
+    project_id: projectId.toString(),
+    project_item_id: document.getElementById("calcKorelasiPekerjaan").value,
+    project_materials_id: matId,
+    vendor_id: parseInt(valVendorId),
+    contact_id: parseInt(valContactId),
+    no_po: document.getElementById("calcNoTagihan").value || "",
+    po_date: document.getElementById("calcPoDate").value || "",
+    name: document.getElementById("calcProduct").value,
+    unit: document.getElementById("calcUnit").value,
+    qty: parseRupiah(document.getElementById("calcQty").value).toString(),
+    unit_price: parseRupiah(
+      document.getElementById("calcUnitPrice").value
+    ).toString(),
+    total: parseRupiah(document.getElementById("calcHarga").value).toString(),
+    notes: document.getElementById("calcNotes").value,
+  };
+
+  if (!payload.project_item_id || !payload.name || !payload.qty) {
+    return Swal.fire("Gagal", "Lengkapi data wajib (*)", "warning");
+  }
+
+  const url = currentUpdateCostId
+    ? `${baseUrl}/update/actual_costing/${currentUpdateCostId}`
+    : `${baseUrl}/add/actual_costing`;
+  const method = currentUpdateCostId ? "PUT" : "POST";
+
+  Swal.fire({ title: "Menyimpan...", didOpen: () => Swal.showLoading() });
+
+  try {
+    const res = await fetch(url, {
+      method: method,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const json = await res.json();
+
+    if (res.ok && json.data?.success !== false) {
+      // --- SUKSES DENGAN JEDA 3 DETIK ---
+      await Swal.fire({
+        icon: "success",
+        title: "Berhasil",
+        text: "Data berhasil disimpan. Merefresh tabel...",
+        timer: 1500, // Jeda 3 detik
+        timerProgressBar: true, // Visual bar mundur
+        showConfirmButton: false,
+      });
+
+      resetCalcForm();
+      // Refresh Data (isRefresh = true agar loading full screen tidak muncul lagi)
+      fetchAndRenderActual(true);
+    } else {
+      throw new Error(json.message || "Gagal menyimpan data");
+    }
+  } catch (e) {
+    console.error("Error Fetch:", e);
+    Swal.fire("Error", e.message, "error");
+  }
+}
+
+// --- 3. HANDLE DELETE DENGAN JEDA 3 DETIK ---
+async function handleDeleteActualCost(id) {
+  const c = await Swal.fire({
+    title: "Hapus?",
+    text: "Data yang dihapus tidak bisa dikembalikan",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Ya, Hapus",
+    cancelButtonText: "Batal",
+  });
+
+  if (!c.isConfirmed) return;
+
+  Swal.fire({ title: "Menghapus...", didOpen: () => Swal.showLoading() });
+
+  try {
+    const res = await fetch(`${baseUrl}/delete/actual_costing/${id}`, {
+      method: "PUT", // Sesuai endpoint di kode lama (PUT untuk delete soft delete biasanya)
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+    });
+
+    if (res.ok) {
+      // --- SUKSES DENGAN JEDA 3 DETIK ---
+      await Swal.fire({
+        icon: "success",
+        title: "Terhapus",
+        text: "Data telah dihapus. Merefresh tabel...",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      });
+
+      // Refresh Data
+      fetchAndRenderActual(true);
+    } else {
+      throw new Error("Gagal menghapus data");
+    }
+  } catch (e) {
+    Swal.fire("Error", "Gagal hapus data", "error");
+  }
+}
+
+// --- 4. HELPER FUNCTIONS ---
 
 function populatePekerjaanDropdown() {
   const sel = document.getElementById("calcKorelasiPekerjaan");
+  // Simpan value lama jika ada (untuk case refresh tapi form sedang diisi, opsional)
+  const oldVal = sel.value;
+
   sel.innerHTML = '<option value="">-- Pilih Pekerjaan --</option>';
   dataItemDropdown.forEach((i) => {
     const opt = document.createElement("option");
@@ -69,6 +243,8 @@ function populatePekerjaanDropdown() {
     opt.textContent = i.product;
     sel.appendChild(opt);
   });
+
+  if (oldVal) sel.value = oldVal;
 }
 
 function handlePekerjaanChange() {
@@ -93,171 +269,27 @@ function handlePekerjaanChange() {
   }
 }
 
-async function loadActualCostingTable(page) {
-  const tbody = document.getElementById("realCalcBody");
-  tbody.innerHTML =
-    '<tr><td colspan="9" class="text-center py-4">Memuat...</td></tr>'; // colspan disesuaikan
-  try {
-    const res = await fetch(
-      `${baseUrl}/table/actual_costing/${projectId}/${page}`,
-      { headers: { Authorization: `Bearer ${API_TOKEN}` } }
-    );
-    const json = await res.json();
-    realCalculationData = json.tableData || [];
-    tbody.innerHTML = "";
-    if (realCalculationData.length) {
-      realCalculationData.forEach((d) => {
-        // Menampilkan data No Tagihan & Vendor di tabel
-        tbody.innerHTML += `
-                    <tr class="border-b hover:bg-gray-50">
-                        <td class="px-3 py-2 font-medium text-gray-700">${
-                          d.product
-                        }</td>
-                        <td class="px-3 py-2">${d.no_po || "-"}</td>
-                        <td class="px-3 py-2">${d.vendor || "-"}
-                        <div class="text-xs text-gray-400">${
-                          d.vendor_pic || ""
-                        }</div>
-                        </td>
-                        <td class="px-3 py-2">${d.cost_name}
-                             <div class="text-xs text-gray-400">${
-                               d.notes || ""
-                             }</div>
-                        </td>
-                        <td class="px-3 py-2 text-right whitespace-nowrap">${finance(
-                          d.unit_price
-                        )}</td>
-                        <td class="px-3 py-2 text-right whitespace-nowrap">${
-                          d.qty
-                        } ${d.unit}</td>
-                        <td class="px-3 py-2 text-right font-semibold whitespace-nowrap">${finance(
-                          d.total
-                        )}</td>
-                        <td class="px-3 py-2 text-center whitespace-nowrap">
-                            <button class="edit-cost-btn text-blue-600 mr-2 hover:text-blue-800" data-cost-id="${
-                              d.cost_id
-                            }" type="button">✏️</button>
-                            <button class="delete-cost-btn text-red-600 hover:text-red-800" data-cost-id="${
-                              d.cost_id
-                            }" type="button">🗑️</button>
-                        </td>
-                    </tr>
-                `;
-      });
-    } else {
-      tbody.innerHTML =
-        '<tr><td colspan="9" class="text-center py-4 text-gray-500">Belum ada data</td></tr>';
-    }
-  } catch (e) {
-    console.error(e);
-  }
-}
-
-async function handleActualCostSubmit(e) {
-  e.preventDefault();
-
-  const valVendorId = document.getElementById("calcVendorId").value || "0";
-  const valContactId = document.getElementById("calcContactId").value || "0";
-
-  const matSel = document.getElementById("calcKorelasiMaterial");
-  let matId = "0";
-  if (!matSel.disabled && matSel.selectedIndex > 0) {
-    matId = matSel.options[matSel.selectedIndex].dataset.matId || "0";
-  }
-
-  // Persiapan Payload
-  const payload = {
-    project_id: projectId.toString(),
-    project_item_id: document.getElementById("calcKorelasiPekerjaan").value,
-    project_materials_id: matId,
-    vendor_id: parseInt(valVendorId),
-    contact_id: parseInt(valContactId),
-    no_po: document.getElementById("calcNoTagihan").value || "",
-
-    // --- TAMBAHAN BARU ---
-    po_date: document.getElementById("calcPoDate").value || "",
-    // ---------------------
-
-    name: document.getElementById("calcProduct").value,
-    unit: document.getElementById("calcUnit").value,
-    qty: parseRupiah(document.getElementById("calcQty").value).toString(),
-    unit_price: parseRupiah(
-      document.getElementById("calcUnitPrice").value
-    ).toString(),
-    total: parseRupiah(document.getElementById("calcHarga").value).toString(),
-    notes: document.getElementById("calcNotes").value,
-  };
-
-  if (!payload.project_item_id || !payload.name || !payload.qty) {
-    return Swal.fire("Gagal", "Lengkapi data wajib (*)", "warning");
-  }
-
-  const url = currentUpdateCostId
-    ? `${baseUrl}/update/actual_costing/${currentUpdateCostId}`
-    : `${baseUrl}/add/actual_costing`;
-  const method = currentUpdateCostId ? "PUT" : "POST";
-
-  try {
-    const res = await fetch(url, {
-      method: method,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${API_TOKEN}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const json = await res.json();
-
-    if (res.ok && json.data?.success !== false) {
-      Swal.fire("Berhasil", "Data tersimpan", "success");
-      resetCalcForm();
-      loadActualCostingTable(1); // Refresh tabel
-    } else {
-      throw new Error(json.message || "Gagal menyimpan data");
-    }
-  } catch (e) {
-    console.error("Error Fetch:", e);
-    Swal.fire("Error", e.message, "error");
-  }
-}
-
-async function handleDeleteActualCost(id) {
-  const c = await Swal.fire({
-    title: "Hapus?",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonText: "Ya",
-  });
-  if (!c.isConfirmed) return;
-  try {
-    await fetch(`${baseUrl}/delete/actual_costing/${id}`, {
-      method: "PUT",
-      headers: { Authorization: `Bearer ${API_TOKEN}` },
-    });
-    loadActualCostingTable(1);
-    Swal.fire("Terhapus", "", "success");
-  } catch (e) {
-    Swal.fire("Error", "Gagal hapus", "error");
-  }
-}
-
 function populateFormForUpdate(id) {
   const item = realCalculationData.find((d) => d.cost_id == id);
   if (!item) return;
 
   currentUpdateCostId = item.cost_id;
 
+  // Format Tanggal YYYY-MM-DD
+  let rawDate = item.po_date || "";
+  let finalDate = "";
+  if (rawDate && rawDate.includes("/")) {
+    const parts = rawDate.split("/");
+    if (parts.length === 3) finalDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  if (rawDate === "00/00/0000" || finalDate === "0000-00-00") finalDate = "";
+
   document.getElementById("calcProduct").value = item.cost_name;
   document.getElementById("calcKorelasiPekerjaan").value = item.project_item_id;
-  handlePekerjaanChange();
+  handlePekerjaanChange(); // Trigger untuk isi dropdown material
 
   document.getElementById("calcNoTagihan").value = item.no_po || "";
-
-  // --- TAMBAHAN BARU ---
-  // Pastikan format dari API adalah YYYY-MM-DD agar terbaca oleh input type="date"
-  document.getElementById("calcPoDate").value = item.po_date || "";
-  // ---------------------
+  document.getElementById("calcPoDate").value = finalDate;
 
   document.getElementById("calcNamaVendor").value =
     item.vendor || item.vendor_name || "";
@@ -274,13 +306,18 @@ function populateFormForUpdate(id) {
     resetPICDropdown();
   }
 
-  const matSel = document.getElementById("calcKorelasiMaterial");
-  if (matSel) {
-    const opt = Array.from(matSel.options).find(
-      (o) => o.text.trim() === item.cost_name.trim()
-    );
-    if (opt) matSel.value = opt.value;
-  }
+  // Set Material jika ada
+  setTimeout(() => {
+    const matSel = document.getElementById("calcKorelasiMaterial");
+    if (matSel && !matSel.disabled) {
+      // Cari option yang text-nya sama dengan item.cost_name (karena di DB kadang material name = cost name)
+      // ATAU cari logika yang lebih pas jika ada ID material di data table
+      const opt = Array.from(matSel.options).find(
+        (o) => o.text.trim() === item.cost_name.trim()
+      );
+      if (opt) matSel.value = opt.value;
+    }
+  }, 100); // Delay sedikit agar dropdown material terisi dulu
 
   document.getElementById("calcNotes").value = item.notes || "";
   document.getElementById("calcQty").value = item.qty;
@@ -294,19 +331,27 @@ function populateFormForUpdate(id) {
   btn.classList.add("bg-green-600", "hover:bg-green-700");
 
   document.getElementById("cancelUpdateBtn").classList.remove("hidden");
+
+  // Scroll ke atas form
+  document
+    .getElementById("realCalcForm")
+    .scrollIntoView({ behavior: "smooth" });
 }
 
 function resetCalcForm() {
-  document.getElementById("realCalcForm").reset(); // Ini sudah mereset calcPoDate
+  document.getElementById("realCalcForm").reset();
   currentUpdateCostId = null;
   document.getElementById("calcVendorId").value = "0";
   resetPICDropdown();
   document.getElementById("calcKorelasiMaterial").disabled = true;
   document.getElementById("calcKorelasiMaterial").classList.add("bg-gray-100");
-  document.getElementById("submitCalcFormBtn").textContent = "+ Tambah";
-  document
-    .getElementById("submitCalcFormBtn")
-    .classList.replace("bg-green-600", "bg-blue-600");
+
+  const btn = document.getElementById("submitCalcFormBtn");
+  btn.textContent = "+ Tambah";
+  btn.classList.replace("bg-green-600", "bg-blue-600");
+  btn.classList.remove("hover:bg-green-700");
+  btn.classList.add("hover:bg-blue-700");
+
   document.getElementById("cancelUpdateBtn").classList.add("hidden");
 }
 
@@ -316,23 +361,21 @@ function updateFormTotal() {
   document.getElementById("calcHarga").value = finance(p * q);
 }
 
-/**
- * Mencari Vendor & mengisi dropdown PIC saat dipilih.
- */
+// --- 5. SEARCH VENDOR & UNIT LOGIC ---
+
 function filterVendorSuggestions(inputElement) {
   const inputVal = inputElement.value.toLowerCase();
-  const suggestionBox = inputElement.nextElementSibling; // elemen <ul>
+  const suggestionBox = inputElement.nextElementSibling;
 
   if (!suggestionBox || suggestionBox.tagName !== "UL") return;
 
   clearTimeout(vendorDebounceTimer);
 
-  // Jika input kosong -> Reset Vendor ID & PIC
   if (inputVal.length < 1) {
     suggestionBox.innerHTML = "";
     suggestionBox.classList.add("hidden");
     document.getElementById("calcVendorId").value = "0";
-    document.getElementById("calcContactId").value = "0"; // Reset ID PIC juga
+    document.getElementById("calcContactId").value = "0";
     resetPICDropdown();
     return;
   }
@@ -342,7 +385,6 @@ function filterVendorSuggestions(inputElement) {
     suggestionBox.classList.remove("hidden");
 
     try {
-      // Pastikan endpoint search ini benar
       const res = await fetch(
         `${baseUrl}/table/vendor/${owner_id}/1?search=${inputVal}`,
         { headers: { Authorization: `Bearer ${API_TOKEN}` } }
@@ -353,25 +395,17 @@ function filterVendorSuggestions(inputElement) {
       if (result.tableData && result.tableData.length > 0) {
         result.tableData.forEach((item) => {
           const vendorName = item.nama || item.vendor_name || "N/A";
-          // Pastikan mengambil ID yang benar dari response API
           const vendorId = item.vendor_id || item.id || 0;
 
           const li = document.createElement("li");
           li.innerHTML = `<div class="font-medium">${vendorName}</div>`;
           li.className = "px-3 py-2 hover:bg-gray-200 cursor-pointer";
 
-          // SAAT VENDOR DIKLIK:
           li.addEventListener("click", () => {
-            inputElement.value = vendorName; // Tampilkan Nama di input
-            suggestionBox.classList.add("hidden"); // Tutup saran
-
-            // Simpan ID Vendor ke Hidden Input
+            inputElement.value = vendorName;
+            suggestionBox.classList.add("hidden");
             document.getElementById("calcVendorId").value = vendorId;
-
-            // Reset ID Contact karena Vendor baru dipilih
             document.getElementById("calcContactId").value = "0";
-
-            // Load PIC Vendor berdasarkan ID Vendor
             loadVendorPICList(vendorId);
           });
           suggestionBox.appendChild(li);
@@ -380,22 +414,14 @@ function filterVendorSuggestions(inputElement) {
         suggestionBox.innerHTML = `<li class="px-3 py-2 text-gray-500 italic">Tidak ditemukan</li>`;
       }
     } catch (err) {
-      console.error("Gagal fetch vendor:", err);
-      suggestionBox.innerHTML = `<li class="px-3 py-2 text-red-500 italic">Gagal memuat data</li>`;
+      console.error(err);
+      suggestionBox.innerHTML = `<li class="px-3 py-2 text-red-500 italic">Gagal memuat</li>`;
     }
   }, 300);
 }
-/**
- * Mengambil daftar PIC dari endpoint /list/vendor_contact/{vendor_id}
- */
-/**
- * Mengambil daftar PIC, lalu mengisi dropdown.
- * Param selectedContactId (optional) digunakan saat mode Edit agar otomatis terpilih.
- */
+
 async function loadVendorPICList(vendorId, selectedContactId = 0) {
   const picSelect = document.getElementById("calcNamaPic");
-
-  // Reset & Loading State
   picSelect.innerHTML = '<option value="">Memuat PIC...</option>';
   picSelect.disabled = true;
   picSelect.classList.add("bg-gray-100");
@@ -413,31 +439,21 @@ async function loadVendorPICList(vendorId, selectedContactId = 0) {
     if (result.listData && result.listData.length > 0) {
       result.listData.forEach((contact) => {
         const option = document.createElement("option");
-
-        // --- PERBAIKAN DISINI ---
-        // Value diisi ID (contact_id), Teks diisi Nama
         const cId = contact.contact_id || contact.id;
         option.value = cId;
         option.textContent = contact.name;
-
-        // Auto-select jika ID cocok (untuk fitur Edit nanti)
-        // Kita bandingkan menggunakan loose equality (==) untuk handle string vs int
         if (selectedContactId && cId == selectedContactId) {
           option.selected = true;
-          // Jangan lupa update hidden input jika auto-selected
           document.getElementById("calcContactId").value = cId;
         }
-
         picSelect.appendChild(option);
       });
-
       picSelect.disabled = false;
       picSelect.classList.remove("bg-gray-100");
     } else {
       picSelect.innerHTML = '<option value="">Tidak ada kontak</option>';
     }
   } catch (err) {
-    console.error("Gagal load PIC vendor:", err);
     picSelect.innerHTML = '<option value="">Gagal memuat</option>';
   }
 }
@@ -450,20 +466,86 @@ function resetPICDropdown() {
   document.getElementById("calcContactId").value = "0";
 }
 
-function resetPICDropdown() {
-  const picSelect = document.getElementById("calcNamaPic");
-  picSelect.innerHTML = '<option value="">-- Pilih Vendor Dulu --</option>';
-  picSelect.disabled = true;
-  picSelect.classList.add("bg-gray-100");
+function filterUnitSuggestions(inputElement) {
+  const inputVal = inputElement.value.toLowerCase();
+  const suggestionBox = inputElement.nextElementSibling;
+  if (!suggestionBox) return;
+
+  clearTimeout(unitDebounceTimer);
+  if (inputVal.length < 1) {
+    suggestionBox.innerHTML = "";
+    suggestionBox.classList.add("hidden");
+    return;
+  }
+
+  unitDebounceTimer = setTimeout(async () => {
+    suggestionBox.innerHTML = `<li class="px-3 py-2 text-gray-500 italic">Mencari...</li>`;
+    suggestionBox.classList.remove("hidden");
+    try {
+      const res = await fetch(
+        `${baseUrl}/table/unit/${owner_id}/1?search=${inputVal}`,
+        { headers: { Authorization: `Bearer ${API_TOKEN}` } }
+      );
+      const result = await res.json();
+      suggestionBox.innerHTML = "";
+      if (result.tableData && result.tableData.length > 0) {
+        result.tableData.forEach((item) => {
+          const unitName = item.unit || "N/A";
+          const li = document.createElement("li");
+          li.textContent = unitName;
+          li.className = "px-3 py-2 hover:bg-gray-200 cursor-pointer";
+          li.addEventListener("click", () => {
+            inputElement.value = unitName;
+            suggestionBox.classList.add("hidden");
+          });
+          suggestionBox.appendChild(li);
+        });
+      } else {
+        suggestionBox.innerHTML = `<li class="px-3 py-2 text-gray-500 italic">Tidak ditemukan</li>`;
+      }
+    } catch (err) {
+      suggestionBox.innerHTML = `<li class="px-3 py-2 text-red-500 italic">Error</li>`;
+    }
+  }, 300);
 }
-// Tambahkan kode ini di bagian paling bawah script, atau di dalam document ready
-document.getElementById("calcNamaPic").addEventListener("change", function () {
-  // 1. Ambil ID dari value option yang dipilih
-  const selectedId = this.value;
 
-  // 2. Masukkan ID tersebut ke input hidden yang akan dikirim ke API
-  document.getElementById("calcContactId").value = selectedId;
+// --- 6. EVENT LISTENERS ---
 
-  // Debugging: Cek di console saat ganti PIC
-  console.log("PIC dipilih, ID:", selectedId);
+// Attach listeners
+document
+  .getElementById("realCalcForm")
+  .addEventListener("submit", handleActualCostSubmit);
+document
+  .getElementById("calcKorelasiPekerjaan")
+  .addEventListener("change", handlePekerjaanChange);
+document
+  .getElementById("cancelUpdateBtn")
+  .addEventListener("click", resetCalcForm);
+
+document.querySelectorAll(".formatNumber").forEach((i) => {
+  i.addEventListener("input", (e) => {
+    e.target.value = finance(e.target.value.replace(/\D/g, ""));
+    updateFormTotal();
+  });
 });
+
+document.getElementById("calcQty").addEventListener("input", updateFormTotal);
+
+document.getElementById("realCalcBody").addEventListener("click", (e) => {
+  if (e.target.closest(".edit-cost-btn")) {
+    const id = e.target.closest(".edit-cost-btn").dataset.costId;
+    populateFormForUpdate(id);
+  }
+  if (e.target.closest(".delete-cost-btn")) {
+    const id = e.target.closest(".delete-cost-btn").dataset.costId;
+    handleDeleteActualCost(id);
+  }
+});
+
+document.getElementById("calcNamaPic").addEventListener("change", function () {
+  const selectedId = this.value;
+  document.getElementById("calcContactId").value = selectedId;
+});
+
+// --- 7. START APPLICATION ---
+fetchAndRenderActual(); // Jalankan fungsi utama

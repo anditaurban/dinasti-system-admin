@@ -417,71 +417,110 @@ async function handleSaveConvertToSales(data) {
 
 async function tambahItem(selectedSubCategoryId = "") {
   const tbody = document.getElementById("tabelItemAdd");
-  const emptyRow = tbody.querySelector('td[colspan="3"]');
-  if (emptyRow) tbody.innerHTML = "";
+
+  const typeId = document.getElementById("add_type_id")?.value || "0";
+
+  // --- REVISI DI SINI ---
+  // Kita cek apakah td tersebut benar-benar mengandung teks "Belum ada item"
+  const placeholderTd = tbody.querySelector('td[colspan="3"]');
+  if (placeholderTd && placeholderTd.textContent.includes("Belum ada item")) {
+    tbody.innerHTML = "";
+  }
+  // ---------------------
 
   const tr = document.createElement("tr");
   tr.classList.add("itemRow");
+
+  // Hitung index berdasarkan jumlah row item yang ada
   const index =
     document.querySelectorAll("#tabelItemAdd tr.itemRow").length + 1;
 
   tr.innerHTML = `
-    <td class="border px-3 py-2 w-[5%] align-top">${index}</td>
+    <td class="border px-3 py-2 w-[5%] align-top text-center font-semibold">${index}</td>
     <td class="border px-5 py-2 w-[55%] align-top">
-      <div class="mb-1"><label class="text-xs text-gray-500">Type</label><select class="w-full border rounded px-2 itemSubcategory"></select></div>
-      <div class="mb-1"><label class="text-xs text-gray-500">Product</label><input type="text" class="w-full border rounded px-2 itemProduct" placeholder="Product"></div>
-      <div class="mb-1"><label class="text-xs text-gray-500">Deskripsi</label><textarea class="w-full border rounded px-2 itemDesc" rows="3" placeholder="Deskripsi"></textarea></div>
+      <div class="mb-1">
+        <label class="text-xs text-gray-500 font-bold">Type</label>
+        <select class="w-full border rounded px-2 py-1 itemSubcategory focus:ring-2 focus:ring-blue-500 outline-none transition"></select>
+      </div>
+      <div class="mb-1">
+        <label class="text-xs text-gray-500 font-bold">Product</label>
+        <input type="text" class="w-full border rounded px-2 py-1 itemProduct focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Nama Produk">
+      </div>
+      <div class="mb-1">
+        <label class="text-xs text-gray-500 font-bold">Deskripsi</label>
+        <textarea class="w-full border rounded px-2 py-1 itemDesc focus:ring-2 focus:ring-blue-500 outline-none transition" rows="2" placeholder="Deskripsi"></textarea>
+      </div>
       <div class="grid grid-cols-3 gap-2 my-2">
-        <div><label class="text-xs text-gray-500">HPP (Modal)</label><input type="text" class="w-full border rounded itemHpp finance" value="0" oninput="recalculateHarga(this, 'hpp')"></div>
-        <div><label class="text-xs text-gray-500">Markup (Nominal)</label><input type="text" class="w-full border rounded itemMarkupNominal finance" value="0" oninput="recalculateHarga(this, 'nominal')"></div>
-        <div><label class="text-xs text-gray-500">Markup (%)</label><input type="number" class="w-full border rounded itemMarkupPersen" value="0" oninput="recalculateHarga(this, 'persen')"></div>
+        <div><label class="text-xs text-gray-500">HPP (Modal)</label><input type="text" class="w-full border rounded px-2 py-1 itemHpp finance" value="0" oninput="recalculateHarga(this, 'hpp')"></div>
+        <div><label class="text-xs text-gray-500">Markup (Rp)</label><input type="text" class="w-full border rounded px-2 py-1 itemMarkupNominal finance" value="0" oninput="recalculateHarga(this, 'nominal')"></div>
+        <div><label class="text-xs text-gray-500">Markup (%)</label><input type="number" class="w-full border rounded px-2 py-1 itemMarkupPersen" value="0" oninput="recalculateHarga(this, 'persen')"></div>
       </div>
       <div class="grid grid-cols-4 gap-2">
-        <div><label class="text-xs text-gray-500">Qty</label><input type="number" class="w-full border rounded itemQty" value="1" oninput="recalculateTotal()"></div>
+        <div><label class="text-xs text-gray-500">Qty</label><input type="number" class="w-full border rounded px-2 py-1 itemQty" value="1" oninput="recalculateTotal()"></div>
         <div>
            <label class="text-xs text-gray-500">Unit</label>
            <div class="relative">
-             <input type="text" class="w-full border rounded itemUnit" placeholder="set" oninput="filterUnitSuggestions(this)" autocomplete="off">
-             <ul class="absolute z-10 w-full bg-white border shadow hidden max-h-48 overflow-y-auto"></ul>
+             <input type="text" class="w-full border rounded px-2 py-1 itemUnit" placeholder="set" oninput="filterUnitSuggestions(this)" autocomplete="off">
+             <ul class="absolute z-10 w-full bg-white border shadow hidden max-h-48 overflow-y-auto rounded-md"></ul>
            </div>
         </div>
-        <div class="col-span-2"><label class="text-xs text-gray-500">Harga (Jual)</label><input type="text" class="w-full border rounded itemHarga bg-gray-100" readonly></div>
+        <div class="col-span-2"><label class="text-xs text-gray-500">Harga (Jual)</label><input type="text" class="w-full border rounded px-2 py-1 itemHarga bg-gray-100 font-bold text-gray-700" readonly></div>
       </div>
-      <div class="mt-2"><label class="text-xs text-gray-500">Sub Total</label><div class="border rounded px-2 py-1 text-right bg-gray-50 itemTotal">0</div></div>
+      <div class="mt-2 items-center">
+        <div class="border rounded px-3 py-1 text-right bg-gray-100 text-gray-500 font-bold itemTotal">0</div>
+      </div>
     </td>
-    <td class="border px-3 py-2 text-center w-[10%] align-top">
-      <button type="button" onclick="hapusItem(this)" class="text-red-600 block w-full mb-2">Hapus</button>
-      ${
-        document.getElementById("add_type_id").value == 3
-          ? '<button type="button" onclick="tambahSubItem(this)" class="btnTambahSubItem text-blue-600 block w-full">Sub Item</button>'
-          : ""
-      }
+    <td class="border px-3 py-2 w-[10%] align-top">
+      <div class="flex flex-col gap-2 items-center">
+        <button type="button" onclick="hapusItem(this)" 
+          class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition shadow-sm" 
+          title="Hapus Item">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        ${
+          typeId == "3"
+            ? `
+          <button type="button" onclick="tambahSubItem(this)" 
+            class="btnTambahSubItem inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition shadow-sm" 
+            title="Tambah Sub Item">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+          `
+            : ""
+        }
+      </div>
     </td>
   `;
 
+  // Wrapper untuk Sub Item (Material)
   const subWrapper = document.createElement("tr");
   subWrapper.classList.add("subItemWrapper");
-  subWrapper.innerHTML = `<td colspan="3" class="p-0"><table class="w-full"></table></td>`;
+  subWrapper.innerHTML = `<td colspan="3" class="p-0 border-b-2 border-gray-100"><table class="w-full"></table></td>`;
 
   tbody.appendChild(tr);
   tbody.appendChild(subWrapper);
 
   setupRupiahFormattingForElement(tr.querySelector(".itemHpp"));
   setupRupiahFormattingForElement(tr.querySelector(".itemMarkupNominal"));
+
   await loadSubcategories(
     tr.querySelector(".itemSubcategory"),
     selectedSubCategoryId
   );
+
   return tr;
 }
-
 function tambahSubItem(btn) {
   const parentRow = btn.closest("tr");
   const subWrapper = parentRow.nextElementSibling?.querySelector("table");
   if (!subWrapper) return;
   const subTr = document.createElement("tr");
   subTr.classList.add("subItemRow", "bg-gray-50", "italic");
-
   subTr.innerHTML = `
     <td class="w-[5%]"></td>
     <td class="border px-3 py-2">
@@ -499,9 +538,14 @@ function tambahSubItem(btn) {
        </div>
        <div class="border rounded px-2 py-1 text-right bg-gray-100 subItemTotal mt-2">0</div>
     </td>
-    <td class="text-center"><button type="button" onclick="hapusItem(this)" class="text-red-600">Hapus</button></td>
+    <button type="button" onclick="hapusItem(this)" 
+         class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition shadow-sm" 
+         title="Hapus Material">
+         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+         </svg>
+       </button>
   `;
-
   subWrapper.appendChild(subTr);
   setupRupiahFormattingForElement(subTr.querySelector(".subItemHpp"));
   setupRupiahFormattingForElement(subTr.querySelector(".subItemMarkupNominal"));
