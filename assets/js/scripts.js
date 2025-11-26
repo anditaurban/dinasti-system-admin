@@ -34,6 +34,7 @@ let cashier_id = 0;
 let unitDebounceTimer;
 let picDebounceTimer;
 let clientDebounceTimer;
+let vendorDebounceTimer;
 
 let current_date = formattedDate;
 

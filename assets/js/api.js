@@ -47,13 +47,14 @@ const endpointList = [
   "product_bundling",
   "user",
   "client",
+  "vendor_contact",
   "vendor",
   "contact",
   "employee",
   "business_category",
   "account_receivable",
   "account_payable",
-  "cashflow"
+  "cashflow",
 ];
 
 const state = endpointList.reduce((acc, type) => {
@@ -98,17 +99,24 @@ async function loadLogoWithAuth(url) {
 
 async function fetchData(type, page = 1, id = null) {
   try {
-    let url; 
+    let url;
 
     // ----- INI ADALAH LOGIKA BARUNYA -----
     if (type === "contact" && id !== null) {
+      // Logika untuk Contact Client
       url = `${baseUrl}/table/contact/${id}/${page}?search=${currentDataSearch}`;
-    } else if (id !== null) {
+    }
+    // 👇 TAMBAHAN BAGIAN VENDOR CONTACT 👇
+    else if (type === "vendor_contact" && id !== null) {
+      // Logika untuk Vendor Contact (Endpoint mirip contact tapi path-nya vendor_contact)
+      url = `${baseUrl}/table/vendor_contact/${id}/${page}?search=${currentDataSearch}`;
+    }
+    // 👆 BATAS TAMBAHAN 👆
+    else if (id !== null) {
       url = `${endpoints[type].table}/${id}/${page}?search=${currentDataSearch}`;
     } else {
       url = `${endpoints[type].table}/${page}?search=${currentDataSearch}`;
     }
-   
 
     // console.log("Final URL:", url); // <-- Hapus komentar ini untuk debug
     const response = await fetch(url, {
