@@ -273,7 +273,7 @@ async function handleDelete(id) {
         icon: "success",
         title: "Terhapus",
         text: "Data berhasil dihapus. Merefresh tabel...",
-        timer: 1500,
+        timer: 3000,
         timerProgressBar: true,
         showConfirmButton: false,
       });
@@ -402,7 +402,16 @@ document.getElementById("purchNoPo").addEventListener("change", handlePoChange);
 
 document.querySelectorAll(".formatNumber").forEach((i) => {
   i.addEventListener("input", (e) => {
-    e.target.value = finance(e.target.value.replace(/\D/g, ""));
+    // 1. Bersihkan karakter selain angka
+    const rawValue = e.target.value.replace(/\D/g, "");
+
+    // 2. Cek apakah hasil bersihnya kosong?
+    if (rawValue === "") {
+      e.target.value = ""; // Biarkan kosong agar bisa dihapus total
+    } else {
+      // 3. Jika ada isinya, baru diformat
+      e.target.value = finance(rawValue);
+    }
   });
 });
 
