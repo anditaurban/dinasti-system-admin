@@ -55,6 +55,7 @@ const endpointList = [
   "account_receivable",
   "account_payable",
   "cashflow",
+  "expenses",
 ];
 
 const state = endpointList.reduce((acc, type) => {

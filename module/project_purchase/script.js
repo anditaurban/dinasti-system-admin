@@ -129,7 +129,7 @@ function renderTableHtml(data) {
               d.payable_number || "-"
             }</td>
             <td class="px-3 py-2">${d.vendor || "-"}</td>
-            <td class="px-3 py-2">${d.vendor_pic || "-"}</td>
+            <td class="px-3 py-2">${d.nama_akun || "-"}</td>
             <td class="px-3 py-2 text-right font-semibold">${finance(
               d.nominal
             )}</td>

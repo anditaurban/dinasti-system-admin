@@ -57,8 +57,8 @@
         </div>
 
         <!-- Add Button -->
-        <button id="addButton" class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">
-          + Create Expenses
+        <button id="addButton" class="hidden bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">
+          + Create Project
         </button>
       </div>
     </div>
@@ -69,11 +69,13 @@
         <thead id="tableHeader" class="hidden md:table-header-group bg-gray-100 text-gray-600">
           <tr>
             <th class="px-4 py-2 border">DATE</th>
-            <th class="px-4 py-2 border">NO KUINTANSI</th>
-            <th class="px-4 py-2 border">PROJECT NAME</th>
+            <th class="px-4 py-2 border">TYPE</th>
+            <th class="px-4 py-2 border">CATEGORY</th>
             <th class="px-4 py-2 border">DESCRIPTION</th>
+            <th class="px-4 py-2 border">REFERENCE NUMBER</th>
             <th class="px-4 py-2 border">VIA</th>
-            <th class="px-4 py-2 border">AMOUNT</th>
+            <th class="px-4 py-2 border">DEBIT</th>
+            <th class="px-4 py-2 border">CREDIT</th>
           </tr>
         </thead>
         <tbody id="tableBody"></tbody>
