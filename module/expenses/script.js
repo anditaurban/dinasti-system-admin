@@ -42,11 +42,13 @@ ${item.keterangan}
       <span class="font-medium sm:hidden">Role</span>
       ${finance(item.nominal)}
       <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
-       <button onclick="event.stopPropagation(); handleEdit(${
+       <button onclick="event.stopPropagation(); handleEdit('${
          item.keuangan_id
-       }, '${
-    item.name
-  }', 'quotation')" class="block w-full text-left px-4 py-2 hover:bg-gray-100">✏️ Edit Expenses</button>
+       }', '${item.project_name}')" 
+            class="block w-full text-left px-4 py-2 hover:bg-gray-100" data-id="${
+              item.keuangan_id
+            }">✏️ Edit Expenses</button>
+            <button 
         <button onclick="event.stopPropagation(); handleDelete(${
           item.keuangan_id
         })" class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">
@@ -79,9 +81,9 @@ formHtml = `
       <input id="formNoKwitansi" name="no_kwitansi" type="text" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500" placeholder="-">
   </div>
 
-  <div class="form-group">
+ <div class="form-group">
       <label for="formCategory" class="block text-left text-sm font-medium text-gray-700 dark:text-gray-200">Expenses</label>
-      <input id="formCategory" name="category" type="text" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500" placeholder="Contoh: Marketing Operational" required>
+      <input id="formCategory" name="nama_expenses" type="text" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500" placeholder="Contoh: Marketing Operational" required>
   </div>
 
   <div class="form-group">
@@ -112,14 +114,20 @@ formHtml = `
 async function fillFormData(data) {
   const item = data.detail ? data.detail[0] : data;
   console.log("🔄 Isi form dengan data:", item);
+
+  // --- TAMBAHAN DISINI (Isi Hidden Inputs) ---
+  // Menggunakan ?? agar jika nilainya 0, tetap tertulis 0 (tidak kosong)
+  document.getElementById("formOwnerId").value = item.owner_id ?? "";
+  document.getElementById("formUserId").value = item.user_id ?? "";
+  // -------------------------------------------
+
   // 2. LOAD AKUN DULU, baru select nilainya
-  // Kita await supaya dropdown terisi dulu, baru lanjut
   await loadAccountOptions(item.akun_id);
 
   // 3. Isi field sisanya
   document.getElementById("formTanggal").value = item.tanggal_transaksi || "";
 
-  // Mapping 'category' <- 'project_name'
+  // Mapping ke input 'nama_expenses' (HTML) dari data 'project_name' (DB)
   document.getElementById("formCategory").value = item.project_name || "";
 
   document.getElementById("formKeterangan").value = item.keterangan || "";
@@ -129,10 +137,10 @@ async function fillFormData(data) {
 requiredFields = [
   { field: "akun", message: "Silakan pilih Akun Pembayaran!" },
   { field: "tanggal_transaksi", message: "Tanggal Transaksi wajib diisi!" },
-  { field: "category", message: "Kategori wajib diisi!" },
+  // PERUBAHAN DISINI: Key validasi mengikuti name di HTML
+  { field: "nama_expenses", message: "Nama Expenses wajib diisi!" },
   { field: "keterangan", message: "Keterangan wajib diisi!" },
   { field: "nominal", message: "Nominal wajib diisi!" },
-  // no_kwitansi & file di Postman tercentang tapi biasanya opsional di validasi front-end tergantung logic bisnis
 ];
 
 function validateFormData(formData) {
@@ -202,3 +210,10 @@ async function loadAccountOptions(selectedId = null) {
     elSelect.innerHTML = "<option value=''>Gagal memuat data</option>";
   }
 }
+
+// Tambahkan fungsi ini agar error "is not defined" hilang
+window.loadDropdownCall = async function () {
+  console.log("Memanggil loadDropdownCall (alias ke loadAccountOptions)...");
+  // Kita arahkan supaya dia menjalankan logika load akun yang sudah kita buat
+  await loadAccountOptions();
+};

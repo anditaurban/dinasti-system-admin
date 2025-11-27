@@ -2,10 +2,28 @@
   <section class="space-y-6">
 
     <!-- Header -->
-    <div class="flex flex-wrap items-start justify-between mb-4 gap-4">
+    <div class="mb-6 flex flex-col gap-4">
+
       <div>
-        <h1 id="pageTitle" class="text-2xl font-bold mb-1"></h1>
-        <nav id="breadcrumb" class="text-gray-500 text-sm flex items-center flex-wrap gap-1"></nav>
+        <h1 id="pageTitle" class="text-2xl font-bold text-gray-800 mb-1"></h1>
+        <nav id="breadcrumb" class="text-gray-500 text-sm flex items-center flex-wrap gap-1">
+        </nav>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between border-b border-gray-200 pb-4">
+
+        <div class="flex gap-2">
+          <button id="tab-summary" onclick="loadModuleContent('report_finance')"
+            class="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 hover:text-gray-800 transition-all duration-200">
+            📊 Summary
+          </button>
+
+          <button id="tab-cashflow" onclick="loadModuleContent('cashflow')"
+            class="px-4 py-2 text-sm font-semibold text-white bg-blue-600 border border-blue-600 rounded-lg shadow-sm transition-all duration-200">
+            💰 Project Data
+          </button>
+        </div>
+
       </div>
     </div>
 
