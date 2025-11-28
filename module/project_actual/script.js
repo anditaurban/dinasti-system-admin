@@ -92,6 +92,7 @@ function renderTableHtml(data) {
             <td class="px-3 py-2 text-right font-semibold whitespace-nowrap">${finance(
               d.total
             )}</td>
+            <td class="px-3 py-2 font-medium text-gray-700">${d.status}</td>
             <td class="px-3 py-2 text-center whitespace-nowrap">
                 <button class="edit-cost-btn text-blue-600 mr-2 hover:text-blue-800" data-cost-id="${
                   d.cost_id
@@ -105,7 +106,7 @@ function renderTableHtml(data) {
     });
   } else {
     tbody.innerHTML =
-      '<tr><td colspan="9" class="text-center py-4 text-gray-500">Belum ada data</td></tr>';
+      '<tr><td colspan="10" class="text-center py-4 text-gray-500">Belum ada data</td></tr>';
   }
 }
 
