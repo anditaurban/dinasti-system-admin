@@ -928,7 +928,7 @@ async function loadDetailSales(Id, Detail) {
     typeField.disabled = true;
 
     const updateBtn = document.getElementById("updateBtn");
-    if (data.status_id === 2 || data.status_id === 3) {
+    if ((data.status_id === 2 || data.status_id === 3) || (data.project_id && data.project_id != 0)) {
       updateBtn?.classList.add("hidden");
     } else {
       updateBtn?.classList.remove("hidden");
