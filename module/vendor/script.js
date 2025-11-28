@@ -111,7 +111,7 @@ window.rowTemplate = function (item, index, perPage = 10) {
           }', '${item.nama}')" 
             class="block w-full text-left px-4 py-2 hover:bg-gray-100" data-id="${
               item.vendor_id
-            }">✏️ Edit Client</button>
+            }">✏️ Edit Vendor</button>
             <button 
   onclick="event.stopPropagation(); loadModuleContent('vendor_detail', '${
     item.vendor_id
@@ -123,7 +123,7 @@ window.rowTemplate = function (item, index, perPage = 10) {
             item.vendor_id
           })" 
             class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">
-            🗑 Delete Client
+            🗑 Delete Vendor
           </button>
         </div>
      </td>
