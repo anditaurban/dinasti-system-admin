@@ -10,7 +10,7 @@ fetchAndUpdateData();
   const projectsData = [
     {
       id: 1,
-      name: "Website E-Booking Kost",
+      name: "Proteksi Relay",
       value: 15000000,
       plan: 5000000,
       actual: 4200000,
@@ -18,7 +18,7 @@ fetchAndUpdateData();
     },
     {
       id: 2,
-      name: "Sistem Marketing PT Sigma",
+      name: "Install & Routing Cable",
       value: 25000000,
       plan: 8000000,
       actual: 8500000,
@@ -26,7 +26,7 @@ fetchAndUpdateData();
     },
     {
       id: 3,
-      name: "App Payment Sekolah",
+      name: "Pemasangan Power Meter",
       value: 12000000,
       plan: 3000000,
       actual: 2500000,
@@ -34,7 +34,7 @@ fetchAndUpdateData();
     },
     {
       id: 4,
-      name: "BogaApp Food Delivery",
+      name: "Maintenance Panel",
       value: 45000000,
       plan: 15000000,
       actual: 2000000,
@@ -42,7 +42,7 @@ fetchAndUpdateData();
     },
     {
       id: 5,
-      name: "Inventory Warung AC",
+      name: "Project Manual Testing",
       value: 8000000,
       plan: 2000000,
       actual: 1800000,

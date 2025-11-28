@@ -112,28 +112,50 @@ formHtml = `
 </form>
 `;
 async function fillFormData(data) {
-  const item = data.detail ? data.detail[0] : data;
+  // 1. Ambil object item dari API
+  let source = data.detail ? data.detail : data;
+  const item = Array.isArray(source) ? source[0] : source;
+
   console.log("🔄 Isi form dengan data:", item);
 
-  // --- TAMBAHAN DISINI (Isi Hidden Inputs) ---
-  // Menggunakan ?? agar jika nilainya 0, tetap tertulis 0 (tidak kosong)
-  document.getElementById("formOwnerId").value = item.owner_id ?? "";
-  document.getElementById("formUserId").value = item.user_id ?? "";
-  // -------------------------------------------
+  // --- PERBAIKAN LOGIKA USER ID ---
+  let userId = item.user_id;
 
-  // 2. LOAD AKUN DULU, baru select nilainya
+  // Cek apakah user_id dari API itu 0, null, atau undefined
+  if (!userId || userId == 0 || userId == "0") {
+    // LANGKAH BARU: Ambil object 'user' dari Local Storage
+    const userSessionStr = localStorage.getItem("user");
+
+    if (userSessionStr) {
+      try {
+        // Parse string JSON menjadi Object asli
+        const userSession = JSON.parse(userSessionStr);
+        // Ambil user_id dari dalam object tersebut
+        userId = userSession.user_id;
+        console.log("✅ User ID diambil dari LocalStorage:", userId);
+      } catch (e) {
+        console.error("Gagal parse localStorage user:", e);
+        userId = "";
+      }
+    } else {
+      userId = "";
+    }
+  }
+  // --------------------------------
+
+  document.getElementById("formOwnerId").value = item.owner_id ?? "";
+  document.getElementById("formUserId").value = userId; // Sekarang harusnya terisi '5'
+
+  // Load akun dan isi field lainnya...
   await loadAccountOptions(item.akun_id);
 
-  // 3. Isi field sisanya
   document.getElementById("formTanggal").value = item.tanggal_transaksi || "";
-
-  // Mapping ke input 'nama_expenses' (HTML) dari data 'project_name' (DB)
   document.getElementById("formCategory").value = item.project_name || "";
-
   document.getElementById("formKeterangan").value = item.keterangan || "";
   document.getElementById("formNominal").value = item.nominal || "";
   document.getElementById("formNoKwitansi").value = item.no_kwitansi || "-";
 }
+
 requiredFields = [
   { field: "akun", message: "Silakan pilih Akun Pembayaran!" },
   { field: "tanggal_transaksi", message: "Tanggal Transaksi wajib diisi!" },

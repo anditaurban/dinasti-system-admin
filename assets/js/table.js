@@ -541,7 +541,6 @@ async function handleEdit(Id, Data, tab) {
       },
       didOpen: async () => {
         await loadDropdownCall(tab);
-        await loadAccountOptions();
         fillFormData(detailItem, tab);
         console.log(detailItem);
 
