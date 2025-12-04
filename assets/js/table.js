@@ -293,7 +293,7 @@ function getFormData() {
 
   const formData = new FormData(formElement);
   const dataObj = {};
-  const alwaysString = ["phone" || "whatsapp"]; // ← field yang jangan di-parse ke Number
+  const alwaysString = ["phone", "whatsapp"]; // ← field yang jangan di-parse ke Number
 
   for (const [key, value] of formData.entries()) {
     const isArrayField = key.endsWith("[]");
