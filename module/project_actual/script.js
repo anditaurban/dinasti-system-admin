@@ -8,9 +8,9 @@ var dataItemDropdown = [];
 var realCalculationData = [];
 var currentUpdateCostId = null;
 
-// --- 1. FUNGSI UTAMA: FETCH & RENDER (DENGAN JEDA 3 DETIK SAAT LOAD AWAL) ---
+// --- 1. FUNGSI UTAMA: FETCH & RENDER ---
+// --- 1. FUNGSI UTAMA: FETCH & RENDER (REVISI HANDLING ID 0) ---
 async function fetchAndRenderActual(isRefresh = false) {
-  // A. TAMPILKAN LOADING (Hanya jika bukan refresh background)
   if (!isRefresh) {
     Swal.fire({
       title: "Memuat Data...",
@@ -21,44 +21,52 @@ async function fetchAndRenderActual(isRefresh = false) {
   }
 
   try {
-    // B. PROSES PARALEL (Fetch Detail + Fetch Tabel + Timer 3 Detik)
     const [resDetail, resTable] = await Promise.all([
-      // 1. Fetch Detail Project (Header & Dropdown Item)
       fetch(`${baseUrl}/detail/project/${projectId}`, {
         headers: { Authorization: `Bearer ${API_TOKEN}` },
       }),
-      // 2. Fetch Tabel Actual Costing
       fetch(`${baseUrl}/table/actual_costing/${projectId}/1`, {
         headers: { Authorization: `Bearer ${API_TOKEN}` },
       }),
-      // 3. Timer 3 Detik (Hanya jika bukan refresh diam-diam)
       new Promise((resolve) => setTimeout(resolve, isRefresh ? 0 : 3000)),
     ]);
 
-    // C. PROCESS DATA
     const jsonDetail = await resDetail.json();
     const jsonTable = await resTable.json();
 
-    // --- RENDER HEADER & DROPDOWN ---
     const detail = jsonDetail.detail || {};
+
+    // ============================================================
+    // LOGIKA LOCK / KUNCI (REVISI PESANAN ID 0)
+    // ============================================================
+    // Jika pesanan_id = "0" atau 0, anggap UNLOCKED
+    const hasPesanan =
+      detail.pesanan_id != null &&
+      detail.pesanan_id !== "" &&
+      detail.pesanan_id != "0" &&
+      detail.pesanan_id !== 0;
+    const isDirectSales = detail.position === "Direct Project";
+
+    // Status Lock: Hanya jika Direct Project & Sudah jadi SO (bukan 0)
+    const isLocked = hasPesanan && isDirectSales;
+
     const projectText = detail.project_name
       ? `${detail.project_name} (${detail.project_number || "-"})`
       : window.detail_desc || "Project";
 
     document.getElementById("projectNameDisplay").textContent = projectText;
 
+    // --- RENDER FORM STATE (LOCK/UNLOCK) ---
+    handleFormLockState(isLocked);
+
     if (jsonDetail.success) {
       dataItemDropdown = jsonDetail.detail.items || [];
-      // Kita hanya populate dropdown jika ini load awal (agar tidak mereset pilihan user jika sedang edit)
-      // Tapi karena ini refresh halaman, kita populate ulang saja untuk data terbaru
       populatePekerjaanDropdown();
     }
 
-    // --- RENDER TABEL ---
     realCalculationData = jsonTable.tableData || [];
-    renderTableHtml(realCalculationData);
+    renderTableHtml(realCalculationData, isLocked);
 
-    // Tutup Loading hanya jika bukan refresh background
     if (!isRefresh) Swal.close();
   } catch (err) {
     console.error(err);
@@ -66,13 +74,76 @@ async function fetchAndRenderActual(isRefresh = false) {
   }
 }
 
-// Fungsi Render HTML Tabel (Dipisah biar rapi)
-function renderTableHtml(data) {
+// --- FUNGSI MENGATUR FORM LOCK ---
+function handleFormLockState(isLocked) {
+  const form = document.getElementById("realCalcForm");
+  const submitBtn = document.getElementById("submitCalcFormBtn");
+  const inputs = form.querySelectorAll("input, select, textarea");
+
+  if (isLocked) {
+    // Matikan semua input
+    inputs.forEach((input) => {
+      input.disabled = true;
+      input.classList.add("bg-gray-100", "cursor-not-allowed");
+    });
+
+    // Ubah Tombol Submit
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = "🔒 Locked (Direct Project)";
+    submitBtn.classList.remove(
+      "bg-blue-600",
+      "hover:bg-blue-700",
+      "bg-green-600",
+      "hover:bg-green-700"
+    );
+    submitBtn.classList.add("bg-gray-400", "cursor-not-allowed");
+
+    // Sembunyikan tombol cancel jika ada
+    document.getElementById("cancelUpdateBtn").classList.add("hidden");
+  } else {
+    // Normal State (Unlock)
+    // Note: Kita tidak me-remove disabled semua di sini secara paksa
+    // karena beberapa input (seperti PIC) tergantung dropdown lain.
+    // Tapi kita kembalikan tombol submit ke normal.
+
+    // Hanya enable input dasar, logic dropdown tetap jalan
+    inputs.forEach((input) => {
+      // Jangan enable material/pic pic dulu (biar logic dropdown yg handle)
+      if (input.id !== "calcKorelasiMaterial" && input.id !== "calcNamaPic") {
+        input.disabled = false;
+        input.classList.remove("bg-gray-100", "cursor-not-allowed");
+      }
+    });
+
+    if (!currentUpdateCostId) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = "+ Tambah";
+      submitBtn.classList.add("bg-blue-600", "hover:bg-blue-700");
+      submitBtn.classList.remove("bg-gray-400", "cursor-not-allowed");
+    } else {
+      // Jika sedang mode edit (dan tidak locked), tombol biarkan dihandle populateFormForUpdate
+    }
+  }
+}
+
+// Fungsi Render HTML Tabel (Updated with Lock Logic)
+function renderTableHtml(data, isLocked) {
   const tbody = document.getElementById("realCalcBody");
   tbody.innerHTML = "";
 
   if (data.length) {
     data.forEach((d) => {
+      // Tentukan isi kolom aksi berdasarkan Lock
+      let actionButtons = "";
+      if (isLocked) {
+        actionButtons = `<span class="text-xs text-gray-400 italic font-semibold">Locked</span>`;
+      } else {
+        actionButtons = `
+            <button class="edit-cost-btn text-blue-600 mr-2 hover:text-blue-800" data-cost-id="${d.cost_id}" type="button">✏️</button>
+            <button class="delete-cost-btn text-red-600 hover:text-red-800" data-cost-id="${d.cost_id}" type="button">🗑️</button>
+          `;
+      }
+
       tbody.innerHTML += `
         <tr class="border-b hover:bg-gray-50">
             <td class="px-3 py-2 font-medium text-gray-700">${d.product}</td>
@@ -94,12 +165,7 @@ function renderTableHtml(data) {
             )}</td>
             <td class="px-3 py-2 font-medium text-gray-700">${d.status}</td>
             <td class="px-3 py-2 text-center whitespace-nowrap">
-                <button class="edit-cost-btn text-blue-600 mr-2 hover:text-blue-800" data-cost-id="${
-                  d.cost_id
-                }" type="button">✏️</button>
-                <button class="delete-cost-btn text-red-600 hover:text-red-800" data-cost-id="${
-                  d.cost_id
-                }" type="button">🗑️</button>
+                ${actionButtons}
             </td>
         </tr>
       `;
@@ -110,9 +176,13 @@ function renderTableHtml(data) {
   }
 }
 
-// --- 2. HANDLE SUBMIT (CREATE / UPDATE) DENGAN JEDA 3 DETIK ---
+// --- 2. HANDLE SUBMIT (CREATE / UPDATE) ---
 async function handleActualCostSubmit(e) {
   e.preventDefault();
+
+  // Safety Check: Jangan submit jika tombol disabled (Locked)
+  const btn = document.getElementById("submitCalcFormBtn");
+  if (btn.disabled) return;
 
   const valVendorId = document.getElementById("calcVendorId").value || "0";
   const valContactId = document.getElementById("calcContactId").value || "0";
@@ -166,18 +236,16 @@ async function handleActualCostSubmit(e) {
     const json = await res.json();
 
     if (res.ok && json.data?.success !== false) {
-      // --- SUKSES DENGAN JEDA 3 DETIK ---
       await Swal.fire({
         icon: "success",
         title: "Berhasil",
         text: "Data berhasil disimpan. Merefresh tabel...",
-        timer: 1500, // Jeda 3 detik
-        timerProgressBar: true, // Visual bar mundur
+        timer: 1500,
+        timerProgressBar: true,
         showConfirmButton: false,
       });
 
       resetCalcForm();
-      // Refresh Data (isRefresh = true agar loading full screen tidak muncul lagi)
       fetchAndRenderActual(true);
     } else {
       throw new Error(json.message || "Gagal menyimpan data");
@@ -188,7 +256,7 @@ async function handleActualCostSubmit(e) {
   }
 }
 
-// --- 3. HANDLE DELETE DENGAN JEDA 3 DETIK ---
+// --- 3. HANDLE DELETE ---
 async function handleDeleteActualCost(id) {
   const c = await Swal.fire({
     title: "Hapus?",
@@ -205,12 +273,11 @@ async function handleDeleteActualCost(id) {
 
   try {
     const res = await fetch(`${baseUrl}/delete/actual_costing/${id}`, {
-      method: "PUT", // Sesuai endpoint di kode lama (PUT untuk delete soft delete biasanya)
+      method: "PUT",
       headers: { Authorization: `Bearer ${API_TOKEN}` },
     });
 
     if (res.ok) {
-      // --- SUKSES DENGAN JEDA 3 DETIK ---
       await Swal.fire({
         icon: "success",
         title: "Terhapus",
@@ -220,7 +287,6 @@ async function handleDeleteActualCost(id) {
         showConfirmButton: false,
       });
 
-      // Refresh Data
       fetchAndRenderActual(true);
     } else {
       throw new Error("Gagal menghapus data");
@@ -234,7 +300,6 @@ async function handleDeleteActualCost(id) {
 
 function populatePekerjaanDropdown() {
   const sel = document.getElementById("calcKorelasiPekerjaan");
-  // Simpan value lama jika ada (untuk case refresh tapi form sedang diisi, opsional)
   const oldVal = sel.value;
 
   sel.innerHTML = '<option value="">-- Pilih Pekerjaan --</option>';
@@ -276,7 +341,7 @@ function populateFormForUpdate(id) {
 
   currentUpdateCostId = item.cost_id;
 
-  // Format Tanggal YYYY-MM-DD
+  // Format Tanggal
   let rawDate = item.po_date || "";
   let finalDate = "";
   if (rawDate && rawDate.includes("/")) {
@@ -287,7 +352,7 @@ function populateFormForUpdate(id) {
 
   document.getElementById("calcProduct").value = item.cost_name;
   document.getElementById("calcKorelasiPekerjaan").value = item.project_item_id;
-  handlePekerjaanChange(); // Trigger untuk isi dropdown material
+  handlePekerjaanChange();
 
   document.getElementById("calcNoTagihan").value = item.no_po || "";
   document.getElementById("calcPoDate").value = finalDate;
@@ -307,18 +372,15 @@ function populateFormForUpdate(id) {
     resetPICDropdown();
   }
 
-  // Set Material jika ada
   setTimeout(() => {
     const matSel = document.getElementById("calcKorelasiMaterial");
     if (matSel && !matSel.disabled) {
-      // Cari option yang text-nya sama dengan item.cost_name (karena di DB kadang material name = cost name)
-      // ATAU cari logika yang lebih pas jika ada ID material di data table
       const opt = Array.from(matSel.options).find(
         (o) => o.text.trim() === item.cost_name.trim()
       );
       if (opt) matSel.value = opt.value;
     }
-  }, 100); // Delay sedikit agar dropdown material terisi dulu
+  }, 100);
 
   document.getElementById("calcNotes").value = item.notes || "";
   document.getElementById("calcQty").value = item.qty;
@@ -333,7 +395,6 @@ function populateFormForUpdate(id) {
 
   document.getElementById("cancelUpdateBtn").classList.remove("hidden");
 
-  // Scroll ke atas form
   document
     .getElementById("realCalcForm")
     .scrollIntoView({ behavior: "smooth" });
@@ -354,6 +415,18 @@ function resetCalcForm() {
   btn.classList.add("hover:bg-blue-700");
 
   document.getElementById("cancelUpdateBtn").classList.add("hidden");
+
+  // Pastikan form di-enable kembali jika reset (kecuali jika locked, logic fetch akan override)
+  const form = document.getElementById("realCalcForm");
+  const inputs = form.querySelectorAll("input, select, textarea");
+  inputs.forEach((i) => {
+    if (i.id !== "calcKorelasiMaterial" && i.id !== "calcNamaPic") {
+      i.disabled = false;
+      i.classList.remove("bg-gray-100", "cursor-not-allowed");
+    }
+  });
+  btn.disabled = false;
+  btn.classList.remove("bg-gray-400", "cursor-not-allowed");
 }
 
 function updateFormTotal() {
@@ -512,7 +585,6 @@ function filterUnitSuggestions(inputElement) {
 
 // --- 6. EVENT LISTENERS ---
 
-// Attach listeners
 document
   .getElementById("realCalcForm")
   .addEventListener("submit", handleActualCostSubmit);
@@ -549,4 +621,4 @@ document.getElementById("calcNamaPic").addEventListener("change", function () {
 });
 
 // --- 7. START APPLICATION ---
-fetchAndRenderActual(); // Jalankan fungsi utama
+fetchAndRenderActual();

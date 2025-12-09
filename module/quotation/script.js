@@ -88,13 +88,14 @@ window.rowTemplate = function (item, index, perPage = 10) {
 
       <!-- Dropdown -->
       <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
-  <!-- View Order -->
-  
-<button onclick="event.stopPropagation(); loadModuleContent('quotation_1form', '${item.pesanan_id}', '${item.no_qtn}');" class="block w-full text-left px-4 py-2 hover:bg-gray-100"> 👁️ View Detail </button>
-   
+  <button onclick="event.stopPropagation(); loadModuleContent('quotation_1form', '${
+    item.pesanan_id
+  }', '${
+    item.no_qtn
+  }');" class="block w-full text-left px-4 py-2 hover:bg-gray-100"> 
+    👁️ View Detail 
+  </button>
 
-
-  <!-- Add Invoice (hanya jika WON) -->
   ${
     item.status_id === 3 && item.invoice != "yes"
       ? `<button onclick="openInvoiceModal('${item.pesanan_id}')" 
@@ -104,22 +105,27 @@ window.rowTemplate = function (item, index, perPage = 10) {
       : ""
   }
 
-  <!-- Update Approval (hanya jika masih Pending) -->
   ${
     item.approval_status === "pending"
-      ? `<button 
+      ? `
+        <button 
           onclick="event.stopPropagation(); openSalesApproval('${item.pesanan_id}', '${item.approved}')"
           class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600">
           🟢 Update Approval
-        </button>`
+        </button>
+        
+        <button 
+          onclick="event.stopPropagation(); sendApprovalReminder('${item.pesanan_id}', '${item.no_qtn}')"
+          class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-orange-500">
+          📧 Reminder Approval
+        </button>
+        `
       : ""
   }
 
-  <!-- Update Status dan Delete Order -->
   ${
     item.status_id != 3
       ? `
-      <!-- Update Status -->
       <button 
         onclick="event.stopPropagation(); openUpdateStatus('${item.pesanan_id}', '${item.status_id}')"
         class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600">

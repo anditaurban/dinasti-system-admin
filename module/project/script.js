@@ -30,7 +30,7 @@ window.rowTemplate = function (item, index, perPage = 10) {
       <td class="px-6 py-4 text-sm border-b sm:border-0">
         <span class="font-medium sm:hidden">Project Name</span>
         ${item.project_name} - (${item.project_type || "-"})
-        <br>${item.customer}
+        <br>${item.customer}<br>${item.position}
       </td>
 
       <td class="px-6 py-4 text-sm border-b sm:border-0 text-right">
@@ -45,12 +45,22 @@ window.rowTemplate = function (item, index, perPage = 10) {
 
       <td class="px-6 py-4 text-sm border-b sm:border-0 text-right">
         <span class="font-medium sm:hidden">Actual Cost %</span>
-        ${item.actual_cost_percent}%
+        ${item.actual_costing_percent}%
       </td>
 
       <td class="px-6 py-4 text-sm border-b sm:border-0 text-right">
         <span class="font-medium sm:hidden">Margin %</span>
         ${item.margin_percent}%
+      </td>
+
+      <td class="px-6 py-4 text-sm border-b sm:border-0 text-right">
+        <span class="font-medium sm:hidden">Balance %</span>
+        ${item.balance_costing_percent}%
+      </td>
+
+      <td class="px-6 py-4 text-sm border-b sm:border-0 text-right">
+        <span class="font-medium sm:hidden">Profit %</span>
+        ${item.profit_percent}%
       </td>
 
       <td class="px-6 py-4 text-sm border-b sm:border-0 text-center">

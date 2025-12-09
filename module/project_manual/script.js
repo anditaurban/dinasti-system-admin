@@ -51,7 +51,6 @@ var projectDetailData = null; // Penting untuk fitur Convert to Sales
 })();
 
 // --- LOGIC UTAMA ---
-
 async function loadProjectDataForUpdate(Id) {
   Swal.fire({ title: "Memuat Data...", didOpen: () => Swal.showLoading() });
   try {
@@ -61,17 +60,28 @@ async function loadProjectDataForUpdate(Id) {
     const json = await res.json();
     const data = json.detail;
 
-    // Simpan ke global agar bisa dipakai 'openConvertToSalesModal'
     projectDetailData = data;
 
-    // Tampilkan tombol konversi jika belum jadi sales order
-    if (!data.pesanan_id) {
+    // --- LOGIC LOCKING (JIKA SUDAH JADI SALES) ---
+    const isLocked = data.pesanan_id ? true : false;
+
+    // 1. Tampilkan tombol konversi hanya jika BELUM jadi sales
+    if (!isLocked) {
       document.getElementById("convertToSalesBtn").classList.remove("hidden");
+    } else {
+      // Jika sudah locked, sembunyikan tombol simpan dan tambah item secara paksa
+      document.getElementById("saveNewProjectBtn").classList.add("hidden");
+      document.getElementById("addItemBtn").classList.add("hidden");
+
+      // Berikan notifikasi visual (opsional)
+      document.getElementById(
+        "formTitleManual"
+      ).innerHTML += ` <span class="text-red-500 text-sm">(Locked / Sales Order Created)</span>`;
     }
 
+    // Isi Form
     document.getElementById("add_project_name").value = data.project_name || "";
-
-    // Fix Client Dropdown
+    // ... logic dropdown client existing ...
     if (customerListManual.length > 0) {
       const matching = customerListManual.find(
         (c) => c.nama_client === data.customer
@@ -88,6 +98,21 @@ async function loadProjectDataForUpdate(Id) {
     document.getElementById("add_type_id").value = data.type_id || "";
     document.getElementById("add_project_manager").value =
       data.project_manager_id || "";
+
+    // Panggil toggle untuk memastikan state tombol simpan benar (muncul jika ada type, tapi hidden jika locked)
+    toggleTambahItemBtn();
+
+    // Override lagi jika locked (karena toggleTambahItemBtn akan memunculkan tombol jika type terisi)
+    if (isLocked) {
+      document.getElementById("saveNewProjectBtn").classList.add("hidden");
+      document.getElementById("addItemBtn").classList.add("hidden");
+
+      // Disable semua input form
+      const inputs = document.querySelectorAll(
+        "#addProjectForm input, #addProjectForm select"
+      );
+      inputs.forEach((el) => (el.disabled = true));
+    }
 
     // Render Table
     const tbody = document.getElementById("tabelItemAdd");
@@ -110,12 +135,44 @@ async function loadProjectDataForUpdate(Id) {
           item.markup_percent || 0;
         recalculateHarga(itemRow.querySelector(".itemHpp"), "hpp");
 
+        // Disable input dalam table jika locked
+        if (isLocked) {
+          itemRow
+            .querySelectorAll("input, textarea, select, button")
+            .forEach((el) => (el.disabled = true));
+          // Sembunyikan tombol hapus
+          const delBtn = itemRow.querySelector("button[onclick^='hapusItem']");
+          if (delBtn) delBtn.classList.add("hidden");
+          const addSubBtn = itemRow.querySelector(".btnTambahSubItem");
+          if (addSubBtn) addSubBtn.classList.add("hidden");
+        }
+
         if (item.materials?.length) {
           const addSubBtn = itemRow.querySelector(".btnTambahSubItem");
+          // Logic sub item existing...
           if (addSubBtn) {
+            // Note: tombol addSubBtn mungkin hidden jika locked, tapi function tambahSubItem perlu button ref
+            // Kita pakai elemen dummy jika button hidden/disabled
+          }
+
+          // Render Materials
+          if (item.materials.length > 0) {
+            // Kita paksa render material row manual jika tombol tidak bisa diklik
+            const subWrapper =
+              itemRow.nextElementSibling.querySelector("table");
+
             for (const mat of item.materials) {
-              const subRow = tambahSubItem(addSubBtn);
+              // Panggil tambahSubItem secara manual tanpa klik button jika perlu,
+              // atau modifikasi tambahSubItem agar menerima row parent.
+              // Cara termudah pakai existing function dengan mock button:
+              const mockBtn = document.createElement("button");
+              // Hacky way to finding parentRow context for tambahSubItem
+              // Lebih aman kita modifikasi sedikit tambahSubItem atau copy logicnya.
+              // Tapi agar code minimal, kita gunakan helper logic render subrow:
+
+              const subRow = tambahSubItem({ closest: () => itemRow }); // Mock object
               if (!subRow) continue;
+
               subRow.querySelector(".subItemMaterial").value = mat.name || "";
               subRow.querySelector(".subItemSpec").value =
                 mat.specification || "";
@@ -128,6 +185,16 @@ async function loadProjectDataForUpdate(Id) {
               subRow.querySelector(".subItemMarkupPersen").value =
                 mat.markup_percent || 0;
               recalculateHarga(subRow.querySelector(".subItemHpp"), "hpp");
+
+              if (isLocked) {
+                subRow
+                  .querySelectorAll("input, select, button")
+                  .forEach((el) => (el.disabled = true));
+                const delSub = subRow.querySelector(
+                  "button[onclick^='hapusItem']"
+                );
+                if (delSub) delSub.classList.add("hidden");
+              }
             }
           }
         }
@@ -238,7 +305,13 @@ async function saveProject(mode = "create", id = null) {
       items: items,
     };
 
-    if (mode === "update") delete payload.user_id;
+    if (mode === "update") {
+      delete payload.user_id;
+
+      // --- PERUBAHAN DISINI: Tambah Key Position ---
+      // Karena ini file Project Manual, kita set 'Direct Sales'
+      payload.position = "Direct Sales";
+    }
 
     const url =
       mode === "create"
@@ -678,11 +751,17 @@ function setTodayDate(elementId) {
 
 function toggleTambahItemBtn() {
   const select = document.getElementById("add_type_id");
-  const btn = document.getElementById("addItemBtn");
-  if (select && btn) {
-    if (select.value !== "" && select.value !== "0")
-      btn.classList.remove("hidden");
-    else btn.classList.add("hidden");
+  const btnAdd = document.getElementById("addItemBtn");
+  const btnSave = document.getElementById("saveNewProjectBtn"); // Ambil tombol simpan
+
+  if (select && btnAdd && btnSave) {
+    if (select.value !== "" && select.value !== "0") {
+      btnAdd.classList.remove("hidden");
+      btnSave.classList.remove("hidden"); // Munculkan tombol simpan
+    } else {
+      btnAdd.classList.add("hidden");
+      btnSave.classList.add("hidden"); // Sembunyikan tombol simpan
+    }
   }
 }
 

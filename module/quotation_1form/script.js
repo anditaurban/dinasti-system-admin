@@ -614,7 +614,6 @@ async function tambahItem() {
   tr.classList.add("itemRow");
   const index = document.querySelectorAll("#tabelItem tr.itemRow").length + 1;
 
-  // GANTI BAGIAN tr.innerHTML DI FUNGSI tambahItem() DENGAN INI:
   tr.innerHTML = `
     <td class="border px-3 py-2 w-[5%] align-top">${index}</td>
 
@@ -663,8 +662,7 @@ async function tambahItem() {
               autocomplete="off"
             >
             <ul class="absolute z-10 w-full bg-white border rounded mt-1 text-sm shadow hidden max-h-48 overflow-y-auto">
-              <!-- Unit suggestions -->
-            </ul>
+              </ul>
           </div>
         </div>
         <div class="col-span-2">
@@ -690,7 +688,8 @@ async function tambahItem() {
         </button>
 
         ${
-          typeId == 3
+          // ✅ UPDATE LOGIKA DI SINI: Muncul jika ID 2 (Service) atau ID 3 (Turnkey)
+          typeId == 2 || typeId == 3
             ? `
           <button onclick="tambahSubItem(this)" 
             class="btnTambahSubItem inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" 
@@ -726,7 +725,6 @@ function tambahSubItem(btn) {
   const subTr = document.createElement("tr");
   subTr.classList.add("subItemRow", "bg-gray-50", "italic");
 
-  // GANTI BAGIAN subTr.innerHTML DI FUNGSI tambahSubItem() DENGAN INI:
   subTr.innerHTML = `
     <td class="border px-3 py-2 w-[5%] text-center align-middle itemNumber"></td>
 
@@ -739,7 +737,7 @@ function tambahSubItem(btn) {
 
         <div>
           <label class="block text-xs text-gray-500">Specification</label>
-          <input type="text" class="w-full border rounded px-2 subItemSpec" placeholder="Spesifikasi">
+          <textarea class="w-full border rounded px-2 subItemSpec" rows="3" placeholder="Spesifikasi"></textarea>
         </div>
 
         <div class="grid grid-cols-3 gap-2 p-2 border rounded bg-white my-2">
@@ -773,8 +771,7 @@ function tambahSubItem(btn) {
               autocomplete="off"
             >
             <ul class="absolute z-10 w-full bg-white border rounded mt-1 text-sm shadow hidden max-h-48 overflow-y-auto">
-              <!-- Unit suggestions -->
-            </ul>
+              </ul>
           </div>
         </div>
           <div class="col-span-2">
@@ -928,7 +925,11 @@ async function loadDetailSales(Id, Detail) {
     typeField.disabled = true;
 
     const updateBtn = document.getElementById("updateBtn");
-    if ((data.status_id === 2 || data.status_id === 3) || (data.project_id && data.project_id != 0)) {
+    if (
+      data.status_id === 2 ||
+      data.status_id === 3 ||
+      (data.project_id && data.project_id != 0)
+    ) {
       updateBtn?.classList.add("hidden");
     } else {
       updateBtn?.classList.remove("hidden");
