@@ -142,17 +142,17 @@ window.rowTemplate = function (item, index, perPage = 10) {
       ${finance(item.nominal)}
       <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
 
-${
-  item.approval_status === "Approved"
-    ? ""
-    : `
-    <button 
-      onclick="event.stopPropagation(); openAccountPayableApproval('${item.payable_id}', '${item.approval_status}')"
-      class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600">
-      🟢 Update Approval
-    </button>
-    `
-}
+      ${
+        item.approval_status === "Approved"
+          ? ""
+          : `
+          <button 
+            onclick="event.stopPropagation(); openAccountPayableApproval('${item.payable_id}', '${item.approval_status}')"
+            class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600">
+            🟢 Update Approval
+          </button>
+          `
+      }
         
         <button 
           onclick="event.stopPropagation(); sendApprovalReminder('${

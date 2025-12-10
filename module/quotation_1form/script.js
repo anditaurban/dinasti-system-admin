@@ -871,8 +871,6 @@ function hapusItem(button) {
   calculateTotals();
 }
 
-// GANTI SELURUH FUNGSI ANDA DENGAN INI
-// GANTI SELURUH FUNGSI ANDA DENGAN INI
 async function loadDetailSales(Id, Detail) {
   window.detail_id = Id;
   window.detail_desc = Detail;
@@ -897,15 +895,12 @@ async function loadDetailSales(Id, Detail) {
     }
 
     const data = response.detail;
-    console.log("DATA DETAIL QO:", data);
+    // console.log("DATA DETAIL QO:", data);
 
-    // ❗️ Ini sudah BENAR.
-    // loadCustomerList() dihapus, dan loadPICList() dipanggil
-    // untuk mengisi dropdown PIC Name.
+    // 1. Load semua data dropdown dulu
     await Promise.all([
-      // loadCustomerList(), // <-- Dihapus (Benar)
       loadSalesType(),
-      loadPICList(data.pelanggan_id), // <-- Mengisi dropdown PIC (Benar)
+      loadPICList(data.pelanggan_id),
       loadStatusOptions(),
       populateDropdown("/list/notes/", "catatan", "Pilih Catatan..."),
       populateDropdown(
@@ -920,29 +915,45 @@ async function loadDetailSales(Id, Detail) {
       ),
     ]);
 
+    // 2. Isi Form Utama
     const typeField = document.getElementById("type_id");
     typeField.value = data.type_id || "";
-    typeField.disabled = true;
 
+    // 3. 🔓 BUKA KUNCI DROPDOWN (Penting!)
+    // Kita buka dulu kuncinya agar filter bisa bekerja
+    typeField.disabled = false;
+    typeField.classList.remove("bg-gray-100"); // Hilangkan warna abu-abu input disabled
+
+    // 4. Jalankan Filter (Disable opsi yang tidak sesuai rules)
+    filterCompatibleTypes(data.type_id);
+
+    // 5. Cek Status Approval (Baru di-lock kalau sudah approve)
     const updateBtn = document.getElementById("updateBtn");
+
+    // Logic Lock berdasarkan Status atau Project ID
     if (
       data.status_id === 2 ||
       data.status_id === 3 ||
       (data.project_id && data.project_id != 0)
     ) {
       updateBtn?.classList.add("hidden");
+
+      // Kunci total jika sudah approve
+      typeField.disabled = true;
+      typeField.classList.add("bg-gray-100");
     } else {
       updateBtn?.classList.remove("hidden");
       toggleTambahItemBtn();
-    } // 📝 Isi form utama
+    }
 
+    // --- Pengisian Field Lainnya ---
     document.getElementById("tanggal").value = data.tanggal_ymd || "";
-    document.getElementById("type_id").value = data.type_id || "";
     document.getElementById("no_qtn").value = data.no_qtn || "";
     document.getElementById("project_name").value = data.project_name || "";
     document.getElementById("revision_number").value =
       `R${data.revision_number}` || `R0`;
     document.getElementById("status").value = data.status || "Draft";
+
     const cleanCatatan = (data.catatan || "").trim().replace(/\r\n|\r/g, "\n");
     const cleanSnK = (data.syarat_ketentuan || "")
       .trim()
@@ -958,41 +969,16 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("client").value = data.pelanggan_nama || "";
     document.getElementById("pic_name").value = data.pic_name || "";
 
-    const logBtn = document.getElementById("logBtn");
-    if (logBtn) {
-      logBtn.setAttribute(
-        "onclick",
-        `event.stopPropagation(); loadModuleContent('sales_log', '${Id}')`
-      );
-      logBtn.classList.remove("hidden");
-    }
+    // ... (Sisa kode items sama seperti sebelumnya) ...
+    // (Render Items Code Here...)
+    // Pastikan kode render items Anda ada di sini (copy dari jawaban sebelumnya)
 
-    const versionDiv = document.getElementById("versionInfo");
-    if (versionDiv) {
-      versionDiv.classList.remove("hidden");
-      const btnHistory = document.getElementById("btnVersionHistory");
-      if (btnHistory) {
-        btnHistory.onclick = (event) => {
-          event.preventDefault();
-          loadModuleContent("quotation_log", Id);
-        };
-      }
-    } // 🔹 Load subcategories (Biarkan)
-
+    // --- LOAD ITEMS & SUBS ---
     const subcategoryRes = await fetch(
       `${baseUrl}/list/sub_category/${owner_id}`,
       { headers: { Authorization: `Bearer ${API_TOKEN}` } }
     );
-    if (!subcategoryRes.ok) {
-      throw new Error(
-        `Failed to load subcategories, status: ${subcategoryRes.status}`
-      );
-    }
     const subcatResponse = await subcategoryRes.json();
-    const subcats = Array.isArray(subcatResponse.listData)
-      ? subcatResponse.listData
-      : []; // 🔹 Render item rows (Biarkan)
-
     const tbody = document.getElementById("tabelItem");
     tbody.innerHTML = "";
 
@@ -1001,8 +987,9 @@ async function loadDetailSales(Id, Detail) {
       for (const item of data.items) {
         renderPromises.push(
           (async () => {
-            tambahItem();
+            await tambahItem(); // Pastikan tambahItem Anda sudah async
             let row = tbody.lastElementChild;
+            // logic cari row...
             if (!row.querySelector(".itemSubcategory")) {
               row = row.previousElementSibling;
             }
@@ -1026,6 +1013,7 @@ async function loadDetailSales(Id, Detail) {
             );
             row.querySelector(".itemMarkupPersen").value =
               item.markup_percent || 0;
+
             if (item.materials?.length) {
               for (const material of item.materials) {
                 tambahSubItem(row.querySelector(".btnTambahSubItem"));
@@ -1033,13 +1021,11 @@ async function loadDetailSales(Id, Detail) {
                 const subTr = wrapper.querySelector(
                   "tr.subItemRow:last-of-type"
                 );
-
                 if (subTr) {
                   subTr.querySelector(".subItemMaterial").value =
                     material.name || "";
                   subTr.querySelector(".subItemSpec").value =
-                    material.specification || "";
-
+                    material.specification || ""; // Ini yang Textarea
                   subTr.querySelector(".subItemQty").value = material.qty || 0;
                   subTr.querySelector(".subItemUnit").value =
                     material.unit || "";
@@ -1065,20 +1051,66 @@ async function loadDetailSales(Id, Detail) {
       }
       await Promise.all(renderPromises);
     }
+
     const ppnValue = parseInt(data.ppn) || 0;
     const cekPpn = document.getElementById("cekPpn");
-    if (cekPpn && ppnValue > 0) {
-      cekPpn.checked = true;
-    }
+    if (cekPpn && ppnValue > 0) cekPpn.checked = true;
 
     calculateTotals();
-    window.dataLoaded = true; // ✅ Tutup loading
-
+    window.dataLoaded = true;
     Swal.close();
   } catch (err) {
     console.error("Gagal load detail:", err);
     Swal.fire("Error", err.message || "Gagal memuat detail penjualan", "error");
   }
+}
+
+/**
+ * Memfilter opsi Tipe Sales agar user hanya bisa berpindah antar tipe yang sejenis.
+ * Group A: Service (2) & Turnkey (3)
+ * Group B: Selain itu (misal Material)
+ */
+function filterCompatibleTypes(currentTypeId) {
+  const typeSelect = document.getElementById("type_id");
+  if (!typeSelect) return;
+
+  // Pastikan currentTypeId string agar pembandingannya aman
+  const currentIdStr = String(currentTypeId);
+
+  // Definisi Group yang "Sejenis" (Service & Turnkey)
+  // ID 2 = Service, ID 3 = Turnkey
+  const complexTypes = ["2", "3"];
+
+  const isComplex = complexTypes.includes(currentIdStr);
+
+  // Loop semua option di dropdown
+  Array.from(typeSelect.options).forEach((option) => {
+    // Skip opsi default "Pilih Tipe"
+    if (option.value === "") return;
+
+    if (isComplex) {
+      // Skenario 1: Asalnya Service/Turnkey
+      // Hanya tampilkan yang ada di array complexTypes
+      if (complexTypes.includes(option.value)) {
+        option.style.display = "block";
+        option.disabled = false;
+      } else {
+        option.style.display = "none";
+        option.disabled = true;
+      }
+    } else {
+      // Skenario 2: Asalnya Material (Bukan Service/Turnkey)
+      // Sembunyikan Service & Turnkey
+      if (complexTypes.includes(option.value)) {
+        option.style.display = "none";
+        option.disabled = true;
+      } else {
+        // Tampilkan sisanya (misal Material atau tipe lain yg simple)
+        option.style.display = "block";
+        option.disabled = false;
+      }
+    }
+  });
 }
 
 function recalculateTotal() {

@@ -50,7 +50,6 @@ var projectDetailData = null; // Penting untuk fitur Convert to Sales
   }
 })();
 
-// --- LOGIC UTAMA ---
 async function loadProjectDataForUpdate(Id) {
   Swal.fire({ title: "Memuat Data...", didOpen: () => Swal.showLoading() });
   try {
@@ -62,26 +61,24 @@ async function loadProjectDataForUpdate(Id) {
 
     projectDetailData = data;
 
-    // --- LOGIC LOCKING (JIKA SUDAH JADI SALES) ---
+    // --- LOGIC LOCKING ---
     const isLocked = data.pesanan_id ? true : false;
 
-    // 1. Tampilkan tombol konversi hanya jika BELUM jadi sales
+    // 1. Tombol Convert (muncul jika belum jadi sales)
     if (!isLocked) {
       document.getElementById("convertToSalesBtn").classList.remove("hidden");
     } else {
-      // Jika sudah locked, sembunyikan tombol simpan dan tambah item secara paksa
       document.getElementById("saveNewProjectBtn").classList.add("hidden");
       document.getElementById("addItemBtn").classList.add("hidden");
-
-      // Berikan notifikasi visual (opsional)
       document.getElementById(
         "formTitleManual"
       ).innerHTML += ` <span class="text-red-500 text-sm">(Locked / Sales Order Created)</span>`;
     }
 
-    // Isi Form
+    // Isi Form Standard
     document.getElementById("add_project_name").value = data.project_name || "";
-    // ... logic dropdown client existing ...
+
+    // Logic Client
     if (customerListManual.length > 0) {
       const matching = customerListManual.find(
         (c) => c.nama_client === data.customer
@@ -95,26 +92,33 @@ async function loadProjectDataForUpdate(Id) {
 
     document.getElementById("add_tanggal").value = data.start_date || "";
     document.getElementById("add_finish_date").value = data.finish_date || "";
-    document.getElementById("add_type_id").value = data.type_id || "";
     document.getElementById("add_project_manager").value =
       data.project_manager_id || "";
 
-    // Panggil toggle untuk memastikan state tombol simpan benar (muncul jika ada type, tapi hidden jika locked)
+    // --- 💡 PERBAIKAN DROPDOWN TIPE DI SINI ---
+    const typeSelect = document.getElementById("add_type_id");
+    typeSelect.value = data.type_id || "";
+
+    // ✅ REQUEST: Jangan dilock (disabled), biarkan user bisa klik ganti tipe
+    typeSelect.disabled = false;
+    typeSelect.classList.remove("bg-gray-100");
+
+    // ✅ Jalankan filter untuk menghilangkan opsi yang tidak kompatibel
+    filterCompatibleTypes(data.type_id);
+
+    // Panggil toggle agar tombol Tambah Item muncul/hilang
     toggleTambahItemBtn();
 
-    // Override lagi jika locked (karena toggleTambahItemBtn akan memunculkan tombol jika type terisi)
+    // Logic locking input LAINNYA (selain type_id)
     if (isLocked) {
-      document.getElementById("saveNewProjectBtn").classList.add("hidden");
-      document.getElementById("addItemBtn").classList.add("hidden");
-
-      // Disable semua input form
+      // Disable input lain kecuali type_id (karena request type_id jangan dilock)
       const inputs = document.querySelectorAll(
-        "#addProjectForm input, #addProjectForm select"
+        "#addProjectForm input, #addProjectForm select:not(#add_type_id)"
       );
       inputs.forEach((el) => (el.disabled = true));
     }
 
-    // Render Table
+    // Render Table Items
     const tbody = document.getElementById("tabelItemAdd");
     tbody.innerHTML = "";
 
@@ -135,12 +139,11 @@ async function loadProjectDataForUpdate(Id) {
           item.markup_percent || 0;
         recalculateHarga(itemRow.querySelector(".itemHpp"), "hpp");
 
-        // Disable input dalam table jika locked
         if (isLocked) {
+          // Kunci input dalam tabel jika locked
           itemRow
             .querySelectorAll("input, textarea, select, button")
             .forEach((el) => (el.disabled = true));
-          // Sembunyikan tombol hapus
           const delBtn = itemRow.querySelector("button[onclick^='hapusItem']");
           if (delBtn) delBtn.classList.add("hidden");
           const addSubBtn = itemRow.querySelector(".btnTambahSubItem");
@@ -148,53 +151,31 @@ async function loadProjectDataForUpdate(Id) {
         }
 
         if (item.materials?.length) {
-          const addSubBtn = itemRow.querySelector(".btnTambahSubItem");
-          // Logic sub item existing...
-          if (addSubBtn) {
-            // Note: tombol addSubBtn mungkin hidden jika locked, tapi function tambahSubItem perlu button ref
-            // Kita pakai elemen dummy jika button hidden/disabled
-          }
+          for (const mat of item.materials) {
+            const subRow = tambahSubItem({ closest: () => itemRow });
+            if (!subRow) continue;
 
-          // Render Materials
-          if (item.materials.length > 0) {
-            // Kita paksa render material row manual jika tombol tidak bisa diklik
-            const subWrapper =
-              itemRow.nextElementSibling.querySelector("table");
+            subRow.querySelector(".subItemMaterial").value = mat.name || "";
+            subRow.querySelector(".subItemSpec").value =
+              mat.specification || "";
+            subRow.querySelector(".subItemQty").value = mat.qty || 1;
+            subRow.querySelector(".subItemUnit").value = mat.unit || "pcs";
+            subRow.querySelector(".subItemHpp").value = finance(mat.hpp || 0);
+            subRow.querySelector(".subItemMarkupNominal").value = finance(
+              mat.markup_nominal || 0
+            );
+            subRow.querySelector(".subItemMarkupPersen").value =
+              mat.markup_percent || 0;
+            recalculateHarga(subRow.querySelector(".subItemHpp"), "hpp");
 
-            for (const mat of item.materials) {
-              // Panggil tambahSubItem secara manual tanpa klik button jika perlu,
-              // atau modifikasi tambahSubItem agar menerima row parent.
-              // Cara termudah pakai existing function dengan mock button:
-              const mockBtn = document.createElement("button");
-              // Hacky way to finding parentRow context for tambahSubItem
-              // Lebih aman kita modifikasi sedikit tambahSubItem atau copy logicnya.
-              // Tapi agar code minimal, kita gunakan helper logic render subrow:
-
-              const subRow = tambahSubItem({ closest: () => itemRow }); // Mock object
-              if (!subRow) continue;
-
-              subRow.querySelector(".subItemMaterial").value = mat.name || "";
-              subRow.querySelector(".subItemSpec").value =
-                mat.specification || "";
-              subRow.querySelector(".subItemQty").value = mat.qty || 1;
-              subRow.querySelector(".subItemUnit").value = mat.unit || "pcs";
-              subRow.querySelector(".subItemHpp").value = finance(mat.hpp || 0);
-              subRow.querySelector(".subItemMarkupNominal").value = finance(
-                mat.markup_nominal || 0
+            if (isLocked) {
+              subRow
+                .querySelectorAll("input, select, button, textarea")
+                .forEach((el) => (el.disabled = true));
+              const delSub = subRow.querySelector(
+                "button[onclick^='hapusItem']"
               );
-              subRow.querySelector(".subItemMarkupPersen").value =
-                mat.markup_percent || 0;
-              recalculateHarga(subRow.querySelector(".subItemHpp"), "hpp");
-
-              if (isLocked) {
-                subRow
-                  .querySelectorAll("input, select, button")
-                  .forEach((el) => (el.disabled = true));
-                const delSub = subRow.querySelector(
-                  "button[onclick^='hapusItem']"
-                );
-                if (delSub) delSub.classList.add("hidden");
-              }
+              if (delSub) delSub.classList.add("hidden");
             }
           }
         }
@@ -208,6 +189,65 @@ async function loadProjectDataForUpdate(Id) {
   }
 }
 
+/**
+ * 💡 FUNGSI FILTER BARU
+ * Memfilter opsi Tipe Sales agar user hanya bisa berpindah antar tipe yang sejenis.
+ */
+/**
+ * 💡 FUNGSI FILTER UPDATE
+ * Menghilangkan (HIDE) opsi yang tidak sejenis, bukan sekadar disable.
+ */
+function filterCompatibleTypes(currentTypeId) {
+  const typeSelect = document.getElementById("add_type_id");
+  if (!typeSelect) return;
+
+  const currentIdStr = String(currentTypeId);
+
+  // Group A: Service (2) & Turnkey (3)
+  const complexTypes = ["2", "3"];
+  const isComplex = complexTypes.includes(currentIdStr);
+
+  Array.from(typeSelect.options).forEach((option) => {
+    if (option.value === "") return; // Skip placeholder
+
+    // Reset style dulu
+    option.style.display = "";
+    option.hidden = false;
+
+    let shouldHide = false;
+
+    if (isComplex) {
+      // Jika Group A (Service/Turnkey), HILANGKAN Group B (Material dll)
+      if (!complexTypes.includes(option.value)) {
+        shouldHide = true;
+      }
+    } else {
+      // Jika Group B (Material), HILANGKAN Group A (Service/Turnkey)
+      if (complexTypes.includes(option.value)) {
+        shouldHide = true;
+      }
+    }
+
+    if (shouldHide) {
+      // ✅ LOGIKA BARU: Sembunyikan total
+      option.style.display = "none";
+      option.hidden = true; // Support browser modern
+      option.disabled = true; // Backup agar tidak bisa dipilih via keyboard
+    } else {
+      // Tampilkan
+      option.style.display = "block";
+      option.hidden = false;
+      option.disabled = false;
+    }
+  });
+}
+
+// 💡 TAMBAHKAN LISTENER AGAR TOMBOL BERUBAH SAAT TIPE DIGANTI MANUAL
+document.addEventListener("change", function (e) {
+  if (e.target && e.target.id === "add_type_id") {
+    toggleTambahItemBtn();
+  }
+});
 async function saveProject(mode = "create", id = null) {
   try {
     const confirm = await Swal.fire({
@@ -554,7 +594,8 @@ async function tambahItem(selectedSubCategoryId = "") {
         </button>
 
         ${
-          typeId == "3"
+          // ✅ UPDATE LOGIKA DI SINI: Muncul jika ID 2 (Service) atau ID 3 (Turnkey)
+          typeId == 2 || typeId == 3
             ? `
           <button type="button" onclick="tambahSubItem(this)" 
             class="btnTambahSubItem inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition shadow-sm" 
@@ -592,36 +633,73 @@ function tambahSubItem(btn) {
   const parentRow = btn.closest("tr");
   const subWrapper = parentRow.nextElementSibling?.querySelector("table");
   if (!subWrapper) return;
+
   const subTr = document.createElement("tr");
   subTr.classList.add("subItemRow", "bg-gray-50", "italic");
+
   subTr.innerHTML = `
     <td class="w-[5%]"></td>
     <td class="border px-3 py-2">
-       <div class="mb-1"><input type="text" class="w-full border rounded subItemMaterial" placeholder="Material"></div>
-       <div class="mb-1"><input type="text" class="w-full border rounded subItemSpec" placeholder="Spesifikasi"></div>
+       <div class="mb-1">
+         <label class="text-xs text-gray-500">Material Name</label>
+         <input type="text" class="w-full border rounded subItemMaterial" placeholder="Material">
+       </div>
+       
+       <div class="mb-1">
+         <label class="text-xs text-gray-500">Specification</label>
+         <textarea class="w-full border rounded subItemSpec" rows="3" placeholder="Spesifikasi"></textarea>
+       </div>
+
        <div class="grid grid-cols-3 gap-2 my-2">
-          <input type="text" class="w-full border rounded subItemHpp finance" value="0" oninput="recalculateHarga(this, 'hpp')">
-          <input type="text" class="w-full border rounded subItemMarkupNominal finance" value="0" oninput="recalculateHarga(this, 'nominal')">
-          <input type="number" class="w-full border rounded subItemMarkupPersen" value="0" oninput="recalculateHarga(this, 'persen')">
+          <div>
+            <label class="text-xs text-gray-500">HPP</label>
+            <input type="text" class="w-full border rounded subItemHpp finance" value="0" oninput="recalculateHarga(this, 'hpp')">
+          </div>
+          <div>
+            <label class="text-xs text-gray-500">Markup (Rp)</label>
+            <input type="text" class="w-full border rounded subItemMarkupNominal finance" value="0" oninput="recalculateHarga(this, 'nominal')">
+          </div>
+          <div>
+            <label class="text-xs text-gray-500">Markup (%)</label>
+            <input type="number" class="w-full border rounded subItemMarkupPersen" value="0" oninput="recalculateHarga(this, 'persen')">
+          </div>
        </div>
+
        <div class="grid grid-cols-4 gap-2">
-          <input type="number" class="w-full border rounded subItemQty" value="1" oninput="recalculateTotal()">
-          <div class="relative"><input type="text" class="w-full border rounded subItemUnit" placeholder="pcs" oninput="filterUnitSuggestions(this)" autocomplete="off"><ul class="absolute z-10 w-full bg-white border shadow hidden max-h-48 overflow-y-auto"></ul></div>
-          <div class="col-span-2"><input type="text" class="w-full border rounded subItemHarga bg-gray-100" readonly></div>
+          <div>
+            <label class="text-xs text-gray-500">Qty</label>
+            <input type="number" class="w-full border rounded subItemQty" value="1" oninput="recalculateTotal()">
+          </div>
+          <div>
+            <label class="text-xs text-gray-500">Unit</label>
+            <div class="relative">
+              <input type="text" class="w-full border rounded subItemUnit" placeholder="pcs" oninput="filterUnitSuggestions(this)" autocomplete="off">
+              <ul class="absolute z-10 w-full bg-white border shadow hidden max-h-48 overflow-y-auto"></ul>
+            </div>
+          </div>
+          <div class="col-span-2">
+            <label class="text-xs text-gray-500">Harga Jual</label>
+            <input type="text" class="w-full border rounded subItemHarga bg-gray-100" readonly>
+          </div>
        </div>
+
        <div class="border rounded px-2 py-1 text-right bg-gray-100 subItemTotal mt-2">0</div>
     </td>
-    <button type="button" onclick="hapusItem(this)" 
+    <td class="align-middle text-center">
+       <button type="button" onclick="hapusItem(this)" 
          class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition shadow-sm" 
          title="Hapus Material">
          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
          </svg>
        </button>
+    </td>
   `;
+
   subWrapper.appendChild(subTr);
   setupRupiahFormattingForElement(subTr.querySelector(".subItemHpp"));
   setupRupiahFormattingForElement(subTr.querySelector(".subItemMarkupNominal"));
+
   return subTr;
 }
 
