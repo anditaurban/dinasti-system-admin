@@ -1,4 +1,4 @@
-pagemodule = "Project Expenses";
+pagemodule = "Internal Expenses";
 subpagemodule = "";
 renderHeader();
 colSpanCount = 9;
@@ -82,7 +82,7 @@ formHtml = `
   </div>
 
  <div class="form-group">
-      <label for="formCategory" class="block text-left text-sm font-medium text-gray-700 dark:text-gray-200">Expenses</label>
+      <label for="formCategory" class="block text-left text-sm font-medium text-gray-700 dark:text-gray-200">Kategori</label>
       <input id="formCategory" name="nama_expenses" type="text" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500" placeholder="Contoh: Marketing Operational" required>
   </div>
 

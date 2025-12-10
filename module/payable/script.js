@@ -141,24 +141,18 @@ window.rowTemplate = function (item, index, perPage = 10) {
       <span class="font-medium sm:hidden">Email</span>
       ${finance(item.nominal)}
       <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
-        <button onclick="event.stopPropagation(); confirmPayment('${
-          item.receipt_id
-        }', 2);" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-          ✅ Valid
-        </button>
-        <button onclick="event.stopPropagation(); confirmPayment('${
-          item.receipt_id
-        }', 3);" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-          ❌ Tidak Valid
-        </button> 
 
-        <button 
-          onclick="event.stopPropagation(); openSalesApproval('${
-            item.pesanan_id
-          }', '${item.approved}')"
-          class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600">
-          🟢 Update Approval
-        </button>
+${
+  item.approval_status === "Approved"
+    ? ""
+    : `
+    <button 
+      onclick="event.stopPropagation(); openAccountPayableApproval('${item.payable_id}', '${item.approval_status}')"
+      class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600">
+      🟢 Update Approval
+    </button>
+    `
+}
         
         <button 
           onclick="event.stopPropagation(); sendApprovalReminder('${
@@ -223,3 +217,108 @@ requiredFields = [
   { field: "formStartDate", message: "Starting Date is required!" },
   { field: "formDeadline", message: "Deadline is required!" },
 ];
+
+async function openAccountPayableApproval(
+  payableId,
+  currentStatus = "Pending"
+) {
+  try {
+    // 🔹 Popup pilihan approval
+    const { value: formValues } = await Swal.fire({
+      title: "Update Account Payable Approval",
+      html: `
+        <div class="text-left space-y-3">
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">Pilih Status</label>
+            <select id="approvalSelect" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+              <option value="no" ${
+                currentStatus === "Pending" ? "selected" : ""
+              }>Pending</option>
+              <option value="yes" ${
+                currentStatus === "Approved" ? "selected" : ""
+              }>Approved</option>
+            </select>
+          </div>
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: "Update",
+      cancelButtonText: "Batal",
+      preConfirm: () => {
+        const approved = document.getElementById("approvalSelect").value;
+        if (!approved) {
+          Swal.showValidationMessage("Silakan pilih status approval");
+          return false;
+        }
+        return { approved };
+      },
+    });
+
+    if (!formValues) return;
+
+    // 🔹 Data untuk Body Request
+    const bodyData = {
+      // Perhatikan: walau di URL sudah ada ID, biasanya body tetap dikirim jika backend butuh
+      payable_id: payableId,
+      user_id: user.user_id, // Pastikan variabel user ini tersedia
+      approved: formValues.approved, // mengirim "yes" atau "no"
+    };
+
+    // 🔹 Kirim request ke Endpoint Baru
+    // URL: .../update/account_payable_approval/{id}
+    const updateRes = await fetch(
+      `${baseUrl}/update/account_payable_approval/${payableId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+        body: JSON.stringify(bodyData),
+      }
+    );
+
+    const result = await updateRes.json();
+
+    // 🔹 Validasi Response sesuai Gambar Postman
+    // Gambar menunjukkan: result.response = "200" dan data sukses ada di result.data
+    if (updateRes.ok && result.response === "200") {
+      // Ambil pesan dari result.data.message (sesuai gambar)
+      const successMessage = result.data
+        ? result.data.message
+        : "Data successfully updated";
+
+      Swal.fire("✅ Sukses", successMessage, "success");
+
+      // 🔹 Update tampilan langsung di tabel (DOM)
+      const rowStatus = document.querySelector(
+        `#row-${payableId} .approvalLabel`
+      );
+      if (rowStatus) {
+        // Update teks visual
+        rowStatus.textContent =
+          formValues.approved === "yes" ? "Approved" : "Pending";
+
+        // Opsional: Update warna badge jika perlu
+        rowStatus.className = `approvalLabel px-2 py-1 rounded text-xs font-semibold ${
+          formValues.approved === "yes"
+            ? "bg-green-100 text-green-700"
+            : "bg-yellow-100 text-yellow-700"
+        }`;
+      }
+
+      // 🔹 Auto-refresh data tabel (jika fungsi tersedia)
+      if (typeof fetchAndUpdateData === "function") {
+        fetchAndUpdateData();
+      }
+    } else {
+      // Handle error jika message ada di dalam data atau root
+      const errorMsg =
+        result.data?.message || result.message || "Gagal memperbarui approval";
+      throw new Error(errorMsg);
+    }
+  } catch (err) {
+    Swal.fire("❌ Error", err.message, "error");
+  }
+}
