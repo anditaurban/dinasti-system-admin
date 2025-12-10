@@ -895,9 +895,8 @@ async function loadDetailSales(Id, Detail) {
     }
 
     const data = response.detail;
-    // console.log("DATA DETAIL QO:", data);
 
-    // 1. Load semua data dropdown dulu
+    // 1. Load Dropdowns
     await Promise.all([
       loadSalesType(),
       loadPICList(data.pelanggan_id),
@@ -919,31 +918,29 @@ async function loadDetailSales(Id, Detail) {
     const typeField = document.getElementById("type_id");
     typeField.value = data.type_id || "";
 
-    // 3. 🔓 BUKA KUNCI DROPDOWN (Penting!)
-    // Kita buka dulu kuncinya agar filter bisa bekerja
+    // ✅ BUKA KUNCI DROPDOWN (Agar bisa diklik)
     typeField.disabled = false;
-    typeField.classList.remove("bg-gray-100"); // Hilangkan warna abu-abu input disabled
+    typeField.classList.remove("bg-gray-100");
 
-    // 4. Jalankan Filter (Disable opsi yang tidak sesuai rules)
+    // ✅ JALANKAN FILTER (Service & Turnkey akan hilang jika ini Material)
     filterCompatibleTypes(data.type_id);
 
-    // 5. Cek Status Approval (Baru di-lock kalau sudah approve)
+    // 3. Cek Status Approval
     const updateBtn = document.getElementById("updateBtn");
+    const statusId = parseInt(data.status_id);
 
-    // Logic Lock berdasarkan Status atau Project ID
-    if (
-      data.status_id === 2 ||
-      data.status_id === 3 ||
-      (data.project_id && data.project_id != 0)
-    ) {
+    // Hanya kunci jika status Approved (2) atau Completed (3)
+    if (statusId === 2 || statusId === 3) {
       updateBtn?.classList.add("hidden");
-
-      // Kunci total jika sudah approve
       typeField.disabled = true;
       typeField.classList.add("bg-gray-100");
     } else {
       updateBtn?.classList.remove("hidden");
       toggleTambahItemBtn();
+
+      // Pastikan tetap terbuka (untuk Draft/Revisi)
+      typeField.disabled = false;
+      typeField.classList.remove("bg-gray-100");
     }
 
     // --- Pengisian Field Lainnya ---
@@ -969,10 +966,6 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("client").value = data.pelanggan_nama || "";
     document.getElementById("pic_name").value = data.pic_name || "";
 
-    // ... (Sisa kode items sama seperti sebelumnya) ...
-    // (Render Items Code Here...)
-    // Pastikan kode render items Anda ada di sini (copy dari jawaban sebelumnya)
-
     // --- LOAD ITEMS & SUBS ---
     const subcategoryRes = await fetch(
       `${baseUrl}/list/sub_category/${owner_id}`,
@@ -987,9 +980,8 @@ async function loadDetailSales(Id, Detail) {
       for (const item of data.items) {
         renderPromises.push(
           (async () => {
-            await tambahItem(); // Pastikan tambahItem Anda sudah async
+            await tambahItem();
             let row = tbody.lastElementChild;
-            // logic cari row...
             if (!row.querySelector(".itemSubcategory")) {
               row = row.previousElementSibling;
             }
@@ -1025,7 +1017,7 @@ async function loadDetailSales(Id, Detail) {
                   subTr.querySelector(".subItemMaterial").value =
                     material.name || "";
                   subTr.querySelector(".subItemSpec").value =
-                    material.specification || ""; // Ini yang Textarea
+                    material.specification || "";
                   subTr.querySelector(".subItemQty").value = material.qty || 0;
                   subTr.querySelector(".subItemUnit").value =
                     material.unit || "";
@@ -1066,48 +1058,47 @@ async function loadDetailSales(Id, Detail) {
 }
 
 /**
- * Memfilter opsi Tipe Sales agar user hanya bisa berpindah antar tipe yang sejenis.
- * Group A: Service (2) & Turnkey (3)
- * Group B: Selain itu (misal Material)
+ * 💡 FUNGSI FILTER FINAL (SEGREGASI TOTAL)
+ * - Grup A (Service/Turnkey): Hanya tampilkan opsi Service & Turnkey. Sembunyikan Material.
+ * - Grup B (Material): Sembunyikan opsi Service & Turnkey. Tampilkan sisanya.
  */
 function filterCompatibleTypes(currentTypeId) {
   const typeSelect = document.getElementById("type_id");
   if (!typeSelect) return;
 
-  // Pastikan currentTypeId string agar pembandingannya aman
   const currentIdStr = String(currentTypeId);
 
-  // Definisi Group yang "Sejenis" (Service & Turnkey)
-  // ID 2 = Service, ID 3 = Turnkey
+  // Definisi Grup A: Service (2) & Turnkey (3)
   const complexTypes = ["2", "3"];
-
   const isComplex = complexTypes.includes(currentIdStr);
 
-  // Loop semua option di dropdown
   Array.from(typeSelect.options).forEach((option) => {
-    // Skip opsi default "Pilih Tipe"
+    // Jangan ubah placeholder
     if (option.value === "") return;
 
+    // 1. Reset: Buka dulu semua opsi
+    option.style.display = "block";
+    option.hidden = false;
+    option.disabled = false;
+
+    // 2. Terapkan Logika Pemisahan
     if (isComplex) {
-      // Skenario 1: Asalnya Service/Turnkey
-      // Hanya tampilkan yang ada di array complexTypes
-      if (complexTypes.includes(option.value)) {
-        option.style.display = "block";
-        option.disabled = false;
-      } else {
+      // --- SKENARIO 1: Tipe Saat Ini = Service atau Turnkey ---
+      // HANYA boleh melihat sesama Service/Turnkey.
+      // Sembunyikan Material, dll.
+      if (!complexTypes.includes(option.value)) {
         option.style.display = "none";
+        option.hidden = true;
         option.disabled = true;
       }
     } else {
-      // Skenario 2: Asalnya Material (Bukan Service/Turnkey)
-      // Sembunyikan Service & Turnkey
+      // --- SKENARIO 2: Tipe Saat Ini = Material (Grup B) ---
+      // TIDAK BOLEH melihat Service/Turnkey.
+      // Sembunyikan Service (2) dan Turnkey (3).
       if (complexTypes.includes(option.value)) {
         option.style.display = "none";
+        option.hidden = true;
         option.disabled = true;
-      } else {
-        // Tampilkan sisanya (misal Material atau tipe lain yg simple)
-        option.style.display = "block";
-        option.disabled = false;
       }
     }
   });
