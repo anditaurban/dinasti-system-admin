@@ -1,59 +1,70 @@
 pagemodule = "Quotation";
 subpagemodule = "Form Quotation";
 renderHeader();
+var autosaveTimer; // Gunakan var agar scope lebih fleksibel di SPA
+var isSubmitting = false; // Default false
+
 submitInvoice = () => saveInvoice("create");
 updateInvoice = () => saveInvoice("update", window.detail_id);
 
 if (window.detail_id && window.detail_desc) {
+  // --- MODE EDIT ---
   const simpanBtn = document.getElementById("simpanBtn");
   simpanBtn?.classList.add("hidden");
-  // const downloadBtn = document.getElementById('downloadBtn');
-  // downloadBtn?.classList.add("hidden");
+
+  // Pastikan saat edit, autosave dimatikan total
+  isSubmitting = true; // Anggap submit agar autosave tidak jalan menimpa draft
+
   loadDetailSales(window.detail_id, window.detail_desc);
-  // ✅ GANTI DENGAN BLOK INI
 } else {
-  // Bagian ini tetap sama
+  // --- MODE CREATE ---
+
+  // 🔥 FIX UTAMA: RESET STATUS SIMPAN & TIMER 🔥
+  // Ini memaksa sistem "Sadar" bahwa kita tidak sedang menyimpan data
+  // meskipun tidak di-refresh browsernya.
+  isSubmitting = false;
+  clearTimeout(autosaveTimer);
+
   setTodayDate();
-  populateDropdown("/list/notes/", "catatan", "Pilih Catatan...");
-  populateDropdown(
-    "/list/terms/",
-    "syarat_ketentuan",
-    "Pilih Syarat & Ketentuan..."
-  );
-  populateDropdown(
-    "/list/term_of_payment/",
-    "term_pembayaran",
-    "Pilih Term of Payment..."
-  );
-  loadSalesType();
-  // loadPretextFromLocal();
-  // loadCustomerList(owner_id);
-  loadStatusOptions();
+
+  // Load Master Data
+  Promise.all([
+    populateDropdown("/list/notes/", "catatan", "Pilih Catatan..."),
+    populateDropdown(
+      "/list/terms/",
+      "syarat_ketentuan",
+      "Pilih Syarat & Ketentuan..."
+    ),
+    populateDropdown(
+      "/list/term_of_payment/",
+      "term_pembayaran",
+      "Pilih Term of Payment..."
+    ),
+    loadSalesType(),
+    loadStatusOptions(),
+  ]).then(() => {
+    // Cek Autosave HANYA setelah dropdown siap
+    checkAndLoadAutosave();
+  });
 
   document.getElementById("status").value = "Draft";
 
-  // --- 💡 VALIDASI BARU DITAMBAHKAN DI SINI ---
-
-  // 1. Ambil elemen-elemen terkait
+  // --- VALIDASI & LISTENERS ---
   const tanggalInput = document.getElementById("tanggal");
   const typeSelect = document.getElementById("type_id");
-  const picInput = document.getElementById("pic_name"); // Ambil input PIC
+  const picInput = document.getElementById("pic_name");
 
-  // 2. Tambahkan listener untuk generate No QTN (ini sudah ada)
-  tanggalInput.addEventListener("change", tryGenerateNoQtn);
-  typeSelect.addEventListener("change", tryGenerateNoQtn);
+  if (tanggalInput) tanggalInput.addEventListener("change", tryGenerateNoQtn);
+  if (typeSelect) {
+    typeSelect.addEventListener("change", tryGenerateNoQtn);
+    typeSelect.addEventListener("change", updateButtonVisibility);
+  }
+  if (picInput) picInput.addEventListener("input", updateButtonVisibility);
 
-  // 3. Tambahkan listener untuk update visibilitas tombol
-  // Panggil saat Tipe berubah
-  typeSelect.addEventListener("change", updateButtonVisibility);
-  // Panggil saat PIC berubah (event 'input' menangkap ketikan atau perubahan value)
-  picInput.addEventListener("input", updateButtonVisibility);
-
-  // 4. Panggil sekali saat halaman load (mode create)
-  // Ini akan langsung menyembunyikan tombol "Tambah Item" dan "Simpan"
   updateButtonVisibility();
 
-  // --- Akhir Validasi Baru ---
+  // Aktifkan listener Autosave
+  initAutosaveListener();
 }
 
 // document.getElementById("tanggal").addEventListener("change", tryGenerateNoQtn);
@@ -1230,10 +1241,15 @@ function loadPretextFromLocal() {
 // GANTI DENGAN FUNGSI INI (TYPO SUDAH DIPERBAIKI)
 async function saveInvoice(mode = "create", id = null) {
   try {
-    calculateTotals();
+    // 🛑 1. REM TANGAN AKTIF
+    isSubmitting = true;
+    clearTimeout(autosaveTimer); // Matikan timer autosave yang sedang antri
+
+    calculateTotals(); // Hitung total final
 
     let revisionUpdate = "no";
 
+    // --- Konfirmasi (Khusus Update) ---
     if (mode === "update") {
       const konfirmasi = await Swal.fire({
         title: "Update Data?",
@@ -1243,7 +1259,10 @@ async function saveInvoice(mode = "create", id = null) {
         confirmButtonText: "✅ Ya, simpan",
         cancelButtonText: "❌ Batal",
       });
-      if (!konfirmasi.isConfirmed) return;
+      if (!konfirmasi.isConfirmed) {
+        isSubmitting = false; // Lepas rem jika batal
+        return;
+      }
 
       const revisionConfirm = await Swal.fire({
         title: "Revision Update?",
@@ -1253,10 +1272,10 @@ async function saveInvoice(mode = "create", id = null) {
         confirmButtonText: "Ya",
         cancelButtonText: "Tidak",
       });
-
       revisionUpdate = revisionConfirm.isConfirmed ? "yes" : "no";
     }
 
+    // --- SCRAPE DATA ITEMS (Sama seperti sebelumnya) ---
     const rows = document.querySelectorAll("#tabelItem tr");
     const groupedItems = {};
 
@@ -1302,46 +1321,33 @@ async function saveInvoice(mode = "create", id = null) {
       if (subWrapper && subWrapper.classList.contains("subItemWrapper")) {
         const subItems = subWrapper.querySelectorAll(".subItemRow");
         subItems.forEach((sub) => {
-          const subItemMaterial =
-            sub.querySelector(".subItemMaterial")?.value.trim() || "";
-          const subItemSpec =
-            sub.querySelector(".subItemSpec")?.value.trim() || "";
-          const subItemQty = parseInt(
-            sub.querySelector(".subItemQty")?.value || 0
-          );
-          const subItemUnit =
-            sub.querySelector(".subItemUnit")?.value.trim() || "pcs";
-          const subItemHarga = parseRupiah(
-            sub.querySelector(".subItemHarga")?.value || 0
-          );
-          const subItemHpp = parseRupiah(
-            sub.querySelector(".subItemHpp")?.value || 0
-          );
-          const subItemMarkupNominal = parseRupiah(
-            sub.querySelector(".subItemMarkupNominal")?.value || 0
-          );
-          const subItemMarkupPercent = parseFloat(
-            sub.querySelector(".subItemMarkupPersen")?.value || 0
-          );
-
           groupedItems[key].materials.push({
-            subItemMaterial,
-            subItemSpec,
-            subItemQty,
-            subItemUnit,
-            subItemHarga,
-            subItemHpp,
-            subItemMarkupNominal,
-            subItemMarkupPercent,
+            subItemMaterial:
+              sub.querySelector(".subItemMaterial")?.value.trim() || "",
+            subItemSpec: sub.querySelector(".subItemSpec")?.value.trim() || "",
+            subItemQty: parseInt(sub.querySelector(".subItemQty")?.value || 0),
+            subItemUnit:
+              sub.querySelector(".subItemUnit")?.value.trim() || "pcs",
+            subItemHarga: parseRupiah(
+              sub.querySelector(".subItemHarga")?.value || 0
+            ),
+            subItemHpp: parseRupiah(
+              sub.querySelector(".subItemHpp")?.value || 0
+            ),
+            subItemMarkupNominal: parseRupiah(
+              sub.querySelector(".subItemMarkupNominal")?.value || 0
+            ),
+            subItemMarkupPercent: parseFloat(
+              sub.querySelector(".subItemMarkupPersen")?.value || 0
+            ),
           });
         });
       }
-
       if (i % 50 === 0) await new Promise((resolve) => setTimeout(resolve, 0));
     }
-
     const items = Object.values(groupedItems);
 
+    // --- PREPARE FORM DATA ---
     const owner_id = user.owner_id;
     const user_id = user.user_id;
     const nominalKontrak = parseRupiah(
@@ -1405,32 +1411,10 @@ async function saveInvoice(mode = "create", id = null) {
     if (fileInput && fileInput.files.length > 0) {
       for (let i = 0; i < fileInput.files.length; i++) {
         formData.append("files", fileInput.files[i]);
-        if (i % 10 === 0)
-          await new Promise((resolve) => setTimeout(resolve, 0));
       }
     }
 
-    // --- 🔍 Tambahan Console Log Lengkap ---
-    console.group("🔍 Data yang dikirim ke server");
-    console.log(
-      "URL:",
-      mode === "create"
-        ? `${baseUrl}/add/sales`
-        : `${baseUrl}/update/sales/${id}`
-    );
-    console.log("Method:", mode === "create" ? "POST" : "PUT");
-
-    console.log("\n🧾 Items (list lengkap):", items);
-    console.log("\n📦 FormData (isi field):");
-    for (const [key, val] of formData.entries()) {
-      if (key === "items") {
-        console.log(key, JSON.parse(val)); // biar kelihatan strukturnya
-      } else {
-        console.log(key, val);
-      }
-    }
-    console.groupEnd();
-
+    // --- FETCH ---
     const url =
       mode === "create"
         ? `${baseUrl}/add/sales`
@@ -1444,21 +1428,27 @@ async function saveInvoice(mode = "create", id = null) {
     });
 
     const json = await res.json();
-    console.log("Response status:", res.status);
-    console.log("Response JSON:", json);
 
     if (res.ok) {
+      // ✅ 2. HAPUS DRAFT SEGERA (SEBELUM DOM HANCUR)
+      clearTimeout(autosaveTimer); // Matikan timer lagi untuk keamanan
+      localStorage.removeItem(AUTOSAVE_KEY);
+
       Swal.fire(
         "Sukses",
         `Quotation berhasil ${mode === "create" ? "dibuat" : "diupdate"}`,
         "success"
       );
+
       loadModuleContent("quotation");
+      // isSubmitting tetap true sampai modul reload, mencegah autosave berjalan.
     } else {
+      isSubmitting = false; // Lepas rem jika gagal
       Swal.fire("Gagal", json.message || "Gagal menyimpan data", "error");
     }
   } catch (err) {
     console.error("Submit error:", err);
+    isSubmitting = false; // Lepas rem jika error
     Swal.fire("Error", err.message || "Terjadi kesalahan", "error");
   }
 }
@@ -1563,5 +1553,326 @@ function updateButtonVisibility() {
     } else {
       simpanBtn.classList.add("hidden");
     }
+  }
+}
+
+// ==========================================
+// 💡 FITUR AUTOSAVE (LOCAL STORAGE)
+// ==========================================
+
+function initAutosaveListener() {
+  // Dengarkan input & change
+  document.addEventListener("input", handleAutosaveTrigger);
+  document.addEventListener("change", handleAutosaveTrigger);
+
+  // Dengarkan perubahan DOM (tambah/hapus item)
+  const targetNode = document.getElementById("tabelItem");
+  if (targetNode) {
+    const observer = new MutationObserver(handleAutosaveTrigger);
+    observer.observe(targetNode, { childList: true, subtree: true });
+  }
+}
+
+function handleAutosaveTrigger() {
+  // 1. Cek apakah sedang proses submit ke server? Jika YA, STOP.
+  if (isSubmitting) return;
+
+  // 2. Debounce: Tunggu 1 detik
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(performAutosave, 1000);
+}
+
+function performAutosave() {
+  // --- PENGECEKAN KETAT (REVISI) ---
+
+  // 1. Jangan save jika sedang mode EDIT (Punya ID Server)
+  if (window.detail_id) return;
+
+  // 2. Jangan save jika sedang proses SUBMIT
+  if (isSubmitting) return;
+
+  // 3. 🛑 PENTING: Cek apakah FORM masih ada di layar?
+  // Jika user sudah klik "Back" dan halaman ganti, elemen ini akan null.
+  // Kita HARUS STOP agar tidak menimpa draft dengan data kosong.
+  const formElement = document.getElementById("tabelItem");
+  if (!formElement) {
+    // console.log("Form tidak ditemukan, batalkan autosave (User mungkin sudah pindah halaman).");
+    return;
+  }
+
+  // --- MULAI PROSES SAVE ---
+  try {
+    const data = scrapeFormData();
+
+    // Cek apakah data benar-benar kosong? (Jaga-jaga)
+    if (!data.items.length && !data.pelanggan_id && !data.project_name) {
+      return; // Jangan simpan data kosong
+    }
+
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
+  } catch (err) {
+    console.error("Gagal autosave:", err);
+  }
+}
+
+function scrapeFormData() {
+  // Fungsi ini mengumpulkan data form menjadi Object JSON
+  // Strukturnya DISAMAKAN dengan respons API loadDetailSales (field 'detail')
+
+  const rows = document.querySelectorAll("#tabelItem tr");
+  const items = [];
+  let currentItem = null;
+
+  // Logic scraping item (mirip saveInvoice tapi return Object)
+  rows.forEach((row) => {
+    if (row.classList.contains("itemRow")) {
+      // Item Utama
+      currentItem = {
+        sub_category_id: row.querySelector(".itemSubcategory")?.value || "",
+        product: row.querySelector(".itemProduct")?.value || "",
+        description: row.querySelector(".itemDesc")?.value || "",
+        qty: row.querySelector(".itemQty")?.value || 0,
+        unit: row.querySelector(".itemUnit")?.value || "",
+        unit_price: parseRupiah(row.querySelector(".itemHarga")?.value || 0),
+        hpp: parseRupiah(row.querySelector(".itemHpp")?.value || 0),
+        markup_nominal: parseRupiah(
+          row.querySelector(".itemMarkupNominal")?.value || 0
+        ),
+        markup_percent: row.querySelector(".itemMarkupPersen")?.value || 0,
+        total: parseRupiah(row.querySelector(".itemTotal")?.innerText || 0),
+        materials: [],
+      };
+      items.push(currentItem);
+    } else if (row.classList.contains("subItemWrapper") && currentItem) {
+      // Sub Items
+      const subs = row.querySelectorAll(".subItemRow");
+      subs.forEach((sub) => {
+        currentItem.materials.push({
+          name: sub.querySelector(".subItemMaterial")?.value || "",
+          specification: sub.querySelector(".subItemSpec")?.value || "",
+          qty: sub.querySelector(".subItemQty")?.value || 0,
+          unit: sub.querySelector(".subItemUnit")?.value || "",
+          unit_price: parseRupiah(
+            sub.querySelector(".subItemHarga")?.value || 0
+          ),
+          hpp: parseRupiah(sub.querySelector(".subItemHpp")?.value || 0),
+          markup_nominal: parseRupiah(
+            sub.querySelector(".subItemMarkupNominal")?.value || 0
+          ),
+          markup_percent: sub.querySelector(".subItemMarkupPersen")?.value || 0,
+          total: parseRupiah(
+            sub.querySelector(".subItemTotal")?.innerText || 0
+          ),
+        });
+      });
+    }
+  });
+
+  return {
+    // Mapping ID DOM ke Key API
+    tanggal_ymd: document.getElementById("tanggal")?.value,
+    no_qtn: document.getElementById("no_qtn")?.value,
+    project_name: document.getElementById("project_name")?.value,
+    type_id: document.getElementById("type_id")?.value,
+    status: document.getElementById("status")?.value,
+    pelanggan_id: document.getElementById("client_id")?.value,
+    pelanggan_nama: document.getElementById("client")?.value, // Nama Client di input
+    pic_name: document.getElementById("pic_name")?.value,
+    catatan: document.getElementById("catatan")?.value,
+    syarat_ketentuan: document.getElementById("syarat_ketentuan")?.value,
+    term_pembayaran: document.getElementById("term_pembayaran")?.value,
+    disc: parseRupiah(document.getElementById("discount")?.value || 0),
+    ppn: parseRupiah(document.getElementById("ppn")?.value || 0), // Simpan nilai nominal PPN
+    items: items,
+    // Flag checkbox PPN (karena API biasanya tidak simpan status checked, kita logika manual)
+    has_ppn: document.getElementById("cekPpn")?.checked,
+  };
+}
+
+async function checkAndLoadAutosave() {
+  const savedDataJson = localStorage.getItem(AUTOSAVE_KEY);
+  if (!savedDataJson) return;
+
+  // Cek apakah data valid
+  let savedData;
+  try {
+    savedData = JSON.parse(savedDataJson);
+  } catch (e) {
+    localStorage.removeItem(AUTOSAVE_KEY);
+    return;
+  }
+
+  if (
+    !savedData.project_name &&
+    !savedData.pelanggan_id &&
+    savedData.items.length === 0
+  ) {
+    return;
+  }
+
+  const result = await Swal.fire({
+    title: "Draft Ditemukan!",
+    text: "Anda memiliki data Quotation yang belum disimpan. Ingin melanjutkannya?",
+    icon: "info",
+    showCancelButton: true,
+    confirmButtonColor: "#3085d6",
+    cancelButtonColor: "#d33",
+    confirmButtonText: "Ya, Lanjutkan Draft",
+    cancelButtonText: "Tidak, Buat Baru",
+  });
+
+  if (result.isConfirmed) {
+    restoreAutosaveData(savedData);
+  } else {
+    // Hapus data, jadi form bersih.
+    // Jika user menekan BACK lalu MASUK LAGI, wajar jika tidak ada notif,
+    // karena di sini kita sudah menghapusnya.
+    localStorage.removeItem(AUTOSAVE_KEY);
+  }
+}
+
+async function restoreAutosaveData(data) {
+  // Fungsi ini meniru 'loadDetailSales' tapi sumber datanya dari Object Lokal
+
+  Swal.fire({
+    title: "Memulihkan Draft...",
+    didOpen: () => Swal.showLoading(),
+  });
+
+  try {
+    // 1. Isi Field Dasar
+    document.getElementById("tanggal").value = data.tanggal_ymd || "";
+    document.getElementById("no_qtn").value = data.no_qtn || "";
+    document.getElementById("project_name").value = data.project_name || "";
+    document.getElementById("status").value = data.status || "Draft";
+
+    // 2. Dropdowns Pretext (Catatan, dll) - asumsi value disimpan sesuai text
+    document.getElementById("catatan").value = data.catatan || "";
+    document.getElementById("syarat_ketentuan").value =
+      data.syarat_ketentuan || "";
+    document.getElementById("term_pembayaran").value =
+      data.term_pembayaran || "";
+
+    // 3. Client & PIC
+    if (data.pelanggan_id) {
+      document.getElementById("client_id").value = data.pelanggan_id;
+      document.getElementById("client").value = data.pelanggan_nama || "";
+
+      // Load PIC list dulu berdasarkan ID Client
+      await loadPICList(data.pelanggan_id);
+      document.getElementById("pic_name").value = data.pic_name || "";
+    }
+
+    // 4. Tipe Sales & Diskon
+    const typeField = document.getElementById("type_id");
+    typeField.value = data.type_id || "";
+    filterCompatibleTypes(data.type_id); // Jalankan filter tipe
+
+    document.getElementById("discount").value = finance(data.disc) || 0;
+
+    // 5. Restore ITEMS
+    const tbody = document.getElementById("tabelItem");
+    tbody.innerHTML = ""; // Bersihkan baris kosong default
+
+    if (data.items && data.items.length > 0) {
+      for (const item of data.items) {
+        // Tambah Row Kosong
+        await tambahItem();
+
+        // Ambil row terakhir yg baru dibuat
+        let row = tbody.lastElementChild;
+        // Cek struktur (karena tambahItem nambah 2 tr: itemRow & subWrapper)
+        if (!row.classList.contains("itemRow"))
+          row = row.previousElementSibling;
+
+        // Isi Subkategori (Load subcat per item)
+        const subcatSelect = row.querySelector(".itemSubcategory");
+        // Kita load ulang list subcategory agar opsi muncul
+        await loadSubcategories(subcatSelect, item.sub_category_id);
+
+        // Isi Value Item
+        row.querySelector(".itemProduct").value = item.product || "";
+        row.querySelector(".itemDesc").value = item.description || "";
+        row.querySelector(".itemQty").value = item.qty || 0;
+        row.querySelector(".itemUnit").value = item.unit || "";
+
+        row.querySelector(".itemHarga").value = finance(item.unit_price || 0);
+        row.querySelector(".itemHpp").value = finance(item.hpp || 0);
+        row.querySelector(".itemMarkupNominal").value = finance(
+          item.markup_nominal || 0
+        );
+        row.querySelector(".itemMarkupPersen").value = item.markup_percent || 0;
+        row.querySelector(".itemTotal").innerText = finance(item.total || 0);
+
+        // 6. Restore Sub Items (Materials)
+        if (item.materials && item.materials.length > 0) {
+          const btnAddSub = row.querySelector(".btnTambahSubItem");
+          // Pastikan tombol ada (tergantung tipe)
+          if (btnAddSub) {
+            for (const mat of item.materials) {
+              tambahSubItem(btnAddSub);
+
+              // Ambil subRow terakhir di wrapper ini
+              const wrapper = row.nextElementSibling?.querySelector("table");
+              const subRow =
+                wrapper.querySelectorAll("tr.subItemRow")[
+                  wrapper.querySelectorAll("tr.subItemRow").length - 1
+                ];
+
+              if (subRow) {
+                subRow.querySelector(".subItemMaterial").value = mat.name || "";
+                subRow.querySelector(".subItemSpec").value =
+                  mat.specification || "";
+                subRow.querySelector(".subItemQty").value = mat.qty || 0;
+                subRow.querySelector(".subItemUnit").value = mat.unit || "";
+                subRow.querySelector(".subItemHarga").value = finance(
+                  mat.unit_price || 0
+                );
+                subRow.querySelector(".subItemHpp").value = finance(
+                  mat.hpp || 0
+                );
+                subRow.querySelector(".subItemMarkupNominal").value = finance(
+                  mat.markup_nominal || 0
+                );
+                subRow.querySelector(".subItemMarkupPersen").value =
+                  mat.markup_percent || 0;
+                subRow.querySelector(".subItemTotal").innerText = finance(
+                  mat.total || 0
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 7. PPN Checkbox
+    const cekPpn = document.getElementById("cekPpn");
+    if (cekPpn) {
+      // Logika: jika data.has_ppn disimpan true, ATAU jika nominal ppn > 0
+      if (data.has_ppn === true || (data.ppn && parseInt(data.ppn) > 0)) {
+        cekPpn.checked = true;
+      } else {
+        cekPpn.checked = false;
+      }
+    }
+
+    // 8. Hitung Ulang Total & UI Update
+    toggleTambahItemBtn();
+    calculateTotals();
+    updateButtonVisibility();
+
+    Swal.close();
+
+    const Toast = Swal.mixin({
+      toast: true,
+      position: "top-end",
+      showConfirmButton: false,
+      timer: 3000,
+    });
+    Toast.fire({ icon: "success", title: "Draft berhasil dipulihkan" });
+  } catch (err) {
+    console.error("Gagal restore draft:", err);
+    Swal.fire("Error", "Gagal memulihkan draft.", "error");
   }
 }

@@ -35,6 +35,9 @@ let unitDebounceTimer;
 let picDebounceTimer;
 let clientDebounceTimer;
 let vendorDebounceTimer;
+const AUTOSAVE_KEY = "autosave_quotation_draft";
+
+
 
 let current_date = formattedDate;
 
