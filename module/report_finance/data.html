@@ -23,7 +23,7 @@
                 </button>
             </div>
 
-            <div class="flex items-center gap-2">
+            <!-- <div class="flex items-center gap-2">
                 <span class="text-sm font-medium text-gray-600">Periode:</span>
                 <select id="periodFilter" onchange="filterDashboard()"
                     class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -32,118 +32,216 @@
                     <option value="this_year">Tahun Ini</option>
                     <option value="all">Semua Data</option>
                 </select>
-            </div>
+            </div> -->
 
         </div>
     </div>
 
-
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white p-5 rounded-lg shadow border-l-4 border-blue-500">
-            <div class="flex justify-between items-center">
-                <div>
-                    <p class="text-gray-500 text-sm font-medium">Total Income</p>
-                    <h3 class="text-2xl font-bold text-gray-800" id="cardIncome">Rp 0</h3>
-                </div>
-                <div class="p-2 bg-blue-50 rounded-full text-blue-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-                    </svg>
-                </div>
+    <div class="flex justify-end mb-4">
+        <div class="flex gap-2">
+            <div class="relative">
+                <select
+                    class="appearance-none bg-white border border-slate-400 rounded px-2 py-1 pr-6 text-[10px] font-bold text-slate-600 outline-none cursor-pointer">
+                    <option>Yearly</option>
+                </select>
+                <span
+                    class="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] text-slate-600">▼</span>
             </div>
-        </div>
 
-        <div class="bg-white p-5 rounded-lg shadow border-l-4 border-red-500">
-            <div class="flex justify-between items-center">
-                <div>
-                    <p class="text-gray-500 text-sm font-medium">Total Outcome</p>
-                    <h3 class="text-2xl font-bold text-gray-800" id="cardOutcome">Rp 0</h3>
-                </div>
-                <div class="p-2 bg-red-50 rounded-full text-red-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path>
-                    </svg>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white p-5 rounded-lg shadow border-l-4 border-teal-500">
-            <div class="flex justify-between items-center">
-                <div>
-                    <p class="text-gray-500 text-sm font-medium">Net Cashflow</p>
-                    <h3 class="text-2xl font-bold text-teal-600" id="cardNetFlow">Rp 0</h3>
-                </div>
-                <div class="p-2 bg-teal-50 rounded-full text-teal-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
-                        </path>
-                    </svg>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white p-5 rounded-lg shadow border-l-4 border-gray-500">
-            <div class="flex justify-between items-center">
-                <div>
-                    <p class="text-gray-500 text-sm font-medium">Total Transactions</p>
-                    <h3 class="text-2xl font-bold text-gray-800" id="cardTransactions">0</h3>
-                </div>
-                <div class="p-2 bg-gray-50 rounded-full text-gray-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
-                        </path>
-                    </svg>
-                </div>
+            <div class="relative">
+                <select
+                    class="appearance-none bg-white border border-slate-400 rounded px-2 py-1 pr-6 text-[10px] font-bold text-slate-600 outline-none cursor-pointer">
+                    <option>2024</option>
+                </select>
+                <span
+                    class="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] text-slate-600">▼</span>
             </div>
         </div>
     </div>
 
-    <div class="bg-white p-6 rounded-lg shadow">
-        <h3 class="text-lg font-bold mb-4">Cashflow Overview (Income vs Outcome)</h3>
-        <div class="relative h-72 w-full">
-            <canvas id="mainChart"></canvas>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+        <div class="bg-white p-5 rounded-xl shadow-sm border flex flex-col items-center text-center">
+            <div class="bg-gray-800 text-white p-2 rounded-full mb-3">💰</div>
+            <p class="text-xs font-bold text-gray-500 uppercase">Total Expected Cash In</p>
+            <h3 class="text-xl font-black text-gray-800 mt-1" id="cardExpected">Rp 2.000.000.000</h3>
+            <div
+                class="mt-4 bg-emerald-100 text-emerald-700 text-xs font-bold py-1 px-6 rounded-full border border-emerald-200">
+                100%</div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl shadow-sm border flex flex-col items-center text-center">
+            <div class="bg-gray-800 text-white p-2 rounded-full mb-3">💰</div>
+            <p class="text-xs font-bold text-gray-500 uppercase">Total Cash In</p>
+            <h3 class="text-xl font-black text-gray-800 mt-1" id="cardIncome">Rp 11.550.000.000</h3>
+            <div
+                class="mt-4 bg-emerald-100 text-emerald-700 text-xs font-bold py-1 px-6 rounded-full border border-emerald-200">
+                100%</div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl shadow-sm border flex flex-col items-center text-center">
+            <div class="bg-gray-800 text-white p-2 rounded-full mb-3">💰</div>
+            <p class="text-xs font-bold text-gray-500 uppercase">Total Cash Out</p>
+            <h3 class="text-xl font-black text-gray-800 mt-1" id="cardOutcome">Rp 8.550.000.000</h3>
+            <div
+                class="mt-4 bg-emerald-100 text-emerald-700 text-xs font-bold py-1 px-6 rounded-full border border-emerald-200">
+                100%</div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl shadow-sm border flex flex-col items-center text-center">
+            <div class="bg-gray-800 text-white p-2 rounded-full mb-3">💰</div>
+            <p class="text-xs font-bold text-gray-500 uppercase">Net Cashflow</p>
+            <h3 class="text-xl font-black text-gray-800 mt-1" id="cardNetFlow">Rp 450.000.000</h3>
+            <div
+                class="mt-4 bg-emerald-100 text-emerald-700 text-xs font-bold py-1 px-6 rounded-full border border-emerald-200">
+                +25.97 %</div>
         </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow">
-            <h3 class="text-lg font-bold mb-4">Breakdown Kategori</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div class="flex flex-col items-center">
-                    <h4 class="text-sm font-medium text-gray-500 mb-2">Income Sources</h4>
-                    <div class="relative w-48 h-48">
-                        <canvas id="incomePieChart"></canvas>
-                    </div>
+        <div class="space-y-6 lg:col-span-1">
+            <div class="bg-white p-6 rounded-xl border shadow-sm h-[320px] flex flex-col items-center">
+                <h3 class="text-center font-bold text-slate-800 mb-4 text-sm uppercase tracking-wide">Income</h3>
+                <div class="relative w-full flex-grow flex items-center justify-center">
+                    <canvas id="incomePieChart"></canvas>
                 </div>
-                <div class="flex flex-col items-center">
-                    <h4 class="text-sm font-medium text-gray-500 mb-2">Expense Allocation</h4>
-                    <div class="relative w-48 h-48">
-                        <canvas id="outcomePieChart"></canvas>
-                    </div>
-                </div>
+            </div>
+            <div class="bg-white p-6 rounded-xl border shadow-sm h-[320px] flex flex-col">
+                <h3 class="text-center font-bold text-gray-700 mb-2">Outcome</h3>
+                <div class="relative flex-grow"><canvas id="outcomePieChart"></canvas></div>
             </div>
         </div>
 
-        <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow flex flex-col h-full">
-            <h3 class="text-lg font-bold mb-4">Top Contacts</h3>
-
-            <div class="mb-6">
-                <h4 class="text-xs font-bold text-blue-600 uppercase mb-3">Top Clients (By Income)</h4>
-                <ul id="topClientsList" class="space-y-3">
-                </ul>
+        <div class="lg:col-span-2 bg-white p-6 rounded-xl border shadow-sm flex flex-col">
+            <div class="flex justify-center gap-4 mb-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-gray-100"></span> General
+                    Forecast</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Cash In vs
+                    Cash Out</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-gray-100"></span> Net
+                    Cashflow</span>
             </div>
-
-            <div>
-                <h4 class="text-xs font-bold text-red-600 uppercase mb-3">Top Vendors (By Outcome)</h4>
-                <ul id="topVendorsList" class="space-y-3">
-                </ul>
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-lg font-bold text-gray-800">Cash In VS Cash Out</h3>
+                <span class="text-4xl font-bold text-gray-200">2024</span>
+            </div>
+            <div class="relative h-[440px] w-full">
+                <canvas id="mainChart"></canvas>
             </div>
         </div>
     </div>
 
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+
+        <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center md:items-start">
+            <div class="flex gap-2 mb-4 w-full justify-start">
+                <div class="relative">
+                    <select
+                        class="appearance-none bg-white border border-slate-400 rounded px-2 py-1 pr-6 text-[10px] font-bold text-slate-600 outline-none cursor-pointer">
+                        <option>Yearly</option>
+                    </select>
+                    <span
+                        class="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] text-slate-600">▼</span>
+                </div>
+                <div class="relative">
+                    <select
+                        class="appearance-none bg-white border border-slate-400 rounded px-2 py-1 pr-6 text-[10px] font-bold text-slate-600 outline-none cursor-pointer">
+                        <option>2024</option>
+                    </select>
+                    <span
+                        class="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] text-slate-600">▼</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row items-center w-full">
+                <div class="relative w-48 h-48">
+                    <canvas id="receivablePieChart"></canvas>
+                </div>
+                <div class="flex-1 ml-0 md:ml-10 mt-6 md:mt-0 text-center md:text-left">
+                    <p class="text-xs font-bold text-gray-500 mb-4" id="receivable-title"></p>
+
+                    <div class="mb-4">
+                        <div
+                            class="flex items-center justify-center md:justify-start text-emerald-500 font-bold text-xl">
+                            <span class="w-1 h-6 bg-emerald-500 mr-2"></span> <span
+                                id="receivable-received-pct">0%</span>
+                        </div>
+                        <p class="text-gray-400 text-xs font-bold">Received</p>
+                        <p class="text-lg font-black text-gray-800" id="receivable-received-amt">Rp 0</p>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-center md:justify-start text-red-500 font-bold text-xl">
+                            <span class="w-1 h-6 bg-red-500 mr-2"></span> <span
+                                id="receivable-outstanding-pct">0%</span>
+                        </div>
+                        <p class="text-gray-400 text-xs font-bold">Outstanding</p>
+                        <p class="text-lg font-black text-gray-800" id="receivable-outstanding-amt">Rp 0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center md:items-start">
+            <div class="flex gap-2 mb-4 w-full justify-start">
+                <div class="relative">
+                    <select
+                        class="appearance-none bg-white border border-slate-400 rounded px-2 py-1 pr-6 text-[10px] font-bold text-slate-600 outline-none cursor-pointer">
+                        <option>Yearly</option>
+                    </select>
+                    <span
+                        class="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] text-slate-600">▼</span>
+                </div>
+                <div class="relative">
+                    <select
+                        class="appearance-none bg-white border border-slate-400 rounded px-2 py-1 pr-6 text-[10px] font-bold text-slate-600 outline-none cursor-pointer">
+                        <option>2024</option>
+                    </select>
+                    <span
+                        class="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] text-slate-600">▼</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row items-center w-full">
+                <div class="relative w-48 h-48">
+                    <canvas id="payablePieChart"></canvas>
+                </div>
+                <div class="flex-1 ml-0 md:ml-10 mt-6 md:mt-0 text-center md:text-left">
+                    <p class="text-xs font-bold text-gray-500 mb-4" id="payable-title"></p>
+
+                    <div class="mb-4">
+                        <div
+                            class="flex items-center justify-center md:justify-start text-emerald-500 font-bold text-xl">
+                            <span class="w-1 h-6 bg-emerald-500 mr-2"></span> <span id="payable-paid-pct">0%</span>
+                        </div>
+                        <p class="text-gray-400 text-xs font-bold">Paid</p>
+                        <p class="text-lg font-black text-gray-800" id="payable-paid-amt">Rp 0</p>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-center md:justify-start text-red-500 font-bold text-xl">
+                            <span class="w-1 h-6 bg-red-500 mr-2"></span> <span id="payable-unpaid-pct">0%</span>
+                        </div>
+                        <p class="text-gray-400 text-xs font-bold">Unpaid</p>
+                        <p class="text-lg font-black text-gray-800" id="payable-unpaid-amt">Rp 0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="max-w-7xl mx-auto mt-6">
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-[10px] md:text-xs">
+                    <thead class="bg-[#1e6b8c] text-white font-bold text-center uppercase">
+                        <tr id="cashflow-table-header">
+                        </tr>
+                    </thead>
+                    <tbody id="cashflow-table-body" class="text-gray-700 font-medium">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>

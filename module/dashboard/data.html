@@ -1,95 +1,235 @@
-<!-- MODERN MARKETING RECAP DASHBOARD -->
-<div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-  <!-- Header -->
-  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-800">Marketing Performance Recap</h1>
-      <p class="text-gray-500">Monthly sales performance and target achievement</p>
+<div class="bg-white min-h-screen p-4 md:p-6 space-y-6">
+  <div class="mb-6 flex flex-col gap-4">
+    <div class="flex flex-wrap items-start justify-between mb-4 gap-4">
+      <div>
+        <h1 id="pageTitle" class="text-2xl font-bold mb-1 text-gray-800">Project Costing Dashboard</h1>
+        <nav id="breadcrumb" class="text-gray-500 text-sm flex items-center flex-wrap gap-1"></nav>
+      </div>
     </div>
-    <div class="flex gap-3">
-      <div class="relative inline-block">
-        <button id="filterButton"
-          class="flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 text-sm rounded-lg border border-gray-200 transition-all">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-          </svg>
-          Filter Year
-        </button>
 
-        <div id="yearDropdown"
-          class="hidden absolute right-0 mt-2 w-32 bg-white rounded-md shadow-lg z-10 border border-gray-200 py-1">
-          <!-- Year options will be added by JavaScript -->
+    <div class="max-w-7xl mx-auto w-full">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+          <p class="text-gray-500 text-sm font-semibold">Total PO Achievement</p>
+          <h2 id="po-value" class="text-3xl font-bold mt-3 text-gray-800">0</h2>
+          <div class="mt-4 space-y-2">
+            <div
+              class="border border-blue-100 rounded p-1.5 text-xs text-blue-800 bg-blue-50/50 flex justify-between items-center cursor-pointer">
+              <span id="po-period">Loading...</span>
+              <span>▼</span>
+            </div>
+            <div
+              class="border border-blue-100 rounded p-1.5 text-xs text-blue-800 bg-blue-50/50 flex justify-between items-center cursor-pointer">
+              <span id="po-year">0</span>
+              <span>▼</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm relative">
+          <div class="flex justify-between items-start">
+            <p class="text-gray-500 text-sm font-semibold">Total Current Sales</p>
+            <span class="text-xl grayscale opacity-50">💰</span>
+          </div>
+          <h2 id="sales-value" class="text-xl font-bold mt-4 text-gray-800 text-nowrap">Rp 0</h2>
+          <div class="mt-8">
+            <div class="w-full bg-gray-100 rounded-full h-2">
+              <div id="sales-progress" class="bg-blue-500 h-2 rounded-full" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between text-[10px] mt-2 text-gray-400 font-bold uppercase tracking-wider">
+              <span id="sales-year">2024</span>
+              <span id="sales-percent">0%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+          <div class="flex justify-between items-start">
+            <p class="text-gray-500 text-sm font-semibold">Remaining Sales</p>
+            <span class="text-xl grayscale opacity-50">📈</span>
+          </div>
+          <h2 id="remain-value" class="text-xl font-bold mt-4 text-gray-800 text-nowrap">Rp 0</h2>
+          <div class="mt-8">
+            <div class="w-full bg-gray-100 rounded-full h-2">
+              <div id="remain-progress" class="bg-slate-800 h-2 rounded-full" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between text-[10px] mt-2 text-gray-400 font-bold uppercase tracking-wider">
+              <span id="remain-year">2024</span>
+              <span id="remain-percent">0%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between">
+          <p class="text-gray-500 text-xs font-semibold leading-tight">Average Growth Rate<br>Month on Month</p>
+          <div>
+            <div id="growth-value"
+              class="bg-emerald-100 text-emerald-700 text-2xl font-extrabold py-2 px-5 rounded-full inline-block mt-2">
+              +0%</div>
+          </div>
+          <p id="growth-year" class="text-[10px] mt-4 text-gray-400 font-bold tracking-widest">2024</p>
         </div>
       </div>
-      <button
-        class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm rounded-lg transition-all">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-        </svg>
-        Export
-      </button>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm lg:col-span-1">
+          <h3 class="text-center font-bold text-gray-600 mb-6 uppercase text-xs tracking-widest">Quotation Status</h3>
+          <div class="relative h-60">
+            <canvas id="quotationChart"></canvas>
+          </div>
+          <div id="quotation-legend" class="mt-8 space-y-3 text-xs font-bold text-gray-500"></div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm lg:col-span-2">
+          <div class="flex justify-between items-center mb-6">
+            <div class="flex gap-4 text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+              <span class="flex items-center"><span class="w-2 h-2 bg-blue-500 rounded-full mr-1.5"></span> General
+                Revenue</span>
+              <span class="flex items-center"><span class="w-2 h-2 bg-gray-300 rounded-full mr-1.5"></span> Absolute
+                Revenue</span>
+            </div>
+            <span id="chart-year-label" class="text-gray-400 font-bold">2024</span>
+          </div>
+          <h3 class="font-bold text-gray-700 mb-4">General Revenue</h3>
+          <div class="h-80">
+            <canvas id="revenueChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <div
+          class="bg-white rounded-full px-6 py-2 border border-gray-200 shadow-sm flex items-center gap-6 text-[10px] font-bold uppercase tracking-widest text-gray-400 overflow-x-auto whitespace-nowrap">
+          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-gray-200"></span> General Revenue
+          </div>
+          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-gray-200"></span> Absolute Revenue
+          </div>
+          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-gray-200"></span> % Revenue</div>
+          <div class="flex items-center gap-2 text-blue-400"><span class="w-2 h-2 rounded-full bg-blue-300"></span> %
+            Revenue Growth</div>
+        </div>
+      </div>
+
+      <div class="bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
+        <div class="flex justify-between items-start mb-6">
+          <div>
+            <h3 id="growth-chart-title" class="text-lg font-bold text-gray-800">Revenue Growth on Monthly Basis</h3>
+            <p id="growth-chart-desc" class="text-sm text-gray-500 mt-1"></p>
+          </div>
+          <span id="growth-chart-year" class="text-4xl font-bold text-gray-200">2024</span>
+        </div>
+        <div class="h-80 w-full mt-10">
+          <canvas id="growthLineChart"></canvas>
+        </div>
+      </div>
+
+      <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+
+        <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+          <div
+            class="inline-block bg-white border border-gray-200 px-4 py-1 rounded-full text-xs font-bold mb-4 shadow-sm">
+            Top 5 Customers</div>
+          <h4 class="text-sm font-bold text-gray-700" id="customer-title"></h4>
+          <p class="text-[10px] text-gray-400 mb-4">From Last Period</p>
+
+          <div class="h-48 mb-6">
+            <canvas id="customerBarChart"></canvas>
+          </div>
+
+          <div class="flex items-center justify-between border-t pt-4">
+            <div class="w-24 h-24">
+              <canvas id="customerPieChart"></canvas>
+            </div>
+            <div class="flex-1 ml-6">
+              <p class="text-xs font-bold text-gray-500 mb-2 italic">Profit Share of the</p>
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center text-emerald-500 font-bold">
+                  <span class="w-1 h-4 bg-emerald-500 mr-2"></span> Top 5
+                </div>
+                <span class="text-xl font-bold text-emerald-500" id="customer-top-share">0%</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center text-gray-800 font-bold">
+                  <span class="w-1 h-4 bg-gray-800 mr-2"></span> Others
+                </div>
+                <span class="text-xl font-bold text-gray-800" id="customer-other-share">0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+          <div
+            class="inline-block bg-white border border-gray-200 px-4 py-1 rounded-full text-xs font-bold mb-4 shadow-sm">
+            Top 3 Products Category</div>
+          <h4 class="text-sm font-bold text-gray-700" id="product-title"></h4>
+          <p class="text-[10px] text-gray-400 mb-4">From Last Period</p>
+
+          <div class="h-48 mb-6">
+            <canvas id="productBarChart"></canvas>
+          </div>
+
+          <div class="flex items-center justify-between border-t pt-4">
+            <div class="w-24 h-24">
+              <canvas id="productPieChart"></canvas>
+            </div>
+            <div class="flex-1 ml-6">
+              <p class="text-xs font-bold text-gray-500 mb-2 italic">Profit Share of the</p>
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center text-emerald-500 font-bold">
+                  <span class="w-1 h-4 bg-emerald-500 mr-2"></span> Top 3
+                </div>
+                <span class="text-xl font-bold text-emerald-500" id="product-top-share">0%</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center text-gray-800 font-bold">
+                  <span class="w-1 h-4 bg-gray-800 mr-2"></span> Others
+                </div>
+                <span class="text-xl font-bold text-gray-800" id="product-other-share">0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
+  <div class="max-w-7xl mx-auto space-y-6 mt-6">
+    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+      <div class="flex justify-between items-start mb-6">
+        <div>
+          <h3 class="text-lg font-bold text-gray-800">Revenue PO Achievement</h3>
+          <p class="text-sm text-gray-500">by Category</p>
+        </div>
+        <span class="text-4xl font-bold text-gray-100">2024</span>
+      </div>
 
-  <!-- Key Metrics -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mb-8">
-    <!-- Total PO Achievement -->
-    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 w-full">
-      <p class="text-sm text-blue-600 font-medium">Total PO Achievement</p>
-      <p id="metricAchievement" class="text-2xl font-bold text-gray-800">0</p>
-      <p id="metricAchievementRate" class="text-xs text-gray-500">0% of target</p>
-    </div>
+      <div class="h-80 w-full mb-8">
+        <canvas id="poCategoryChart"></canvas>
+      </div>
 
-    <!-- Remaining Target -->
-    <div class="bg-red-50 p-4 rounded-xl border border-red-100 w-full">
-      <p class="text-sm text-red-600 font-medium">Remaining Target</p>
-      <p id="metricRemaining" class="text-2xl font-bold text-gray-800">0</p>
-      <p id="metricRemainingRate" class="text-xs text-gray-500">0% to achieve</p>
+      <div class="overflow-x-auto border rounded-lg">
+        <table class="w-full text-left text-[10px] md:text-xs">
+          <thead class="bg-blue-600 text-white uppercase font-bold text-center">
+            <tr>
+              <th class="px-2 py-3 border-r border-blue-400 text-left">Category</th>
+              <th class="px-2 py-3 border-r border-blue-400">Jan</th>
+              <th class="px-2 py-3 border-r border-blue-400">Feb</th>
+              <th class="px-2 py-3 border-r border-blue-400">Mar</th>
+              <th class="px-2 py-3 border-r border-blue-400">Apr</th>
+              <th class="px-2 py-3 border-r border-blue-400">May</th>
+              <th class="px-2 py-3 border-r border-blue-400">Jun</th>
+              <th class="px-2 py-3 border-r border-blue-400">Jul</th>
+              <th class="px-2 py-3 border-r border-blue-400">Aug</th>
+              <th class="px-2 py-3 border-r border-blue-400">Sep</th>
+              <th class="px-2 py-3 border-r border-blue-400">Oct</th>
+              <th class="px-2 py-3 border-r border-blue-400">Nov</th>
+              <th class="px-2 py-3">Dec</th>
+            </tr>
+          </thead>
+          <tbody id="po-category-table-body" class="text-gray-700 font-medium">
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
-
-  <!-- Recap PO -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-    <!-- WON -->
-    <div class="bg-orange-50 p-4 rounded-xl border border-orange-100">
-      <p class="text-sm text-orange-600 font-medium">
-        Won Qty: <span id="wonQty">0</span>
-      </p>
-      <p id="wonNominal" class="text-2xl font-bold text-gray-800">0</p>
-    </div>
-
-    <!-- ONGOING -->
-    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
-      <p class="text-sm text-blue-600 font-medium">
-        Ongoing Qty: <span id="ongoingQty">0</span>
-      </p>
-      <p id="ongoingNominal" class="text-2xl font-bold text-gray-800">0</p>
-    </div>
-
-    <!-- LOSS -->
-    <div class="bg-red-50 p-4 rounded-xl border border-red-100">
-      <p class="text-sm text-red-600 font-medium">
-        Loss Qty: <span id="lossQty">0</span>
-      </p>
-      <p id="lossNominal" class="text-2xl font-bold text-gray-800">0</p>
-    </div>
-
-  </div>
-
-
-
-
-  <!-- Charts (Hanya Bar Chart) -->
-  <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 h-[400px] mb-8">
-    <h3 class="text-lg font-semibold text-gray-800 mb-4">Monthly PO Achievement</h3>
-    <canvas id="chartMarketingBar" class="w-full h-full"></canvas>
-  </div>
-
-  <!-- Table -->
-  <div class="overflow-x-auto rounded-xl border border-gray-200">
-    <table id="salesRecapTable" class="min-w-[800px] w-full text-sm divide-y divide-gray-200"></table>
-  </div>
-
 </div>
