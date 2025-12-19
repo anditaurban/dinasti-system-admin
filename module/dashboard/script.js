@@ -1,4 +1,4 @@
-pagemodule = "Sales Performance Recap";
+pagemodule = "Sales Performance /Recap";
 subpagemodule = "";
 renderHeader();
 setDataType("project");

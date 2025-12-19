@@ -174,12 +174,35 @@ function renderTableHtml(data, isLocked) {
     data.forEach((d) => {
       // Logic Tombol Aksi
       let actionButtons = "";
+
+      // Tombol Lihat Bukti (Bisa dilihat baik saat Locked maupun Unlocked, atau sesuaikan kebutuhan)
+      // Disini saya masukkan ke logika Unlocked, jika mau bisa dilihat saat locked, pindahkan keluar if/else
+      const viewBtn = `
+          <button class="view-proof-btn text-blue-500 hover:text-blue-700 mr-2" 
+                  data-file="${d.file || ""}" 
+                  data-id="${d.payable_id}" 
+                  type="button" 
+                  title="Lihat Bukti Transaksi">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+              <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
+            </svg>
+          </button>`;
+
       if (isLocked) {
-        actionButtons = `<span class="text-xs text-gray-400 italic font-semibold">Locked</span>`;
-      } else {
+        // Mode Locked: Hanya tombol Mata, RATA TENGAH (justify-center) & tanpa teks Locked
         actionButtons = `
-            <button class="edit-btn text-blue-600 mr-2 hover:text-blue-800" data-id="${d.payable_id}" type="button">✏️</button>
-            <button class="delete-btn text-red-600 hover:text-red-800" data-id="${d.payable_id}" type="button">🗑️</button>
+            <div class="flex items-center justify-center">
+                ${viewBtn} 
+            </div>`;
+      } else {
+        // Mode Normal: Tombol Mata, Edit, Delete, RATA TENGAH
+        actionButtons = `
+            <div class="flex items-center justify-center">
+                ${viewBtn}
+                <button class="edit-btn text-blue-600 mr-2 hover:text-blue-800" data-id="${d.payable_id}" type="button">✏️</button>
+                <button class="delete-btn text-red-600 hover:text-red-800" data-id="${d.payable_id}" type="button">🗑️</button>
+            </div>
           `;
       }
 
@@ -209,6 +232,38 @@ function renderTableHtml(data, isLocked) {
     tbody.innerHTML =
       '<tr><td colspan="9" class="text-center py-4 text-gray-500">Belum ada data</td></tr>';
   }
+}
+
+function handleViewProof(fileName) {
+  // --- KONFIGURASI URL GAMBAR ---
+  // Sesuaikan path ini dengan lokasi penyimpanan file di server backend kakak
+  // Contoh: const imageUrl = `${baseUrl}/uploads/payable_proof/${fileName}`;
+
+  // SEMENTARA: Karena endpoint belum ada, kita cek logikanya saja
+  if (
+    !fileName ||
+    fileName === "null" ||
+    fileName === "undefined" ||
+    fileName === ""
+  ) {
+    return Swal.fire({
+      icon: "info",
+      title: "Tidak Ada Bukti",
+      text: "Transaksi ini tidak memiliki lampiran bukti.",
+    });
+  }
+
+  const imageUrl = `${baseUrl}/public/uploads/finance/${fileName}`; // Sesuaikan path ini nanti
+
+  Swal.fire({
+    title: "Bukti Transaksi",
+    imageUrl: imageUrl, // URL gambar
+    imageAlt: "Bukti Transaksi",
+    imageHeight: 400, // Tinggi gambar di popup
+    showCloseButton: true,
+    showConfirmButton: false, // Hilangkan tombol OK biar fokus ke gambar
+    html: `<p class="mt-2 text-sm text-gray-500">Nama File: ${fileName}</p>`,
+  });
 }
 
 // --- 2. HANDLE SUBMIT (CREATE / UPDATE) ---
@@ -485,10 +540,20 @@ document.querySelectorAll(".formatNumber").forEach((i) => {
 });
 
 document.getElementById("purchaseBody").addEventListener("click", (e) => {
+  // --- BARU: Handle View Proof ---
+  if (e.target.closest(".view-proof-btn")) {
+    const btn = e.target.closest(".view-proof-btn");
+    const fileName = btn.dataset.file;
+    handleViewProof(fileName);
+  }
+
+  // Handle Edit
   if (e.target.closest(".edit-btn")) {
     const id = e.target.closest(".edit-btn").dataset.id;
     populateForm(id);
   }
+
+  // Handle Delete
   if (e.target.closest(".delete-btn")) {
     const id = e.target.closest(".delete-btn").dataset.id;
     handleDelete(id);
