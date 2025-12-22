@@ -1,578 +1,508 @@
-pagemodule = "Sales Performance /Recap";
+pagemodule = "Sales Performance Recap";
 subpagemodule = "";
 renderHeader();
-setDataType("project");
-fetchAndUpdateData();
+setDataType("sales");
+fetchProjectSalesData();
 
-(function () {
-  // 1. DATA JSON LENGKAP
-  const apiData = {
-    summary: {
-      po_achievement: {
-        value: 112,
-        unit: "Tasks",
-        period: "Yearly",
-        year: 2024,
-      },
-      current_sales: { amount: 10000000000, percent: 83, year: 2024 },
-      remaining_sales: { amount: 2000000000, percent: 17, year: 2024 },
-      growth: { value: "+4.5%", year: 2024 },
-    },
-    quotation_status: [
-      { label: "Won", value: 74.2, color: "#22c55e" },
-      { label: "Loss", value: 13.9, color: "#f97316" },
-      { label: "On Going/Draft", value: 11.9, color: "#3b82f6" },
-    ],
-    revenue_history: {
-      months: [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ],
-      datasets: [
-        {
-          label: "Won",
-          data: [1.5, 2.5, 4.2, 0.8, 0.9, 0.2, 1.1, 1.8, 2.5, 3.0, 2.2, 4.0],
-          color: "#22c55e",
-        },
-        {
-          label: "Loss",
-          data: [0, 1.2, 0, 0.2, 2.4, 0.9, 0.5, 0.3, 1.0, 0.4, 0.8, 0.2],
-          color: "#f97316",
-        },
-        {
-          label: "Draft",
-          data: [0, 0, 0, 0.4, 0.8, 0.2, 0.3, 0.6, 0.2, 0.5, 1.0, 0.8],
-          color: "#3b82f6",
-        },
-      ],
-    },
-    growth_history: {
-      title: "Revenue Growth on Monthly Basis",
-      year: 2024,
-      months: [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ],
-      data: [0, 67, 68, -81, 13, -77, 20, 45, 10, -5, 30, 50],
-    },
-    customer_ranking: {
-      title: "Top 5 Customers with Highest Retention",
-      data: [
-        { name: "PT Schneider Indonesia", value: 1500000, color: "#00ced1" },
-        { name: "PT Siemens Indonesia", value: 1000000, color: "#4ecdc4" },
-        {
-          name: "PT Indofood Sukses Makmur Tbk",
-          value: 750000,
-          color: "#45b7d1",
-        },
-        { name: "PT Patra Jasa", value: 650000, color: "#6a5acd" },
-        { name: "PT Pertamina Persero", value: 450000, color: "#9932cc" },
-      ],
-      profit_share: { top_5: 76.2, others: 23.8 },
-    },
-    product_ranking: {
-      title: "Top 3 Categories by Profitability",
-      data: [
-        { name: "Turn Key", value: 4500000, color: "#00ced1" },
-        { name: "Services", value: 3850000, color: "#4ecdc4" },
-      ],
-      profit_share: { top_3: 84.2, others: 15.8 },
-    },
-    // Pastikan nama properti ini konsisten
-    po_category_achievement: {
-      months: [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ],
-      categories: [
-        "Material",
-        "Service",
-        "Turn Key",
-        "Supervise",
-        "Maintenance",
-        "Tools",
-      ],
-      datasets: [
-        {
-          label: "Material",
-          data: [0.1, 0.9, 1.0, 0.2, 2.3, 0.3, 0.8, 1.2, 0.5, 1.5, 0.9, 2.0],
-          color: "#bfdbfe",
-        },
-        {
-          label: "Service",
-          data: [0.2, 0.1, 0.3, 3.0, 0.3, 0.1, 0.4, 0.6, 0.8, 1.0, 0.5, 1.2],
-          color: "#1e3a8a",
-        },
-        {
-          label: "Turn Key",
-          data: [0.0, 0.0, 2.0, 1.1, 0.0, 0.0, 1.5, 0.0, 2.5, 0.0, 3.0, 0.0],
-          color: "#10b981",
-        },
-        {
-          label: "Supervise",
-          data: [0.2, 0.1, 0.05, 0.1, 0.02, 0.1, 0.1, 0.2, 0.1, 0.15, 0.1, 0.3],
-          color: "#fbbf24",
-        },
-        {
-          label: "Maintenance",
-          data: [0.5, 0.2, 0.1, 0.1, 0.1, 0.15, 0.2, 0.3, 0.2, 0.4, 0.5, 0.6],
-          color: "#d8b4fe",
-        },
-        {
-          label: "Tools",
-          data: [0.05, 0.02, 0.05, 0.0, 0.0, 0.7, 0.1, 0.0, 0.3, 0.2, 0.4, 0.5],
-          color: "#f97316",
-        },
-      ],
-    },
-  };
+// --- Chart Instances (to allow updates) ---
+var charts = {
+  quotation: null,
+  revenue: null,
+  growth: null,
+  customerBar: null,
+  customerPie: null,
+  productBar: null,
+  productPie: null,
+  poCategory: null,
+};
 
-  const formatIDR = (num) =>
-    "Rp " + num.toLocaleString("id-ID").replace(/,/g, ".");
-  const setInnerText = (id, val) => {
-    const el = document.getElementById(id);
-    if (el) el.innerText = val;
-  };
+// --- Initialization ---
+document.addEventListener("DOMContentLoaded", () => {
+  initDashboard();
+});
 
-  function initDashboard() {
-    try {
-      // Summary Cards
-      setInnerText(
-        "po-value",
-        `${apiData.summary.po_achievement.value} ${apiData.summary.po_achievement.unit}`
-      );
-      setInnerText("po-period", apiData.summary.po_achievement.period);
-      setInnerText("po-year", apiData.summary.po_achievement.year);
-      setInnerText(
-        "sales-value",
-        formatIDR(apiData.summary.current_sales.amount)
-      );
-      setInnerText(
-        "sales-percent",
-        apiData.summary.current_sales.percent + "%"
-      );
-      setInnerText(
-        "remain-value",
-        formatIDR(apiData.summary.remaining_sales.amount)
-      );
-      setInnerText(
-        "remain-percent",
-        apiData.summary.remaining_sales.percent + "%"
-      );
-      setInnerText("growth-value", apiData.summary.growth.value);
-      setInnerText("growth-year", apiData.summary.growth.year);
+async function initDashboard() {
+  // Asumsi fungsi ini ada di template global kamu
 
-      if (document.getElementById("sales-progress"))
-        document.getElementById("sales-progress").style.width =
-          apiData.summary.current_sales.percent + "%";
-      if (document.getElementById("remain-progress"))
-        document.getElementById("remain-progress").style.width =
-          apiData.summary.remaining_sales.percent + "%";
+  // 1. Fetch Year List & Set Default
+  await fetchYearList();
 
-      // Growth History
-      setInnerText("growth-chart-title", apiData.growth_history.title);
-      setInnerText("growth-chart-year", apiData.growth_history.year);
-      const chartData = apiData.growth_history.data;
-      const maxVal = Math.max(...chartData);
-      const maxMonthIdx = chartData.indexOf(maxVal);
-      const fullMonthNames = {
-        Jan: "January",
-        Feb: "February",
-        Mar: "March",
-        Apr: "April",
-        May: "May",
-        Jun: "June",
-      };
-      const maxMonthName =
-        fullMonthNames[apiData.growth_history.months[maxMonthIdx]];
-      setInnerText(
-        "growth-chart-desc",
-        `${maxMonthName} were our Top Performers, generated up to ${maxVal.toFixed(
-          2
-        )}% of our revenue growth`
-      );
+  // 2. Fetch Dashboard Data
+  fetchProjectSalesData(currentYear);
+}
 
-      // Ranking Section Labels
-      setInnerText("customer-title", apiData.customer_ranking.title);
-      setInnerText(
-        "customer-top-share",
-        apiData.customer_ranking.profit_share.top_5 + " %"
-      );
-      setInnerText(
-        "customer-other-share",
-        apiData.customer_ranking.profit_share.others + " %"
-      );
-      setInnerText("product-title", apiData.product_ranking.title);
-      setInnerText(
-        "product-top-share",
-        apiData.product_ranking.profit_share.top_3 + " %"
-      );
-      setInnerText(
-        "product-other-share",
-        apiData.product_ranking.profit_share.others + " %"
-      );
+// --- API Functions ---
 
-      // Menjalankan render grafik
-      renderMainCharts();
-      renderRankingCharts();
-      initPOCategoryData(); // PENTING: Panggil fungsi tabel PO Category di sini
-    } catch (e) {
-      console.error("Dashboard Initialization Error:", e);
-    }
-  }
+async function fetchYearList() {
+  console.log("--- START FETCH YEAR ---");
+  const yearSelect = document.getElementById("po-year-select");
 
-  function initPOCategoryData() {
-    const tableBody = document.getElementById("po-category-table-body");
-    const data = apiData.po_category_achievement;
+  try {
+    // Cek URL dan Owner ID
 
-    if (!tableBody || !data) return;
+    const url = `${baseUrl}/list/sales_year/${owner_id}`;
 
-    tableBody.innerHTML = data.categories
-      .map((cat) => {
-        const rowData = data.datasets.find((ds) => ds.label === cat).data;
-        // Membuat kolom untuk ke-12 bulan
-        const monthCols = rowData
-          .map(
-            (val) =>
-              `<td class="px-2 py-3 border-r text-center">Rp ${val.toFixed(
-                1
-              )}M</td>`
-          )
-          .join("");
-
-        return `
-        <tr class="border-b hover:bg-gray-50 transition-colors">
-            <td class="px-2 py-3 font-bold border-r bg-gray-50">${cat}</td>
-            ${monthCols}
-        </tr>`;
-      })
-      .join("");
-
-    renderPOCategoryChart();
-  }
-
-  function renderPOCategoryChart() {
-    const canvas = document.getElementById("poCategoryChart");
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    const data = apiData.po_category_achievement;
-
-    new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels: data.months,
-        datasets: data.datasets.map((ds) => ({
-          label: ds.label,
-          data: ds.data,
-          backgroundColor: ds.color,
-          borderRadius: 2,
-        })),
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: "bottom",
-            labels: {
-              boxWidth: 12,
-              font: { size: 10, weight: "bold" },
-              padding: 20,
-            },
-          },
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              callback: (v) => "Rp " + v.toFixed(1) + "M",
-              font: { size: 11, weight: "bold" },
-            },
-            grid: { borderDash: [5, 5] },
-          },
-          x: {
-            grid: { display: false },
-            ticks: { font: { size: 12, weight: "bold" } },
-          },
-        },
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${API_TOKEN}`,
       },
     });
+
+    const result = await response.json();
+    console.log("FULL RESPONSE API:", result); // <--- Cek ini di Console Browser
+
+    // Hapus isi dropdown HANYA jika data valid ditemukan
+    if (
+      result.listData &&
+      Array.isArray(result.listData) &&
+      result.listData.length > 0
+    ) {
+      console.log("Data ditemukan, mengisi dropdown...");
+      yearSelect.innerHTML = ""; // Baru kita kosongkan di sini
+
+      // Urutkan tahun (handle jika format string atau number)
+      const sortedList = result.listData.sort(
+        (a, b) => Number(b.year) - Number(a.year)
+      );
+
+      sortedList.forEach((item) => {
+        const option = document.createElement("option");
+        option.value = item.year;
+        option.text = item.year;
+
+        // Set default jika tahun sama dengan tahun ini
+        if (Number(item.year) === Number(currentYear)) {
+          option.selected = true;
+        }
+        yearSelect.appendChild(option);
+      });
+    } else {
+      console.warn(
+        "API 200 tapi listData kosong atau tidak ada format listData"
+      );
+      // Jika kosong, jangan biarkan kosong melompong, panggil fungsi fallback
+      ensureDefaultOption(yearSelect);
+    }
+  } catch (error) {
+    console.error("ERROR Fetch Year:", error);
+    ensureDefaultOption(yearSelect);
   }
+}
 
-  function renderMainCharts() {
-    // Pie Chart Quotation
-    const canvasPie = document.getElementById("quotationChart");
-    if (canvasPie) {
-      new Chart(canvasPie.getContext("2d"), {
-        type: "pie",
-        data: {
-          labels: apiData.quotation_status.map((i) => i.label),
-          datasets: [
-            {
-              data: apiData.quotation_status.map((i) => i.value),
-              backgroundColor: apiData.quotation_status.map((i) => i.color),
-              borderWidth: 0,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-        },
-      });
+async function fetchProjectSalesData(year = currentYear) {
+  document.getElementById("po-value").innerText = "Loading...";
 
-      const legendContainer = document.getElementById("quotation-legend");
-      if (legendContainer) {
-        legendContainer.innerHTML = apiData.quotation_status
-          .map(
-            (item) => `
-          <div class="flex justify-between items-center">
-            <div class="flex items-center"><span class="w-3 h-3 mr-2 rounded" style="background:${item.color}"></span> ${item.label}</div>
-            <span>${item.value}%</span>
-          </div>`
-          )
-          .join("");
-      }
+  try {
+    const url = `${baseUrl}/recap/sales/${year}`;
+
+    // --- TAMBAHAN: Ambil Token ---
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        // Kirim token di sini
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+    });
+
+    await fetchYearList();
+
+    // Cek status code spesifik
+    if (response.status === 401) {
+      console.error("Sesi habis atau tidak valid. Silakan login ulang.");
+      // Opsional: Redirect ke halaman login
+      // window.location.href = '/login';
+      return;
     }
 
-    // Revenue Area Chart
-    const canvasArea = document.getElementById("revenueChart");
-    if (canvasArea) {
-      new Chart(canvasArea.getContext("2d"), {
-        type: "line",
-        data: {
-          labels: apiData.revenue_history.months,
-          datasets: apiData.revenue_history.datasets.map((ds) => ({
-            label: ds.label,
-            data: ds.data,
-            fill: true,
-            backgroundColor: ds.color + "aa",
-            borderColor: ds.color,
-            borderWidth: 1,
-            pointRadius: 0,
-            tension: 0.1,
-          })),
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              stacked: true,
-              ticks: { callback: (v) => "Rp" + v + "M" },
-              grid: { borderDash: [5, 5] },
-            },
-            x: { stacked: true, grid: { display: false } },
-          },
-          plugins: { legend: { display: false } },
-        },
-      });
-    }
+    const result = await response.json();
 
-    // Growth Line Chart
-    const canvasGrowth = document.getElementById("growthLineChart");
-    if (canvasGrowth) {
-      new Chart(canvasGrowth.getContext("2d"), {
-        type: "line",
-        data: {
-          labels: apiData.growth_history.months,
-          datasets: [
-            {
-              data: apiData.growth_history.data,
-              borderColor: "#adcdec",
-              backgroundColor: "#adcdec",
-              borderWidth: 3,
-              pointRadius: 4,
-              tension: 0,
-              fill: false,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              min: -100,
-              max: 100,
-              ticks: {
-                stepSize: 50,
-                callback: (v) => v + "%",
-                font: { weight: "bold" },
-                color: "#9ca3af",
-              },
-              grid: { color: "#f3f4f6", drawBorder: false },
-            },
-            x: {
-              ticks: { font: { weight: "bold" }, color: "#374151" },
-              grid: { display: false },
-            },
-          },
-          plugins: { legend: { display: false } },
-        },
-      });
+    if (result.response == "200") {
+      updateUI(result.data);
+      renderAllCharts(result.data);
+      renderTable(result.data.revenue_po_achievement_table);
+    } else {
+      console.error("API Error:", result.message);
     }
+  } catch (error) {
+    console.error("Fetch Error:", error);
   }
+}
 
-  function renderRankingCharts() {
-    // Customers Bar
-    const ctxCustBar = document.getElementById("customerBarChart");
-    if (ctxCustBar) {
-      new Chart(ctxCustBar.getContext("2d"), {
-        type: "bar",
-        data: {
-          labels: apiData.customer_ranking.data.map((i) => i.name),
-          datasets: [
-            {
-              data: apiData.customer_ranking.data.map((i) => i.value),
-              backgroundColor: apiData.customer_ranking.data.map(
-                (i) => i.color
-              ),
-              borderRadius: 4,
-              barThickness: 20,
-            },
-          ],
-        },
-        options: {
-          indexAxis: "y",
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: {
-              ticks: {
-                callback: (v) => "Rp " + (v / 1000).toLocaleString() + "K",
-                font: { size: 8 },
-              },
-            },
-            y: { ticks: { font: { size: 8, weight: "bold" } } },
-          },
-        },
-      });
-    }
+function handleYearChange(year) {
+  currentYear = year;
+  fetchProjectSalesData(year);
+}
 
-    // Customer Share Pie
-    const ctxCustPie = document.getElementById("customerPieChart");
-    if (ctxCustPie) {
-      new Chart(ctxCustPie.getContext("2d"), {
-        type: "pie",
-        data: {
-          datasets: [
-            {
-              data: [
-                apiData.customer_ranking.profit_share.top_5,
-                apiData.customer_ranking.profit_share.others,
-              ],
-              backgroundColor: ["#1e3a8a", "#cbd5e1"],
-              borderWidth: 0,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-        },
-      });
-    }
+// --- DOM Manipulation ---
 
-    // Products Bar
-    const ctxProdBar = document.getElementById("productBarChart");
-    if (ctxProdBar) {
-      new Chart(ctxProdBar.getContext("2d"), {
-        type: "bar",
-        data: {
-          labels: apiData.product_ranking.data.map((i) => i.name),
-          datasets: [
-            {
-              data: apiData.product_ranking.data.map((i) => i.value),
-              backgroundColor: apiData.product_ranking.data.map((i) => i.color),
-              borderRadius: 4,
-              barThickness: 30,
-            },
-          ],
-        },
-        options: {
-          indexAxis: "y",
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: {
-              ticks: {
-                callback: (v) => "Rp " + (v / 1000).toLocaleString() + "K",
-                font: { size: 8 },
-              },
-            },
-            y: { ticks: { font: { size: 8, weight: "bold" } } },
-          },
-        },
-      });
-    }
+function updateUI(data) {
+  const totals = data.yearly_totals;
 
-    // Product Share Pie
-    const ctxProdPie = document.getElementById("productPieChart");
-    if (ctxProdPie) {
-      new Chart(ctxProdPie.getContext("2d"), {
-        type: "pie",
-        data: {
-          datasets: [
-            {
-              data: [
-                apiData.product_ranking.profit_share.top_3,
-                apiData.product_ranking.profit_share.others,
-              ],
-              backgroundColor: ["#1e3a8a", "#bfdbfe"],
-              borderWidth: 0,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-        },
-      });
-    }
-  }
+  // 1. Cards Update
+  document.getElementById("po-value").innerText = totals.total_po_achievement;
 
-  if (
-    document.readyState === "complete" ||
-    document.readyState === "interactive"
-  ) {
-    initDashboard();
+  // Current Sales
+  document.getElementById("sales-value").innerText = formatCurrency(
+    totals.total_current_sales
+  );
+  document.getElementById("sales-year").innerText = totals.sales_year;
+  document.getElementById("sales-percent").innerText =
+    totals.total_current_sales_percent + "%";
+  document.getElementById("sales-progress").style.width =
+    Math.min(totals.total_current_sales_percent, 100) + "%";
+
+  // Remaining Sales
+  document.getElementById("remain-value").innerText = formatCurrency(
+    totals.remaining_sales
+  );
+  document.getElementById("remain-year").innerText = totals.sales_year;
+  document.getElementById("remain-percent").innerText =
+    totals.remaining_sales_percent + "%";
+  document.getElementById("remain-progress").style.width =
+    Math.min(totals.remaining_sales_percent, 100) + "%";
+
+  // Growth
+  const growthEl = document.getElementById("growth-value");
+  growthEl.innerText =
+    (totals.growth_rate_avg > 0 ? "+" : "") + totals.growth_rate_avg + "%";
+  // Color logic for growth
+  if (totals.growth_rate_avg < 0) {
+    growthEl.className =
+      "bg-red-100 text-red-700 text-2xl font-extrabold py-2 px-5 rounded-full inline-block mt-2";
   } else {
-    document.addEventListener("DOMContentLoaded", initDashboard);
+    growthEl.className =
+      "bg-emerald-100 text-emerald-700 text-2xl font-extrabold py-2 px-5 rounded-full inline-block mt-2";
   }
-})();
+  document.getElementById("growth-year").innerText = totals.sales_year;
+
+  // Chart Titles/Years
+  document.getElementById("chart-year-label").innerText = totals.sales_year;
+  document.getElementById("growth-chart-year").innerText = totals.sales_year;
+  document.getElementById("growth-chart-desc").innerText =
+    data.revenue_growth_line_chart.insight;
+
+  // Pie Chart Shares Text
+  document.getElementById("customer-top-share").innerText =
+    data.profit_share_top_customers_pie_chart.series[0].data[0] + "%";
+  document.getElementById("customer-other-share").innerText =
+    data.profit_share_top_customers_pie_chart.series[0].data[1] + "%";
+
+  document.getElementById("product-top-share").innerText =
+    data.profit_share_top_categories_pie_chart.series[0].data[0] + "%";
+  document.getElementById("product-other-share").innerText =
+    data.profit_share_top_categories_pie_chart.series[0].data[1] + "%";
+}
+
+function renderTable(tableData) {
+  const tbody = document.getElementById("po-category-table-body");
+  tbody.innerHTML = "";
+
+  tableData.rows.forEach((row) => {
+    const tr = document.createElement("tr");
+    tr.className =
+      "hover:bg-blue-50 transition-colors border-b border-gray-100";
+
+    // Helper to format cell
+    const tdClass = "px-2 py-3 border-r border-gray-100 truncate";
+    const currencyClass =
+      "px-2 py-3 border-r border-gray-100 font-mono text-xs";
+
+    let html = `<td class="${tdClass} font-bold text-gray-600">${row.month}</td>`;
+
+    // Loop keys dynamically excluding 'month' and 'total' for inner cells
+    const categories = [
+      "Material",
+      "Service",
+      "Turn Key",
+      "Supervise",
+      "Maintenance",
+      "Tools",
+    ];
+
+    categories.forEach((cat) => {
+      const val = row[cat] || 0;
+      html += `<td class="${currencyClass} ${
+        val > 0 ? "text-gray-700" : "text-gray-300"
+      }">${formatCurrencyMinimal(val)}</td>`;
+    });
+
+    // Total Column
+    html += `<td class="px-2 py-3  text-right">${formatCurrencyMinimal(
+      row.total
+    )}</td>`;
+
+    tr.innerHTML = html;
+    tbody.appendChild(tr);
+  });
+}
+
+// --- Chart Rendering Logic ---
+
+function renderAllCharts(data) {
+  // 1. Quotation Chart (Doughnut)
+  renderChart(
+    "quotationChart",
+    "quotation",
+    "doughnut",
+    {
+      labels: data.quotation_status_pie_chart.series.map((s) => s.name),
+      datasets: [
+        {
+          data: data.quotation_status_pie_chart.series.map((s) => s.count),
+          backgroundColor: ["#10b981", "#cbd5e1", "#ef4444"], // Won (Green), Draft (Gray), Lost (Red)
+          borderWidth: 0,
+        },
+      ],
+    },
+    { cutout: "70%", plugins: { legend: { display: false } } }
+  );
+
+  // Update Quotation Legend HTML manually
+  const legendContainer = document.getElementById("quotation-legend");
+  legendContainer.innerHTML = data.quotation_status_pie_chart.series
+    .map(
+      (s, i) => `
+        <div class="flex justify-between items-center">
+            <span class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full" style="background-color: ${
+                  ["#10b981", "#cbd5e1", "#ef4444"][i]
+                }"></span>
+                ${s.name}
+            </span>
+            <span>${s.count} (${s.percentage}%)</span>
+        </div>
+    `
+    )
+    .join("");
+
+  // 2. Revenue Chart (General Revenue only - Bar)
+  // Mapping series from JSON
+  const revSeries = data.general_revenue_chart.series.map((s, i) => ({
+    label: s.name,
+    data: s.data,
+    backgroundColor:
+      s.name === "Won" ? "#3b82f6" : s.name === "Draft" ? "#cbd5e1" : "#ef4444",
+    barThickness: 12,
+    stack: "Stack 0",
+  }));
+
+  renderChart(
+    "revenueChart",
+    "revenue",
+    "bar",
+    {
+      labels: data.general_revenue_chart.xAxis,
+      datasets: revSeries,
+    },
+    {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } }, // Custom legend used in HTML
+      scales: {
+        y: { beginAtZero: true, grid: { borderDash: [2, 2] } },
+        x: { grid: { display: false } },
+      },
+    }
+  );
+
+  // 3. Growth Line Chart
+  renderChart(
+    "growthLineChart",
+    "growth",
+    "line",
+    {
+      labels: data.revenue_growth_line_chart.yAxis, // Using months as labels
+      datasets: [
+        {
+          label: "Growth %",
+          data: data.revenue_growth_line_chart.series[0].data,
+          borderColor: "#3b82f6",
+          backgroundColor: "rgba(59, 130, 246, 0.1)",
+          borderWidth: 3,
+          tension: 0.4,
+          fill: true,
+          pointBackgroundColor: "#ffffff",
+          pointBorderColor: "#3b82f6",
+          pointRadius: 4,
+        },
+      ],
+    },
+    {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { grid: { borderDash: [4, 4] } },
+        x: { grid: { display: false } },
+      },
+    }
+  );
+
+  // 4. Top Customers Bar (Horizontal)
+  renderChart(
+    "customerBarChart",
+    "customerBar",
+    "bar",
+    {
+      labels: data.top_customers_chart.yAxis,
+      datasets: [
+        {
+          label: "Revenue",
+          data: data.top_customers_chart.series[0].data,
+          backgroundColor: "#34d399",
+          barThickness: 20,
+          borderRadius: 4,
+        },
+      ],
+    },
+    {
+      indexAxis: "y", // Horizontal Bar
+      plugins: { legend: { display: false } },
+      scales: { x: { display: false }, y: { grid: { display: false } } },
+    }
+  );
+
+  // 5. Customer Profit Share (Pie)
+  renderChart(
+    "customerPieChart",
+    "customerPie",
+    "doughnut",
+    {
+      labels: data.profit_share_top_customers_pie_chart.labels,
+      datasets: [
+        {
+          data: data.profit_share_top_customers_pie_chart.series[0].data,
+          backgroundColor: ["#10b981", "#1f2937"],
+          borderWidth: 0,
+        },
+      ],
+    },
+    { cutout: "60%", plugins: { legend: { display: false } } }
+  );
+
+  // 6. Top Products Category Bar (Horizontal)
+  renderChart(
+    "productBarChart",
+    "productBar",
+    "bar",
+    {
+      labels: data.top_categories_chart.yAxis,
+      datasets: [
+        {
+          label: "Revenue",
+          data: data.top_categories_chart.series[0].data,
+          backgroundColor: "#60a5fa",
+          barThickness: 20,
+          borderRadius: 4,
+        },
+      ],
+    },
+    {
+      indexAxis: "y",
+      plugins: { legend: { display: false } },
+      scales: { x: { display: false }, y: { grid: { display: false } } },
+    }
+  );
+
+  // 7. Product Profit Share (Pie)
+  renderChart(
+    "productPieChart",
+    "productPie",
+    "doughnut",
+    {
+      labels: data.profit_share_top_categories_pie_chart.labels,
+      datasets: [
+        {
+          data: data.profit_share_top_categories_pie_chart.series[0].data,
+          backgroundColor: ["#10b981", "#1f2937"],
+          borderWidth: 0,
+        },
+      ],
+    },
+    { cutout: "60%", plugins: { legend: { display: false } } }
+  );
+
+  // 8. Revenue PO Achievement by Category (Stacked Bar)
+  // Need to transform "revenue_po_achievement_chart" data which is flat lineData into stacked categories?
+  // WARNING: The JSON structure provided for "revenue_po_achievement_chart" is a bit weird.
+  // It has "types" (categories) and ONE "lineData" array. Usually stacked charts need an array of datasets.
+  // Based on the table data provided in JSON, I will reconstruct the datasets for the chart manually to be safe.
+
+  const tableRows = data.revenue_po_achievement_table.rows;
+  const categories = [
+    "Material",
+    "Service",
+    "Turn Key",
+    "Supervise",
+    "Maintenance",
+    "Tools",
+  ];
+  const colors = [
+    "#3b82f6",
+    "#10b981",
+    "#f59e0b",
+    "#ef4444",
+    "#8b5cf6",
+    "#64748b",
+  ];
+
+  const poDatasets = categories.map((cat, index) => ({
+    label: cat,
+    data: tableRows.map((row) => row[cat]),
+    backgroundColor: colors[index],
+    stack: "combined",
+  }));
+
+  renderChart(
+    "poCategoryChart",
+    "poCategory",
+    "bar",
+    {
+      labels: data.revenue_po_achievement_chart.months,
+      datasets: poDatasets,
+    },
+    {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: "bottom" } },
+      scales: {
+        y: { stacked: true, grid: { borderDash: [2, 2] } },
+        x: { stacked: true, grid: { display: false } },
+      },
+    }
+  );
+}
+
+// Helper to destroy old chart and create new one
+function renderChart(canvasId, chartKey, type, data, options) {
+  const ctx = document.getElementById(canvasId).getContext("2d");
+
+  if (charts[chartKey]) {
+    charts[chartKey].destroy();
+  }
+
+  charts[chartKey] = new Chart(ctx, {
+    type: type,
+    data: data,
+    options: options,
+  });
+}
+
+// --- Utilities ---
+function formatCurrency(value) {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatCurrencyMinimal(value) {
+  if (value === 0) return "-";
+  // Format compact: 1.2M, 100K if needed, otherwise standard
+  return new Intl.NumberFormat("id-ID").format(value);
+}
+

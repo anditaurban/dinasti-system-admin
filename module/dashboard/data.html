@@ -14,14 +14,16 @@
           <h2 id="po-value" class="text-3xl font-bold mt-3 text-gray-800">0</h2>
           <div class="mt-4 space-y-2">
             <div
-              class="border border-blue-100 rounded p-1.5 text-xs text-blue-800 bg-blue-50/50 flex justify-between items-center cursor-pointer">
-              <span id="po-period">Loading...</span>
-              <span>▼</span>
+              class="border border-gray-100 rounded p-1.5 text-xs text-gray-600 bg-gray-50 flex justify-center items-center font-bold uppercase tracking-wider">
+              YEARLY
             </div>
-            <div
-              class="border border-blue-100 rounded p-1.5 text-xs text-blue-800 bg-blue-50/50 flex justify-between items-center cursor-pointer">
-              <span id="po-year">0</span>
-              <span>▼</span>
+            <div class="relative">
+              <select id="po-year-select" onchange="handleYearChange(this.value)"
+                class="w-full border border-blue-100 rounded p-1.5 text-xs text-center bg-blue-50/50 appearance-none font-bold focus:outline-none focus:ring-2 focus:ring-blue-200 cursor-pointer">
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                <span>▼</span>
+              </div>
             </div>
           </div>
         </div>
@@ -97,17 +99,12 @@
         </div>
       </div>
 
-      <div class="mb-4">
-        <div
-          class="bg-white rounded-full px-6 py-2 border border-gray-200 shadow-sm flex items-center gap-6 text-[10px] font-bold uppercase tracking-widest text-gray-400 overflow-x-auto whitespace-nowrap">
-          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-gray-200"></span> General Revenue
-          </div>
-          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-gray-200"></span> Absolute Revenue
-          </div>
-          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-gray-200"></span> % Revenue</div>
-          <div class="flex items-center gap-2 text-blue-400"><span class="w-2 h-2 rounded-full bg-blue-300"></span> %
-            Revenue Growth</div>
+      <div class="flex justify-between items-center mb-6">
+        <div class="flex gap-4 text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+          <span class="flex items-center"><span class="w-2 h-2 bg-blue-500 rounded-full mr-1.5"></span> General
+            Revenue</span>
         </div>
+        <span id="chart-year-label" class="text-gray-400 font-bold">...</span>
       </div>
 
       <div class="bg-white p-8 rounded-xl border border-gray-200 shadow-sm">

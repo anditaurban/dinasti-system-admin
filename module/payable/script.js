@@ -154,14 +154,24 @@ window.rowTemplate = function (item, index, perPage = 10) {
           `
       }
         
-        <button 
-          onclick="event.stopPropagation(); sendApprovalReminder('${
-            item.pesanan_id
-          }', '${item.no_qtn}')"
-          class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-orange-500">
-          📧 Reminder Approval
-        </button>
-        
+        ${
+          // LOGIC REMINDER:
+          // Tampilkan tombol HANYA jika status BUKAN Approved DAN approval_reminder BUKAN "reminded"
+          item.approval_status !== "Approved" &&
+          item.approval_reminder !== "reminded"
+            ? `
+          <button 
+            onclick="event.stopPropagation(); sendApprovalReminder('${
+              item.payable_id
+            }', '${item.payable_number || item.no_po}')"
+            class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-orange-500">
+            📧 Reminder Approval
+          </button>
+          `
+            : ""
+        }
+
+      
 
       </div>
     </td>
@@ -320,5 +330,72 @@ async function openAccountPayableApproval(
     }
   } catch (err) {
     Swal.fire("❌ Error", err.message, "error");
+  }
+}
+
+async function sendApprovalReminder(payableId, identifier) {
+  // 1. Konfirmasi User
+  const confirmResult = await Swal.fire({
+    title: "Kirim Reminder Approval?",
+    text: `Akan mengirim notifikasi reminder untuk AP: ${identifier}`,
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: "Ya, Kirim",
+    cancelButtonText: "Batal",
+    confirmButtonColor: "#f97316", // Warna orange
+  });
+
+  if (!confirmResult.isConfirmed) return;
+
+  // 2. Tampilkan Loading
+  Swal.fire({
+    title: "Mengirim Reminder...",
+    html: "Mohon tunggu sebentar...",
+    allowOutsideClick: false,
+    didOpen: () => {
+      Swal.showLoading();
+    },
+  });
+
+  try {
+    // 3. Request ke API
+    // Endpoint: {{baseUrl}}/reminder/account_payable_approval/{{payableId}}
+    const res = await fetch(
+      `${baseUrl}/reminder/account_payable_approval/${payableId}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const result = await res.json();
+
+    // 4. Validasi Response
+    if (res.ok) {
+      Swal.fire({
+        icon: "success",
+        title: "Berhasil!",
+        text: result.message || "Reminder approval berhasil dikirim.",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+
+      // 5. Refresh data tabel agar tombol menghilang (karena status berubah jadi reminded)
+      if (typeof fetchAndUpdateData === "function") {
+        fetchAndUpdateData();
+      }
+    } else {
+      throw new Error(result.message || "Gagal mengirim reminder.");
+    }
+  } catch (err) {
+    console.error("Error sending reminder:", err);
+    Swal.fire({
+      icon: "error",
+      title: "Gagal",
+      text: err.message || "Terjadi kesalahan saat menghubungi server.",
+    });
   }
 }
