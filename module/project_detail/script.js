@@ -468,7 +468,7 @@ async function handleUndoSales(pesananId) {
       await Swal.fire({
         icon: "success",
         title: "Berhasil",
-        text: "Project berhasil di-rollback.",
+        text: "Sales Berhasil di Urungkan",
         timer: 1500,
         showConfirmButton: false,
       });
