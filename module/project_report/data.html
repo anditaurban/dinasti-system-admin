@@ -40,25 +40,18 @@
             <div class="bg-gray-800 text-white w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3">💡
             </div>
             <p class="text-xs font-bold text-gray-500 uppercase">Total Projects</p>
-            <h3 class="text-2xl font-black text-gray-800 mt-1" id="cardTotalProject">121 Tasks</h3>
-            <div class="flex justify-end mb-4">
-                <div class="flex gap-2">
-                    <div class="relative">
-                        <select
-                            class="appearance-none bg-white border border-slate-400 rounded px-2 py-1 pr-6 text-[10px] font-bold text-slate-600 outline-none cursor-pointer">
-                            <option>Yearly</option>
-                        </select>
-                        <span
-                            class="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] text-slate-600">▼</span>
-                    </div>
-
-                    <div class="relative">
-                        <select
-                            class="appearance-none bg-white border border-slate-400 rounded px-2 py-1 pr-6 text-[10px] font-bold text-slate-600 outline-none cursor-pointer">
-                            <option>2024</option>
-                        </select>
-                        <span
-                            class="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] text-slate-600">▼</span>
+            <h3 class="text-2xl font-black text-gray-800 mt-1" id="cardTotalProject"></h3>
+            <div class="mt-4 space-y-2">
+                <div
+                    class="border border-gray-100 rounded p-1.5 text-xs text-gray-600 bg-gray-50 flex justify-center items-center font-bold uppercase tracking-wider">
+                    YEARLY
+                </div>
+                <div class="relative">
+                    <select id="po-year-select" onchange="handleYearChange(this.value)"
+                        class="w-full border border-blue-100 rounded p-1.5 text-xs text-center bg-blue-50/50 appearance-none font-bold focus:outline-none focus:ring-2 focus:ring-blue-200 cursor-pointer">
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                        <span>▼</span>
                     </div>
                 </div>
             </div>

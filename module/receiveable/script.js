@@ -2,41 +2,47 @@ pagemodule = "Account Receivable";
 subpagemodule = "";
 renderHeader();
 colSpanCount = 13;
-setDataType('account_receivable');
+setDataType("account_receivable");
 fetchAndUpdateData();
 
-
 window.rowTemplate = function (item, index, perPage = 10) {
-    const { currentPage } = state[currentDataType];
-    const globalIndex = (currentPage - 1) * perPage + index + 1;
-  
-    return `
-  <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50">  
+  const { currentPage } = state[currentDataType];
+  const globalIndex = (currentPage - 1) * perPage + index + 1;
+
+  return `
+    <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50">  
      <td class="align-top px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-    <span class="font-medium sm:hidden">Name</span>  
-    ${item.tanggal_transaksi}
-    </td>
+        <span class="font-medium sm:hidden">Name</span>  
+        <div class="font-semibold text-center">${item.tanggal_transaksi}</div>
+        <div class="text-gray-600 text-center">${item.po_number}</div>
+      </td>
 
     <td class="align-top px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
       <span class="font-medium sm:hidden">Email</span>
-    ${item.po_number}
-    </td>
-  
-<td class="align-top px-6 py-4 text-sm text-gray-700 border-b sm:border-0 sm:table-cell">
-  <span class="font-medium sm:hidden">Email</span>
-  <div class="flex flex-col">
     <div class="font-semibold">${item.project_name}</div>
-    <div class="text-gray-600">${item.inv_number}</div>
-    <div class="text-gray-500">${item.pelanggan_nama}</div>
-  </div>
-</td>
+        <div class="text-gray-500">${item.pelanggan_nama}</div>
+    </td>
+  
+    <td class="align-top px-6 py-4 text-sm text-gray-700 border-b sm:border-0 sm:table-cell">
+      <span class="font-medium sm:hidden">Email</span>
+      <div class="flex flex-col">
+        <div class="font-semibol">${finance(item.contract_amount)}</div>
+      </div>
+    </td>
 
 
   
     <td class="align-top px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
       <span class="font-medium sm:hidden">Email</span>
-      ${item.keterangan}
+      <div class="font-semibold">${finance(item.nominal)}</div>
+        <div class="text-gray-500">${item.payment_percentage}</div>
     </td>
+
+    <td class="align-top px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
+      <span class="font-medium sm:hidden">Email</span>
+      <div class="">${item.keterangan}</div>
+    </td>
+   
   
     <td class="align-top px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
       <span class="font-medium sm:hidden">Email</span>
@@ -45,15 +51,23 @@ window.rowTemplate = function (item, index, perPage = 10) {
   
     <td class="align-top px-6 py-4 text-sm text-gray-700 text-right border-b sm:border-0 flex justify-between sm:table-cell">
       <span class="font-medium sm:hidden">Email</span>
-      ${finance(item.nominal)}
+      ${item.aging_days}
       <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
-        <button onclick="event.stopPropagation(); confirmPayment('${item.receipt_id}', 2);" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+        <button onclick="event.stopPropagation(); confirmPayment('${
+          item.receipt_id
+        }', 2);" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
           ✅ Valid
         </button>
-        <button onclick="event.stopPropagation(); confirmPayment('${item.receipt_id}', 3);" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+        <button onclick="event.stopPropagation(); confirmPayment('${
+          item.receipt_id
+        }', 3);" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
           ❌ Tidak Valid
         </button> 
       </div>
+    </td>
+     <td class="align-top px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
+      <span class="font-medium sm:hidden">Email</span>
+      <div class="font-semibold">${item.receivable_status}</div>
     </td>
 
   </tr>`;

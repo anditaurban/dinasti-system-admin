@@ -39,6 +39,7 @@ const AUTOSAVE_KEY = "autosave_quotation_draft";
 
 
 
+
 let current_date = formattedDate;
 
 // Function to load JavaScript files dynamically

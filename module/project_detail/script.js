@@ -39,24 +39,44 @@ async function fetchAndRenderProject(isRefresh = false) {
       data.pesanan_id !== 0;
     const isDirectSales = data.position === "Direct Project";
 
-    // Status Lock:
+    // Status Lock: (Hanya Direct Project yang sudah punya pesanan_id)
     const isLocked = hasPesanan && isDirectSales;
 
-    // 1. Handle Tombol Update
+    // 1. Handle Tombol Update & Undo Sales
     const btnSave = document.getElementById("saveAllPlanCostBtn");
+    const btnUndo = document.getElementById("undoSalesBtn"); // Seleksi tombol baru
+
     if (btnSave) {
       if (isLocked) {
+        // --- KONDISI TERKUNCI (Sudah jadi Sales) ---
+
+        // Matikan tombol Save
         btnSave.disabled = true;
         btnSave.classList.remove("bg-yellow-500", "hover:bg-yellow-600");
         btnSave.classList.add("bg-gray-400", "cursor-not-allowed");
         btnSave.innerHTML = "🔒 Locked (Direct Project)";
         btnSave.onclick = null;
+
+        // Nyalakan tombol Undo Sales (Hanya di Direct Project yg terkunci)
+        if (btnUndo) {
+          btnUndo.classList.remove("hidden");
+          btnUndo.onclick = () => handleUndoSales(data.pesanan_id);
+        }
       } else {
+        // --- KONDISI TIDAK TERKUNCI ---
+
+        // Nyalakan tombol Save
         btnSave.disabled = false;
         btnSave.classList.remove("bg-gray-400", "cursor-not-allowed");
         btnSave.classList.add("bg-yellow-500", "hover:bg-yellow-600");
         btnSave.innerHTML = "💾 Update Plan Costing";
         btnSave.onclick = handleUpdateAllPlanCosting;
+
+        // Sembunyikan tombol Undo Sales
+        if (btnUndo) {
+          btnUndo.classList.add("hidden");
+          btnUndo.onclick = null;
+        }
       }
     }
 
@@ -405,6 +425,63 @@ function showActualCostDetail(korelasiPekerjaan, korelasiMaterial) {
   if (details.length) html += `</tbody></table>`;
 
   Swal.fire({ title: title, html: html, width: "600px" });
+}
+
+// --- FUNGSI BARU: UNDO SALES (ROLLBACK) ---
+// --- FUNGSI BARU: UNDO SALES (ROLLBACK) ---
+async function handleUndoSales(pesananId) {
+  if (!pesananId) {
+    Swal.fire("Error", "ID Pesanan tidak ditemukan.", "error");
+    return;
+  }
+
+  const result = await Swal.fire({
+    title: "Batalkan Sales Order?",
+    text: "Data akan dikembalikan ke status draft project dan data Sales Order akan dihapus. Lanjutkan?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "Ya, Rollback!",
+    cancelButtonText: "Batal",
+  });
+
+  if (!result.isConfirmed) return;
+
+  Swal.fire({
+    title: "Memproses Rollback...",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
+  });
+
+  try {
+    const res = await fetch(`${baseUrl}/delete/project_sales/${pesananId}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+    });
+
+    const json = await res.json();
+
+    if (res.ok) {
+      await Swal.fire({
+        icon: "success",
+        title: "Berhasil",
+        text: "Project berhasil di-rollback.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
+      // REVISI: Redirect ke halaman list project alih-alih refresh detail
+      loadModuleContent("project");
+    } else {
+      throw new Error(json.message || "Gagal melakukan rollback sales.");
+    }
+  } catch (err) {
+    console.error(err);
+    Swal.fire("Gagal", err.message, "error");
+  }
 }
 
 // --- 4. EKSEKUSI AWAL ---

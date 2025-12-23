@@ -200,43 +200,51 @@ function renderTable(tableData) {
   const tbody = document.getElementById("po-category-table-body");
   tbody.innerHTML = "";
 
-  tableData.rows.forEach((row) => {
+  // 1. Definisikan Kategori yang ingin dijadikan Baris
+  const categories = [
+    "Material",
+    "Service",
+    "Turn Key",
+    "Supervise",
+    "Maintenance",
+    "Tools",
+  ];
+
+  // Pastikan data rows ada dan terurut dari Jan-Des
+  // Kita asumsikan tableData.rows berisi array 12 bulan urut (Jan, Feb, ... Dec)
+  const monthlyData = tableData.rows;
+
+  if (!monthlyData || monthlyData.length === 0) return;
+
+  // 2. Looping per Kategori (Ini akan jadi Baris / TR)
+  categories.forEach((cat) => {
     const tr = document.createElement("tr");
     tr.className =
       "hover:bg-blue-50 transition-colors border-b border-gray-100";
 
-    // Helper to format cell
-    const tdClass = "px-2 py-3 border-r border-gray-100 truncate";
-    const currencyClass =
-      "px-2 py-3 border-r border-gray-100 font-mono text-xs";
+    // Style helper
+    const tdClass = "px-2 py-3 border-r border-gray-100 font-mono text-xs";
 
-    let html = `<td class="${tdClass} font-bold text-gray-600">${row.month}</td>`;
+    // -- Kolom 1: Nama Kategori --
+    let html = `<td class="px-2 py-3 border-r border-blue-100 font-bold text-gray-600">${cat}</td>`;
 
-    // Loop keys dynamically excluding 'month' and 'total' for inner cells
-    const categories = [
-      "Material",
-      "Service",
-      "Turn Key",
-      "Supervise",
-      "Maintenance",
-      "Tools",
-    ];
+    // -- Kolom 2 s/d 13: Data per Bulan (Looping ke samping) --
+    monthlyData.forEach((monthRow) => {
+      // Ambil value kategori tersebut di bulan ini
+      const val = monthRow[cat] || 0;
 
-    categories.forEach((cat) => {
-      const val = row[cat] || 0;
-      html += `<td class="${currencyClass} ${
+      // Render Cell
+      html += `<td class="${tdClass} ${
         val > 0 ? "text-gray-700" : "text-gray-300"
       }">${formatCurrencyMinimal(val)}</td>`;
     });
 
-    // Total Column
-    html += `<td class="px-2 py-3  text-right">${formatCurrencyMinimal(
-      row.total
-    )}</td>`;
-
     tr.innerHTML = html;
     tbody.appendChild(tr);
   });
+
+  // Opsional: Jika ingin menambahkan baris TOTAL di paling bawah
+  // Kakak bisa buat satu loop lagi khusus menghitung total per bulan
 }
 
 // --- Chart Rendering Logic ---
@@ -280,19 +288,27 @@ function renderAllCharts(data) {
 
   // 2. Revenue Chart (General Revenue only - Bar)
   // Mapping series from JSON
+  // 2. Revenue Chart (General Revenue) - LINE CHART
   const revSeries = data.general_revenue_chart.series.map((s, i) => ({
     label: s.name,
     data: s.data,
+    // Ubah warna batang menjadi warna garis (borderColor)
+    borderColor:
+      s.name === "Won" ? "#3b82f6" : s.name === "Draft" ? "#94a3b8" : "#ef4444",
+    // Warna titik (point)
     backgroundColor:
-      s.name === "Won" ? "#3b82f6" : s.name === "Draft" ? "#cbd5e1" : "#ef4444",
-    barThickness: 12,
-    stack: "Stack 0",
+      s.name === "Won" ? "#3b82f6" : s.name === "Draft" ? "#94a3b8" : "#ef4444",
+    borderWidth: 2,
+    tension: 0.4, // Membuat garis sedikit melengkung (smooth)
+    pointRadius: 3, // Ukuran titik
+    pointHoverRadius: 5,
+    fill: false, // Pastikan area bawah garis transparan (tidak di-blok warna)
   }));
 
   renderChart(
     "revenueChart",
     "revenue",
-    "bar",
+    "line", // <--- UBAH TIPE DARI 'bar' KE 'line' DI SINI
     {
       labels: data.general_revenue_chart.xAxis,
       datasets: revSeries,
@@ -300,10 +316,19 @@ function renderAllCharts(data) {
     {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } }, // Custom legend used in HTML
+      interaction: {
+        mode: "index", // Tooltip muncul untuk semua garis saat hover di bulan yang sama
+        intersect: false,
+      },
+      plugins: { legend: { display: false } }, // Legend tetap dimatikan (menggunakan legend custom HTML di atas chart)
       scales: {
-        y: { beginAtZero: true, grid: { borderDash: [2, 2] } },
-        x: { grid: { display: false } },
+        y: {
+          beginAtZero: true,
+          grid: { borderDash: [2, 2] },
+        },
+        x: {
+          grid: { display: false },
+        },
       },
     }
   );
@@ -505,4 +530,3 @@ function formatCurrencyMinimal(value) {
   // Format compact: 1.2M, 100K if needed, otherwise standard
   return new Intl.NumberFormat("id-ID").format(value);
 }
-
