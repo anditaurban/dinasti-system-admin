@@ -1,372 +1,422 @@
+// --- 2. MAIN INITIALIZATION ---
 pagemodule = "Project Finance Dashboard";
 subpagemodule = "";
 renderHeader();
-setDataType("project");
-fetchAndUpdateData();
 
-(function () {
-  // 1. DATA JSON LENGKAP
-  const apiData = {
-    summary: {
-      expected_cash_in: { amount: 2000000000, percent: 100 },
-      total_cash_in: { amount: 11550000000, percent: 100 },
-      total_cash_out: { amount: 8550000000, percent: 100 },
-      net_cashflow: { amount: 450000000, percent: 25.97 },
-    },
-    cashflow_history: {
-      months: [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ],
-      cash_in: [1.5, 2.5, 4.2, 0.8, 0.9, 0.2, 1.8, 2.1, 3.5, 4.0, 2.5, 5.0],
-      cash_out: [0.5, 1.2, 2.2, 0.1, 2.3, 0.9, 1.0, 1.5, 2.8, 3.0, 1.8, 3.5],
-    },
-    income_distribution: [
-      { label: "Project Payment", value: 81, color: "#10B981" },
-      { label: "Debt", value: 10, color: "#F97316" },
-      { label: "Buy Back", value: 5, color: "#3B82F6" },
-      { label: "Miscellaneous", value: 4, color: "#9F1239" },
-    ],
-    outcome_distribution: [
-      { label: "Project Direct Cost", value: 45, color: "#64748B" },
-      { label: "Debt Return", value: 15, color: "#DC2626" },
-      { label: "Salary", value: 10, color: "#F59E0B" },
-      { label: "Daily Cash", value: 10, color: "#10B981" },
-      { label: "Tax", value: 10, color: "#06B6D4" },
-      { label: "Admin Fee", value: 10, color: "#6366F1" },
-    ],
-    receivable_payable: {
-      receivable: {
-        title: "Account Receivable's share of the",
-        received: { percent: 83.3, amount: 10000000 },
-        outstanding: { percent: 16.7, amount: 2000000 },
+// Global Chart Instances (supaya bisa di-destroy saat update)
+var cashflowCharts = {
+  incomePie: null,
+  outcomePie: null,
+  mainBar: null,
+  receivablePie: null,
+  payablePie: null,
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  initCashflowDashboard();
+});
+
+async function initCashflowDashboard() {
+  // 1. Ambil List Tahun dulu (biar dropdown terisi)
+  fetchYearList();
+
+  // 2. Ambil Data Cashflow (gunakan variabel global currentYear yang sudah diset di atas)
+  fetchCashflowRecapData(currentYear);
+}
+
+// --- 3. API FUNCTIONS ---
+
+async function fetchCashflowRecapData(year = currentYear) {
+  // Tampilkan loading state sederhana
+  const loadingEl = document.getElementById("cardExpected");
+  if (loadingEl) loadingEl.innerText = "Loading...";
+
+  try {
+    // Fallback jika year undefined
+
+    const url = `${baseUrl}/recap/cashflow/${year}`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${API_TOKEN}`,
       },
-      payable: {
-        title: "Account Payable's share of the",
-        paid: { percent: 94.3, amount: 8300000 },
-        unpaid: { percent: 5.7, amount: 500000 },
-      },
-    },
-    project_cashflow_table: {
-      year: 2024,
-      headers: [
-        "Months",
-        "Opening Balance",
-        "Cash In",
-        "Cash Out",
-        "Net Cashflow",
-        "Ending Cash Balance",
-      ],
-      data: [
-        {
-          month: "Jan",
-          opening: 2000000000,
-          in: 1200000000,
-          out: 850000000,
-          net: 350000000,
-          ending: 2350000000,
-        },
-        {
-          month: "Feb",
-          opening: 2350000000,
-          in: 900000000,
-          out: 1100000000,
-          net: -200000000,
-          ending: 2150000000,
-        },
-        {
-          month: "Mar",
-          opening: 2150000000,
-          in: 1800000000,
-          out: 1500000000,
-          net: 300000000,
-          ending: 2450000000,
-        },
-        {
-          month: "Apr",
-          opening: 2450000000,
-          in: 1000000000,
-          out: 950000000,
-          net: 50000000,
-          ending: 2500000000,
-        },
-        {
-          month: "Mei",
-          opening: 2500000000,
-          in: 2500000000,
-          out: 2000000000,
-          net: 500000000,
-          ending: 3000000000,
-        },
-        {
-          month: "Jun",
-          opening: 3000000000,
-          in: 1200000000,
-          out: 1000000000,
-          net: 200000000,
-          ending: 3200000000,
-        },
-        {
-          month: "Jul",
-          opening: 3200000000,
-          in: 1500000000,
-          out: 1300000000,
-          net: 200000000,
-          ending: 3400000000,
-        },
-        {
-          month: "Agu",
-          opening: 3400000000,
-          in: 1100000000,
-          out: 1200000000,
-          net: -100000000,
-          ending: 3300000000,
-        },
-        {
-          month: "Sep",
-          opening: 3300000000,
-          in: 2100000000,
-          out: 1800000000,
-          net: 300000000,
-          ending: 3600000000,
-        },
-        {
-          month: "Okt",
-          opening: 3600000000,
-          in: 1600000000,
-          out: 1400000000,
-          net: 200000000,
-          ending: 3800000000,
-        },
-        {
-          month: "Nov",
-          opening: 3800000000,
-          in: 1800000000,
-          out: 1700000000,
-          net: 100000000,
-          ending: 3900000000,
-        },
-        {
-          month: "Des",
-          opening: 3900000000,
-          in: 2200000000,
-          out: 2000000000,
-          net: 200000000,
-          ending: 4100000000,
-        },
-      ],
-    },
-  };
+    });
 
-  // 2. HELPER FUNCTIONS
-  const formatIDR = (num) => "Rp " + num.toLocaleString("id-ID");
-  const formatM = (val) => "Rp " + (val / 1000000).toFixed(1) + "M";
-  const setInnerText = (id, val) => {
-    const el = document.getElementById(id);
-    if (el) el.innerText = val;
-  };
+    await fetchYearList();
 
-  // 3. MAIN INITIALIZER FUNCTION
-  function initDashboard() {
-    try {
-      // Mapping Summary KPI Cards
-      setInnerText(
-        "cardExpected",
-        formatIDR(apiData.summary.expected_cash_in.amount)
-      );
-      setInnerText(
-        "cardIncome",
-        formatIDR(apiData.summary.total_cash_in.amount)
-      );
-      setInnerText(
-        "cardOutcome",
-        formatIDR(apiData.summary.total_cash_out.amount)
-      );
-      setInnerText(
-        "cardNetFlow",
-        formatIDR(apiData.summary.net_cashflow.amount)
-      );
-
-      // Mapping Receivable & Payable Labels
-      const rp = apiData.receivable_payable;
-      setInnerText("receivable-title", rp.receivable.title);
-      setInnerText(
-        "receivable-received-pct",
-        rp.receivable.received.percent + " %"
-      );
-      setInnerText(
-        "receivable-received-amt",
-        formatM(rp.receivable.received.amount)
-      );
-      setInnerText(
-        "receivable-outstanding-pct",
-        rp.receivable.outstanding.percent + " %"
-      );
-      setInnerText(
-        "receivable-outstanding-amt",
-        formatM(rp.receivable.outstanding.amount)
-      );
-
-      setInnerText("payable-title", rp.payable.title);
-      setInnerText("payable-paid-pct", rp.payable.paid.percent + " %");
-      setInnerText("payable-paid-amt", formatM(rp.payable.paid.amount));
-      setInnerText("payable-unpaid-pct", rp.payable.unpaid.percent + " %");
-      setInnerText("payable-unpaid-amt", formatM(rp.payable.unpaid.amount));
-
-      // PERBAIKAN: Panggil fungsi tabel di sini agar muncul
-      renderCharts();
-      initProjectCashflowTable();
-    } catch (e) {
-      console.error("Dashboard Init Error:", e);
-    }
-  }
-
-  // 4. CHART RENDERING FUNCTIONS
-  function renderCharts() {
-    Chart.defaults.font.family = "'Inter', sans-serif";
-
-    // --- Main Bar Chart: Cash In vs Cash Out ---
-    const ctxMain = document.getElementById("mainChart");
-    if (ctxMain) {
-      new Chart(ctxMain.getContext("2d"), {
-        type: "bar",
-        data: {
-          labels: apiData.cashflow_history.months,
-          datasets: [
-            {
-              label: "Cash In",
-              data: apiData.cashflow_history.cash_in,
-              backgroundColor: "#FACC15",
-              borderRadius: 2,
-            },
-            {
-              label: "Cash Out",
-              data: apiData.cashflow_history.cash_out,
-              backgroundColor: "#10B981",
-              borderRadius: 2,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: { callback: (v) => "Rp " + v + "M" },
-              grid: { borderDash: [5, 5] },
-            },
-            x: { grid: { display: false } },
-          },
-          plugins: { legend: { display: false } },
-        },
-      });
+    if (response.status === 401) {
+      console.error("Unauthorized: Login ulang diperlukan");
+      return;
     }
 
-    // --- Pie Charts Helper ---
-    const renderPie = (canvasId, dataArray) => {
-      const ctx = document.getElementById(canvasId);
-      if (!ctx) return;
-      new Chart(ctx.getContext("2d"), {
-        type: "pie",
-        data: {
-          labels: dataArray.map((i) => i.label),
-          datasets: [
-            {
-              data: dataArray.map((i) => i.value),
-              backgroundColor: dataArray.map((i) => i.color),
-              borderWidth: 0,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: "right",
-              labels: { boxWidth: 10, font: { size: 9 } },
-            },
-          },
-        },
-      });
-    };
-    renderPie("incomePieChart", apiData.income_distribution);
-    renderPie("outcomePieChart", apiData.outcome_distribution);
+    const result = await response.json();
 
-    // --- Share Pie Charts ---
-    const renderSharePie = (canvasId, receivedPct, remainingPct) => {
-      const ctx = document.getElementById(canvasId);
-      if (!ctx) return;
-      new Chart(ctx.getContext("2d"), {
-        type: "pie",
-        data: {
-          labels: ["Success", "Pending"],
-          datasets: [
-            {
-              data: [receivedPct, remainingPct],
-              backgroundColor: ["#1e3a8a", "#bfdbfe"],
-              borderWidth: 0,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-        },
-      });
-    };
-    renderSharePie(
-      "receivablePieChart",
-      apiData.receivable_payable.receivable.received.percent,
-      apiData.receivable_payable.receivable.outstanding.percent
+    if (result.response == "200") {
+      updateCashflowUI(result.data);
+    } else {
+      console.error("API Error:", result.message);
+      if (loadingEl) loadingEl.innerText = "No Data";
+    }
+  } catch (error) {
+    console.error("Fetch Error:", error);
+    if (loadingEl) loadingEl.innerText = "Error";
+  }
+}
+
+async function fetchYearList() {
+  // Cari elemen dropdown dengan class spesifik atau tag select
+  // Kita gunakan class .year-filter agar lebih spesifik dan tidak menabrak select lain
+  const yearSelects = document.querySelectorAll(
+    ".year-filter, #year-select-main"
+  );
+
+  // GUARD CLAUSE: Cek apakah elemen ada? Jika tidak ada, stop (Cegah Error Null)
+  if (yearSelects.length === 0) {
+    console.warn(
+      "⚠️ Warning: Dropdown tahun tidak ditemukan di HTML. Lewati fetch tahun."
     );
-    renderSharePie(
-      "payablePieChart",
-      apiData.receivable_payable.payable.paid.percent,
-      apiData.receivable_payable.payable.unpaid.percent
-    );
+    return;
   }
 
-  // 5. TABLE INITIALIZATION
-  function initProjectCashflowTable() {
-    const data = apiData.project_cashflow_table;
-    const headerRow = document.getElementById("cashflow-table-header");
-    const tableBody = document.getElementById("cashflow-table-body");
+  try {
+    const url = `${baseUrl}/list/sales_year/${owner_id}`;
+    console.log("Fetching Years:", url);
 
-    if (!headerRow || !tableBody || !data) return;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+    });
 
-    // Render Headers
-    headerRow.innerHTML = data.headers
-      .map(
-        (h, i) =>
-          `<th class="px-4 py-3 ${
-            i < data.headers.length - 1 ? "border-r border-white/20" : ""
-          }">${h}</th>`
-      )
-      .join("");
+    const result = await response.json();
 
-    // Render Data Rows
-    tableBody.innerHTML = data.data
-      .map((row, index) => {
-        const isAlternate = index % 2 !== 0;
-        const format = (val) =>
-          val < 0
-            ? `-Rp${Math.abs(val).toLocaleString("id-ID")}.000`
-            : `Rp${val.toLocaleString("id-ID")}.000`;
+    if (result.response == "200" && Array.isArray(result.listData)) {
+      // Urutkan tahun dari terbesar ke terkecil
+      const sortedYears = result.listData.sort((a, b) => b.year - a.year);
 
-        return `
+      // Update semua dropdown yang ditemukan
+      yearSelects.forEach((select) => {
+        select.innerHTML = ""; // Kosongkan opsi lama
+
+        sortedYears.forEach((item) => {
+          const option = document.createElement("option");
+          option.value = item.year;
+          option.text = item.year;
+          if (item.year == currentYear) option.selected = true;
+          select.appendChild(option);
+        });
+
+        // Tambahkan Event Listener (Agar saat ganti tahun, data berubah)
+        // Hapus listener lama biar gak double (opsional tapi good practice)
+        select.onchange = null;
+        select.onchange = function () {
+          currentYear = this.value;
+          console.log("📅 Tahun berubah ke:", currentYear);
+
+          // Sinkronkan dropdown lain jika ada lebih dari 1
+          yearSelects.forEach((s) => (s.value = currentYear));
+
+          // Fetch data baru
+          fetchCashflowRecapData(currentYear);
+
+          // Update judul header jika perlu
+          renderHeader();
+        };
+      });
+    }
+  } catch (error) {
+    console.error("❌ Gagal load tahun:", error);
+
+    // FALLBACK MANUAL: Jika API error, isi dropdown dengan tahun saat ini
+    // (Ini pengganti fungsi ensureDefaultOption yang hilang)
+    const thisYear = new Date().getFullYear();
+    yearSelects.forEach((select) => {
+      if (select.options.length === 0) {
+        select.innerHTML = `<option value="${thisYear}" selected>${thisYear}</option>`;
+      }
+    });
+  }
+}
+
+function handleYearChange(year) {
+  currentYear = year;
+  fetchCashflowRecapData(year);
+}
+
+// --- 4. UI UPDATE FUNCTIONS ---
+
+function updateCashflowUI(data) {
+  const totals = data.yearly_totals;
+
+  // A. Update Top Cards
+  setInnerText("cardExpected", formatIDR(totals.total_expected_cash_in));
+  setInnerText("cardIncome", formatIDR(totals.total_cash_in));
+  setInnerText("cardOutcome", formatIDR(totals.total_cash_out));
+  setInnerText("cardNetFlow", formatIDR(totals.net_cashflow));
+
+  // Update Percentages (Badges di bawah angka)
+  // Note: Karena HTML cardnya statis, kita perlu cara pintar untuk update badgenya.
+  // Asumsi urutan card di HTML tetap, kita cari div badge di parent element card.
+
+  updateBadge("cardExpected", totals.total_expected_cash_in_percent + "%");
+  updateBadge("cardIncome", totals.total_cash_in_percent + "%");
+  updateBadge("cardOutcome", totals.total_cash_out_percent + "%");
+  updateBadge(
+    "cardNetFlow",
+    (totals.net_cashflow > 0 ? "+" : "") + totals.net_cashflow_percent + "%"
+  );
+
+  // B. Update Receivable & Payable Texts
+  const recv = data.receivable_pie_chart;
+  const pay = data.payable_pie_chart;
+
+  // Receivable
+  setInnerText("receivable-title", "Account Receivable's share"); // Statis atau ambil dari mana? API tidak kirim title
+  setInnerText("receivable-received-pct", recv.series[0].percentage + " %");
+  setInnerText("receivable-received-amt", formatM(recv.series[0].amount));
+  setInnerText("receivable-outstanding-pct", recv.series[1].percentage + " %");
+  setInnerText("receivable-outstanding-amt", formatM(recv.series[1].amount));
+
+  // Payable
+  setInnerText("payable-title", pay.title);
+  setInnerText("payable-paid-pct", pay.series[0].percentage + " %");
+  setInnerText("payable-paid-amt", formatM(pay.series[0].amount));
+  setInnerText("payable-unpaid-pct", pay.series[1].percentage + " %");
+  setInnerText("payable-unpaid-amt", formatM(pay.series[1].amount));
+
+  // C. Render Charts
+  renderCashflowCharts(data);
+
+  // D. Render Table
+  renderCashflowTable(data.monthly_cashflow_summary);
+}
+
+function updateBadge(cardId, text) {
+  const cardTitle = document.getElementById(cardId);
+  if (cardTitle) {
+    // Cari sibling element (div badge) setelah h3
+    const badge = cardTitle.nextElementSibling;
+    if (badge) badge.innerText = text;
+  }
+}
+
+// --- 5. CHART LOGIC ---
+
+function renderCashflowCharts(data) {
+  console.log("--- DEBUG START: renderCashflowCharts ---");
+  console.log("1. Data diterima:", data);
+
+  Chart.defaults.font.family = "'Inter', sans-serif";
+
+  // --- CHECK CHART UTAMA ---
+  const ctxMain = document.getElementById("mainChart");
+  if (!ctxMain) {
+    console.error(
+      "❌ ERROR: Elemen <canvas id='mainChart'> TIDAK DITEMUKAN di HTML!"
+    );
+  } else {
+    console.log("✅ Canvas Main ditemukan.");
+    // Cek ukuran canvas di browser
+    const rect = ctxMain.getBoundingClientRect();
+    console.log(
+      `📏 Ukuran Canvas Main: Width=${rect.width}px, Height=${rect.height}px`
+    );
+
+    if (rect.height === 0 || rect.width === 0) {
+      console.warn(
+        "⚠️ PERINGATAN: Canvas size 0px. Grafik tidak akan muncul! Cek CSS."
+      );
+    }
+
+    // Cek data di dalam chart
+    console.log("📊 Data Main Chart:", data.cashflow_bar_chart);
+
+    if (cashflowCharts.mainBar) cashflowCharts.mainBar.destroy();
+
+    // Render
+    cashflowCharts.mainBar = new Chart(ctxMain.getContext("2d"), {
+      type: "bar",
+      data: {
+        labels: data.cashflow_bar_chart.labels,
+        datasets: [
+          {
+            label: "Cash In",
+            data: data.cashflow_bar_chart.cash_in,
+            backgroundColor: "#FACC15",
+            borderRadius: 2,
+          },
+          {
+            label: "Cash Out",
+            data: data.cashflow_bar_chart.cash_out,
+            backgroundColor: "#10B981",
+            borderRadius: 2,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false, // PENTING: Set false agar ikut ukuran container CSS
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { callback: (v) => "Rp " + v / 1000000 + "M" },
+            grid: { borderDash: [5, 5] },
+          },
+          x: { grid: { display: false } },
+        },
+        plugins: { legend: { display: false } },
+      },
+    });
+    console.log("✅ new Chart() Main Bar dieksekusi.");
+  }
+
+  // 2. Income & Outcome Pie Charts
+  // Warna untuk Income/Outcome (API tidak kirim warna, kita set default array)
+  const incomeColors = ["#10B981", "#F97316", "#3B82F6", "#9F1239", "#8B5CF6"];
+  const outcomeColors = [
+    "#64748B",
+    "#DC2626",
+    "#F59E0B",
+    "#10B981",
+    "#06B6D4",
+    "#6366F1",
+  ];
+
+  renderPie(
+    "incomePieChart",
+    "incomePie",
+    data.income_pie_chart.series,
+    incomeColors
+  );
+  renderPie(
+    "outcomePieChart",
+    "outcomePie",
+    data.outcome_pie_chart.series,
+    outcomeColors
+  );
+
+  // 3. Receivable & Payable Share Pies
+  renderSharePie(
+    "receivablePieChart",
+    "receivablePie",
+    data.receivable_pie_chart.series[0].percentage, // Received
+    data.receivable_pie_chart.series[1].percentage // Outstanding
+  );
+
+  renderSharePie(
+    "payablePieChart",
+    "payablePie",
+    data.payable_pie_chart.series[0].percentage, // Paid
+    data.payable_pie_chart.series[1].percentage // Unpaid
+  );
+}
+
+// Helper: Render General Pie Chart
+function renderPie(canvasId, chartKey, seriesData, colors) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+
+  if (cashflowCharts[chartKey]) cashflowCharts[chartKey].destroy();
+
+  cashflowCharts[chartKey] = new Chart(ctx.getContext("2d"), {
+    type: "pie",
+    data: {
+      labels: seriesData.map((i) => i.name),
+      datasets: [
+        {
+          data: seriesData.map((i) => i.value),
+          backgroundColor: colors,
+          borderWidth: 0,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "right",
+          labels: { boxWidth: 10, font: { size: 9 } },
+        },
+      },
+    },
+  });
+}
+
+// Helper: Render Share Pie Chart (2 segments)
+function renderSharePie(canvasId, chartKey, val1, val2) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+
+  if (cashflowCharts[chartKey]) cashflowCharts[chartKey].destroy();
+
+  cashflowCharts[chartKey] = new Chart(ctx.getContext("2d"), {
+    type: "pie",
+    data: {
+      labels: ["Success/Paid", "Pending/Unpaid"],
+      datasets: [
+        {
+          data: [val1, val2],
+          backgroundColor: ["#1e3a8a", "#bfdbfe"],
+          borderWidth: 0,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+    },
+  });
+}
+
+// --- 6. TABLE LOGIC ---
+
+function renderCashflowTable(monthlyData) {
+  const headerRow = document.getElementById("cashflow-table-header");
+  const tableBody = document.getElementById("cashflow-table-body");
+
+  if (!headerRow || !tableBody) return;
+
+  // Headers statis (sesuai desain lama) karena API tidak kirim headers array
+  const headers = [
+    "Months",
+    "Opening Balance",
+    "Cash In",
+    "Cash Out",
+    "Net Cashflow",
+    "Ending Cash Balance",
+  ];
+
+  // Render Headers
+  headerRow.innerHTML = headers
+    .map(
+      (h, i) =>
+        `<th class="px-4 py-3 ${
+          i < headers.length - 1 ? "border-r border-white/20" : ""
+        }">${h}</th>`
+    )
+    .join("");
+
+  // Render Data Rows
+  if (!monthlyData || monthlyData.length === 0) {
+    tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-4">No Data</td></tr>`;
+    return;
+  }
+
+  tableBody.innerHTML = monthlyData
+    .map((row, index) => {
+      const isAlternate = index % 2 !== 0;
+      const format = (val) =>
+        val < 0
+          ? `-Rp${Math.abs(val).toLocaleString("id-ID")}`
+          : `Rp${val.toLocaleString("id-ID")}`;
+
+      return `
             <tr class="${
               isAlternate ? "bg-[#e0f2f9]" : "bg-white"
             } border-b border-gray-100 text-center text-xs">
@@ -374,30 +424,40 @@ fetchAndUpdateData();
                   row.month
                 }</td>
                 <td class="px-4 py-3 border-r border-gray-200">${format(
-                  row.opening
+                  row.opening_balance
                 )}</td>
                 <td class="px-4 py-3 border-r border-gray-200">${format(
-                  row.in
+                  row.cash_in
                 )}</td>
                 <td class="px-4 py-3 border-r border-gray-200">${format(
-                  row.out
+                  row.cash_out
                 )}</td>
                 <td class="px-4 py-3 border-r border-gray-200 ${
-                  row.net < 0 ? "text-red-500 font-bold" : ""
-                }">${format(row.net)}</td>
-                <td class="px-4 py-3 font-bold">${format(row.ending)}</td>
+                  row.net_cashflow < 0 ? "text-red-500 font-bold" : ""
+                }">${format(row.net_cashflow)}</td>
+                <td class="px-4 py-3 font-bold">${format(
+                  row.ending_cash_balance
+                )}</td>
             </tr>`;
-      })
-      .join("");
-  }
+    })
+    .join("");
+}
 
-  // 6. BOOTSTRAP EXECUTION
-  if (
-    document.readyState === "complete" ||
-    document.readyState === "interactive"
-  ) {
-    initDashboard();
-  } else {
-    document.addEventListener("DOMContentLoaded", initDashboard);
-  }
-})();
+// --- 7. UTILITIES ---
+function setInnerText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.innerText = val;
+}
+
+function formatIDR(num) {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(num);
+}
+
+function formatM(val) {
+  if (val >= 1000000000) return "Rp " + (val / 1000000000).toFixed(2) + "M";
+  return "Rp " + (val / 1000000).toFixed(1) + "jt";
+}

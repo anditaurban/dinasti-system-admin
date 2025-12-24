@@ -37,9 +37,6 @@ let clientDebounceTimer;
 let vendorDebounceTimer;
 const AUTOSAVE_KEY = "autosave_quotation_draft";
 
-
-
-
 let current_date = formattedDate;
 
 // Function to load JavaScript files dynamically
@@ -272,6 +269,11 @@ async function loadModuleContent(module, Id, Detail) {
           typeof loadDetailSalesTurnKey === "function"
         ) {
           loadDetailSalesTurnKey(Id, Detail);
+        } else if (
+          module === "report_finance" &&
+          typeof fetchCashflowRecapData === "function"
+        ) {
+          fetchCashflowRecapData(year);
         } else if (
           (module === "quotation_log_detail" ||
             module === "quotation_log_turnkey") &&

@@ -38,10 +38,15 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("client_name").innerHTML =
       data.pelanggan_nama || "";
 
+    document.getElementById("due_date").innerHTML = data.due_date || "-";
+    document.getElementById("internal_notes").innerHTML =
+      data.internal_notes || "-";
+
     document.getElementById("contract_amount").innerHTML =
       finance(data.subtotal) || "";
     document.getElementById("diskon").innerHTML = finance(data.disc) || "";
     document.getElementById("ppn").innerHTML = finance(data.ppn) || "";
+    document.getElementById("total").innerHTML = finance(data.total) || "";
     document.getElementById("total").innerHTML = finance(data.total) || "";
 
     const paymentEl = document.getElementById("payment");
@@ -754,16 +759,6 @@ async function openSalesReceiptModal(
   });
 }
 
-/**
- * ======================================
- * FUNGSI BARU: Edit Info Invoice
- * ======================================
- */
-
-/**
- * 1. Membuka modal (pop-up) SweetAlert
- * Berisi form yang sudah diisi data dari 'currentInvoiceData'
- */
 async function openEditInvoiceModal() {
   if (!currentInvoiceData) {
     Swal.fire(
@@ -775,8 +770,6 @@ async function openEditInvoiceModal() {
   }
 
   const data = currentInvoiceData;
-
-  // [DIHAPUS] Logika parsing tanggal (formattedInvDate) tidak diperlukan lagi
 
   const { value: formValues } = await Swal.fire({
     title: "Edit Informasi Invoice",
@@ -810,6 +803,19 @@ async function openEditInvoiceModal() {
         </div>
 
         <div>
+           <label class="block text-sm text-gray-600 mb-1">Jatuh Tempo (Due Date)</label>
+           <input type="date" id="edit_due_date" class="w-full border rounded px-3 py-2" 
+              value="${data.due_date || ""}"> 
+        </div>
+
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Catatan Internal</label>
+          <textarea id="edit_internal_notes" rows="2" class="w-full border rounded px-3 py-2" placeholder="Catatan khusus untuk tim internal...">${
+            data.internal_notes || ""
+          }</textarea>
+        </div>
+
+        <div>
           <label class="block text-sm text-gray-600 mb-1">Upload File (Invoice / PO)</label>
           <input type="file" id="edit_file" class="w-full border rounded px-3 py-2 bg-white">
         </div>
@@ -825,6 +831,9 @@ async function openEditInvoiceModal() {
         invoice_date: document.getElementById("edit_tanggal_inv").value,
         po_number: document.getElementById("edit_no_po").value,
         po_date: document.getElementById("edit_tanggal_po").value,
+        // [BARU] Ambil value due_date dan internal_notes
+        due_date: document.getElementById("edit_due_date").value,
+        internal_notes: document.getElementById("edit_internal_notes").value,
         files: document.getElementById("edit_file").files[0] || null,
       };
     },
@@ -834,9 +843,7 @@ async function openEditInvoiceModal() {
     await handleSaveInvoiceInfo(formValues);
   }
 }
-// ===========================================================
-// FUNGSI SIMPAN KE API
-// ===========================================================
+
 async function handleSaveInvoiceInfo(formData) {
   Swal.fire({
     title: "Menyimpan...",
@@ -850,6 +857,10 @@ async function handleSaveInvoiceInfo(formData) {
   bodyData.append("invoice_date", formData.invoice_date);
   bodyData.append("po_number", formData.po_number);
   bodyData.append("po_date", formData.po_date);
+
+  // [BARU] Tambahkan key due_date dan internal_notes
+  bodyData.append("due_date", formData.due_date);
+  bodyData.append("internal_notes", formData.internal_notes);
 
   // Wajib ikut sesuai endpoint
   bodyData.append("pesanan_id", currentInvoiceData.pesanan_id);
@@ -876,17 +887,14 @@ async function handleSaveInvoiceInfo(formData) {
     const result = await res.json();
     if (!res.ok) throw new Error(result.message || "Gagal menyimpan data.");
 
-    // ✅ [DIPERBAIKI] Tunggu alert ini selesai
     await Swal.fire({
       icon: "success",
       title: "Berhasil",
       text: result.message || "Data invoice berhasil diperbarui.",
     });
 
-    // ✅ [DIPERBAIKI] Baru refresh setelah alert ditutup
     loadDetailSales(window.detail_id, window.detail_desc);
   } catch (err) {
-    // ✅ [DIPERBAIKI] Tambah await
     await Swal.fire({
       icon: "error",
       title: "Gagal",

@@ -14,17 +14,16 @@ window.rowTemplate = function (item, index, perPage = 10) {
   const globalIndex = (currentPage - 1) * perPage + index + 1;
 
   return `
-  <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50">
+  <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50" id="row-${
+    item.pesanan_id
+  }">
 
-    <!-- Tanggal -->
     <td class="px-6 py-4 text-sm border-b sm:border-0 flex justify-between sm:table-cell bg-gray-800 text-white sm:bg-transparent sm:text-gray-700">
       <span class="font-medium sm:hidden">Tanggal</span>
       ${item.tanggal_invoice}
     </td>
 
-    <!-- Sales Info -->
     <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <!-- Mobile -->
       <div class="flex flex-col sm:hidden w-full">
         <div class="flex justify-between">
           <span class="font-medium">Sales#</span>
@@ -46,7 +45,6 @@ window.rowTemplate = function (item, index, perPage = 10) {
         </div>
       </div>
 
-      <!-- Desktop -->
       <div class="hidden sm:block">
         <div class="font-medium">${item.no_qtn}  ${`R${
     item.revision_number || 0
@@ -56,13 +54,11 @@ window.rowTemplate = function (item, index, perPage = 10) {
       </div>
     </td>
 
-    <!-- Project Name -->
     <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
       <span class="font-medium sm:hidden">Description</span>
       ${item.project_name}
     </td>
 
-    <!-- Amount -->
     <td class="px-6 py-4 text-sm text-gray-700 border-b text-right sm:border-0 flex justify-between sm:table-cell">
       <span class="font-medium sm:hidden">Amount</span>
       <div class="flex flex-col items-end w-full">
@@ -71,92 +67,140 @@ window.rowTemplate = function (item, index, perPage = 10) {
       </div>
     </td>
 
-    <!-- Client -->
     <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
       <span class="font-medium sm:hidden">Client</span>
       ${item.pelanggan_nama}
     </td>
 
-    <!-- Status + Actions -->
     <td class="px-6 py-4 text-center text-sm text-gray-700 sm:border-0 flex justify-between sm:table-cell">
       <span class="font-medium sm:hidden">Status</span>
-      <span class="${getStatusClass(
-        item.status
-      )} px-2 py-1 rounded-full text-xs font-medium">
-        ${item.status}
-      </span>
+      
+      <div class="flex flex-col items-end sm:items-center w-full">
+        <span class="${getStatusClass(
+          item.status
+        )} px-2 py-1 rounded-full text-xs font-medium statusLabel">
+            ${item.status}
+        </span>
+      </div>
 
-      <!-- Dropdown -->
-      <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
-  <button onclick="event.stopPropagation(); loadModuleContent('quotation_1form', '${
-    item.pesanan_id
-  }', '${
+      <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm text-left">
+          <button onclick="event.stopPropagation(); loadModuleContent('quotation_1form', '${
+            item.pesanan_id
+          }', '${
     item.no_qtn
   }');" class="block w-full text-left px-4 py-2 hover:bg-gray-100"> 
-    👁️ View Detail 
-  </button>
+            👁️ View Detail 
+          </button>
 
-  ${
-    item.status_id === 3 && item.invoice != "yes"
-      ? `<button onclick="openInvoiceModal('${item.pesanan_id}')" 
-          class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-600">
-          ➕ Add Invoice
-        </button>`
-      : ""
-  }
+          ${
+            item.status_id === 3 && item.invoice != "yes"
+              ? `<button onclick="openInvoiceModal('${item.pesanan_id}')" 
+                  class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-600">
+                  ➕ Add Invoice
+                </button>`
+              : ""
+          }
 
-  ${
-    item.approval_status === "pending"
-      ? `
-        <button 
-          onclick="event.stopPropagation(); openSalesApproval('${item.pesanan_id}', '${item.approved}')"
-          class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600">
-          🟢 Update Approval
-        </button>
-        `
-      : ""
-  }
+          ${
+            item.approval_status === "pending"
+              ? `
+                <button 
+                  onclick="event.stopPropagation(); openSalesApproval('${item.pesanan_id}', '${item.approved}')"
+                  class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600">
+                  🟢 Update Approval
+                </button>
+                `
+              : ""
+          }
 
-  ${
-    // LOGIC: Tampilkan tombol HANYA jika status pending DAN approval_reminder BUKAN "reminded"
-    item.approval_status === "pending" && item.approval_reminder !== "reminded"
-      ? `
-        <button 
-          onclick="event.stopPropagation(); sendApprovalReminder('${item.pesanan_id}', '${item.no_qtn}')"
-          class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-orange-500">
-          📧 Reminder Approval
-        </button>
-        `
-      : ""
-  } 
+          ${
+            // Tombol Reminder HANYA jika status pending DAN belum di-remind
+            item.approval_status === "pending" &&
+            item.approval_reminder !== "reminded"
+              ? `
+                <button 
+                  onclick="event.stopPropagation(); sendApprovalReminder('${item.pesanan_id}', '${item.no_qtn}')"
+                  class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-orange-500">
+                  📧 Reminder Approval
+                </button>
+                `
+              : ""
+          } 
 
-  ${
-    item.status_id != 3
-      ? `
-      <button 
-        onclick="event.stopPropagation(); openUpdateStatus('${item.pesanan_id}', '${item.status_id}')"
-        class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600">
-        🔄 Update Status
-      </button>
+          ${
+            item.status_id != 3
+              ? `
+              <button 
+                onclick="event.stopPropagation(); openUpdateStatus('${item.pesanan_id}', '${item.status_id}')"
+                class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600">
+                🔄 Update Status
+              </button>
 
-      <button onclick="handleDelete('${item.pesanan_id}')" 
-          class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">
-          🗑 Delete Order
-        </button>`
-      : ""
-  }
-</div>
-
+              <button onclick="handleDelete('${item.pesanan_id}')" 
+                  class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">
+                  🗑 Delete Order
+                </button>`
+              : ""
+          }
+      </div>
     </td>
 
-    <!-- Project Name -->
-    <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
+    <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell align-top">
       <span class="font-medium sm:hidden">Approval</span>
-      ${item.approval_status}
+      
+      <div class="flex flex-col sm:items-center items-end gap-1">
+        
+        <div class="approvalLabel">
+            ${getApprovalStatusBadge(item.approval_status)}
+        </div>
+
+        ${
+          item.approved_by &&
+          item.approval_status &&
+          item.approval_status.toLowerCase() === "approved"
+            ? `<div class="text-[10px] sm:text-xs text-gray-500 mt-1 whitespace-nowrap">
+                 by <span class="font-semibold text-gray-700">${item.approved_by}</span>
+               </div>`
+            : ""
+        }
+
+        ${
+          item.approval_reminder === "reminded" &&
+          item.approval_status === "pending"
+            ? `<div class="flex items-center gap-1 bg-orange-50 text-orange-600 border border-orange-200 px-2 py-0.5 rounded-full mt-1" title="Reminder Sent">
+                 <span class="text-[10px] font-bold">🔔 Reminded</span>
+               </div>`
+            : ""
+        }
+        
+      </div>
     </td>
     
   </tr>`;
 };
+
+// ==========================================
+// Helper Function (Tambahkan di bawah rowTemplate)
+// ==========================================
+function getApprovalStatusBadge(status) {
+  const safeStatus = (status || "").toLowerCase();
+
+  if (safeStatus === "approved") {
+    return `<span class="bg-green-100 text-green-700 border border-green-300 px-2 py-1 rounded-full text-xs font-bold capitalize inline-block min-w-[80px] text-center">
+              ✅ Approved
+            </span>`;
+  } else if (safeStatus === "pending") {
+    return `<span class="bg-yellow-100 text-yellow-700 border border-yellow-300 px-2 py-1 rounded-full text-xs font-bold capitalize inline-block min-w-[80px] text-center">
+              ⏳ Pending
+            </span>`;
+  } else if (safeStatus === "rejected") {
+    return `<span class="bg-red-100 text-red-700 border border-red-300 px-2 py-1 rounded-full text-xs font-bold capitalize inline-block min-w-[80px] text-center">
+              ❌ Rejected
+            </span>`;
+  } else {
+    return `<span class="text-gray-400 font-medium">-</span>`;
+  }
+}
 
 function exportPDF() {
   const { jsPDF } = window.jspdf;
@@ -490,17 +534,34 @@ async function openInvoiceModal(pesananId) {
             required />
         </div>
 
-        <div>
-          <label class="block text-sm font-medium mb-1">Invoice Date</label>
-          <input type="date" id="invoice_date"
-            class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500" 
-            required />
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Invoice Date</label>
+              <input type="date" id="invoice_date"
+                class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500" 
+                required />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-1">Due Date</label>
+              <input type="date" id="due_date"
+                class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500" 
+                required />
+            </div>
         </div>
+
         <div>
           <label class="block text-sm font-medium mb-1">Purchase Order Date</label>
           <input type="date" id="po_date"
             class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500" 
             required />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Internal Notes</label>
+          <textarea id="internal_notes" rows="3"
+            class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500" 
+            placeholder="Catatan internal..."></textarea>
         </div>
       </form>
     `,
@@ -509,25 +570,34 @@ async function openInvoiceModal(pesananId) {
     confirmButtonText: "Tambah",
     cancelButtonText: "Batal",
     preConfirm: () => {
+      // Ambil value dari element
       const po_number = document.getElementById("po_number").value.trim();
       const invoice_date = document.getElementById("invoice_date").value;
+      const due_date = document.getElementById("due_date").value; // Ambil Due Date
       const po_date = document.getElementById("po_date").value;
+      const internal_notes = document
+        .getElementById("internal_notes")
+        .value.trim(); // Ambil Internal Notes
       const inv_number =
         document.getElementById("inv_number").value.trim() || "";
 
-      if (!po_number || !invoice_date || !po_date) {
+      // Validasi (tambahkan due_date jika wajib diisi)
+      if (!po_number || !invoice_date || !po_date || !due_date) {
         Swal.showValidationMessage(
-          "PO Number, PO Date dan Invoice Date wajib diisi!"
+          "PO Number, Invoice Date, Due Date, dan PO Date wajib diisi!"
         );
         return false;
       }
 
+      // Return object dengan key baru
       return {
         pesanan_id: pesananId,
         po_number,
         inv_number,
         invoice_date,
+        due_date, // Key baru
         po_date,
+        internal_notes, // Key baru
       };
     },
   });
@@ -543,7 +613,7 @@ async function openInvoiceModal(pesananId) {
         body: JSON.stringify({
           owner_id,
           user_id,
-          ...formValues,
+          ...formValues, // Ini akan otomatis menyertakan due_date dan internal_notes
         }),
       });
 

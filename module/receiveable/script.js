@@ -52,18 +52,6 @@ window.rowTemplate = function (item, index, perPage = 10) {
     <td class="align-top px-6 py-4 text-sm text-gray-700 text-right border-b sm:border-0 flex justify-between sm:table-cell">
       <span class="font-medium sm:hidden">Email</span>
       ${item.aging_days}
-      <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
-        <button onclick="event.stopPropagation(); confirmPayment('${
-          item.receipt_id
-        }', 2);" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-          ✅ Valid
-        </button>
-        <button onclick="event.stopPropagation(); confirmPayment('${
-          item.receipt_id
-        }', 3);" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-          ❌ Tidak Valid
-        </button> 
-      </div>
     </td>
      <td class="align-top px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
       <span class="font-medium sm:hidden">Email</span>

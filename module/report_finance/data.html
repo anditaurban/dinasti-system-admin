@@ -49,9 +49,9 @@
             </div>
 
             <div class="relative">
-                <select
-                    class="appearance-none bg-white border border-slate-400 rounded px-2 py-1 pr-6 text-[10px] font-bold text-slate-600 outline-none cursor-pointer">
-                    <option>2024</option>
+                <select id="year-select-main"
+                    class="year-filter appearance-none bg-white border border-slate-400 rounded px-2 py-1 pr-6 text-[10px] font-bold text-slate-600 outline-none cursor-pointer">
+                    <option value="2025" selected>2025</option>
                 </select>
                 <span
                     class="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] text-slate-600">▼</span>
@@ -109,7 +109,8 @@
             </div>
             <div class="bg-white p-6 rounded-xl border shadow-sm h-[320px] flex flex-col">
                 <h3 class="text-center font-bold text-gray-700 mb-2">Outcome</h3>
-                <div class="relative flex-grow"><canvas id="outcomePieChart"></canvas></div>
+                <div class="relative w-full h-[250px]"> <canvas id="outcomePieChart"></canvas>
+                </div>
             </div>
         </div>
 
@@ -124,7 +125,6 @@
             </div>
             <div class="flex justify-between items-start mb-4">
                 <h3 class="text-lg font-bold text-gray-800">Cash In VS Cash Out</h3>
-                <span class="text-4xl font-bold text-gray-200">2024</span>
             </div>
             <div class="relative h-[440px] w-full">
                 <canvas id="mainChart"></canvas>
@@ -146,8 +146,8 @@
                 </div>
                 <div class="relative">
                     <select
-                        class="appearance-none bg-white border border-slate-400 rounded px-2 py-1 pr-6 text-[10px] font-bold text-slate-600 outline-none cursor-pointer">
-                        <option>2024</option>
+                        class="year-filter appearance-none bg-white border border-slate-400 rounded px-2 py-1 pr-6 text-[10px] font-bold text-slate-600 outline-none cursor-pointer">
+                        <option value="2025" selected>2025</option>
                     </select>
                     <span
                         class="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] text-slate-600">▼</span>
@@ -195,8 +195,8 @@
                 </div>
                 <div class="relative">
                     <select
-                        class="appearance-none bg-white border border-slate-400 rounded px-2 py-1 pr-6 text-[10px] font-bold text-slate-600 outline-none cursor-pointer">
-                        <option>2024</option>
+                        class="year-filter appearance-none bg-white border border-slate-400 rounded px-2 py-1 pr-6 text-[10px] font-bold text-slate-600 outline-none cursor-pointer">
+                        <option value="2025" selected>2025</option>
                     </select>
                     <span
                         class="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] text-slate-600">▼</span>
