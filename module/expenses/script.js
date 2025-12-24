@@ -7,69 +7,183 @@ fetchAndUpdateData();
 
 window.rowTemplate = function (item, index, perPage = 10) {
   const { currentPage } = state[currentDataType];
-  const globalIndex = (currentPage - 1) * perPage + index + 1;
+
+  // 1. Cek Data Akun
+  let akunDisplay = "-";
+  if (item.nama_akun) {
+    akunDisplay = `<span class="font-semibold text-blue-600">${item.nama_akun}</span>`;
+    if (item.number_account) akunDisplay += ` - ${item.number_account}`;
+  }
+
+  // 2. Format Data Lain
+  const displayNoRef = item.no_ref || item.no_kwitansi || "-";
+  const displayKategori = item.kategori || item.project_name || "-";
+  const displayDeskripsi = item.deskripsi || item.keterangan || "-";
+
+  // 3. Logic Tombol Preview File (New Feature)
+  // Cek apakah item.file ada isinya (tidak null, tidak undefined, tidak string kosong)
+  let previewButtonHtml = "";
+  if (item.file && item.file !== "null" && item.file !== "") {
+    previewButtonHtml = `
+      <button onclick="event.stopPropagation(); handlePreview('${item.file}')" 
+              class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600 font-medium">
+          👁️ Lihat Bukti
+      </button>
+    `;
+  }
 
   return `
-  <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50">  
-     <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-    <span class="font-medium sm:hidden">Date</span>  
-    ${item.tanggal_transaksi}
-    </td>
-    
-  
-    <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Type</span>
-      ${item.no_kwitansi}
+  <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50">    
+      <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
+        <span class="font-medium sm:hidden">Date</span>   
+        ${item.tanggal_transaksi}
+      </td>
       
-    </td>
-  
-    <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Category</span>
-      ${item.project_name}
-    </td>
-  
-    <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">DESCRIPTION</span>
-${item.keterangan}
-    </td>
-    <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Via</span>
-      ${item.nama_akun}
-    </td>
+      <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
+        <span class="font-medium sm:hidden">No. Ref</span>
+        ${displayNoRef}
+      </td>
+    
+      <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
+        <span class="font-medium sm:hidden">Category</span>
+        ${displayKategori}
+      </td>
+    
+      <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
+        <span class="font-medium sm:hidden">Description</span>
+        <div class="max-w-xs break-words truncate" title="${displayDeskripsi}">
+            ${displayDeskripsi}
+        </div>
+      </td>
 
+      <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
+        <span class="font-medium sm:hidden">Via</span>
+        ${item.account}
+      </td>
 
-    <td class="px-6 py-4 text-sm text-gray-700 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Role</span>
-      ${finance(item.nominal)}
-      <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
-       <button onclick="event.stopPropagation(); handleEdit('${
-         item.keuangan_id
-       }', '${item.project_name}')" 
-            class="block w-full text-left px-4 py-2 hover:bg-gray-100" data-id="${
+      <td class="px-6 py-4 text-sm text-gray-700 flex justify-between sm:table-cell">
+        <span class="font-medium sm:hidden">Nominal</span>
+        ${finance(item.nominal)}
+        
+        <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow-lg z-50 text-sm right-0 mt-2">
+            
+            <button onclick="event.stopPropagation(); handleEdit('${
               item.keuangan_id
-            }">✏️ Edit Expenses</button>
-            <button 
-        <button onclick="event.stopPropagation(); handleDelete(${
-          item.keuangan_id
-        })" class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">
-          🗑 Delete Expenses
-        </button>
-      </div>
-    </td>
+            }', '${displayKategori}')" 
+                class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700">
+                ✏️ Edit
+            </button>
+            
+         
+
+            <button onclick="event.stopPropagation(); handleDelete(${
+              item.keuangan_id
+            })" 
+                class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 border-t">
+                🗑 Delete
+            </button>
+        </div>
+      </td>
   </tr>`;
+};
+
+// --- FITUR PREVIEW FILE ---
+
+// 1. Inject Modal HTML ke dalam body (dijalankan sekali saat script load)
+previewModalHtml = `
+<div id="filePreviewModal" class="fixed inset-0 z-[100] hidden bg-black bg-opacity-75 flex items-center justify-center p-4 transition-opacity" onclick="closePreviewModal()">
+    <div class="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+        
+        <div class="flex justify-between items-center p-4 border-b">
+            <h3 class="text-lg font-semibold text-gray-800">Bukti Transaksi</h3>
+            <button onclick="closePreviewModal()" class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <div id="previewContent" class="p-4 overflow-auto flex justify-center bg-gray-100 h-full">
+            <p class="text-gray-500">Memuat...</p>
+        </div>
+
+        <div class="p-4 border-t flex justify-end bg-gray-50">
+             <a id="downloadLink" href="#" target="_blank" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm flex items-center gap-2">
+                ⬇️ Download / Buka Full
+             </a>
+        </div>
+    </div>
+</div>
+`;
+
+// Masukkan modal ke body jika belum ada
+if (!document.getElementById("filePreviewModal")) {
+  document.body.insertAdjacentHTML("beforeend", previewModalHtml);
+}
+
+// 2. Fungsi Handle Click Preview
+// Fungsi Preview menggunakan SweetAlert2
+window.handlePreview = function (url) {
+  const ext = url.split(".").pop().toLowerCase();
+  const isImage = ["jpg", "jpeg", "png", "gif", "webp", "bmp"].includes(ext);
+
+  if (isImage) {
+    // TAMPILAN JIKA GAMBAR (Preview Besar & Jelas)
+    Swal.fire({
+      imageUrl: url,
+      imageAlt: "Bukti Transaksi",
+      // Opsi Tampilan
+      width: "600px", // Lebar modal pas
+      padding: "1em",
+      background: "#fff",
+      showCloseButton: true,
+      showConfirmButton: false, // Hilangkan tombol OK biar fokus ke gambar
+      backdrop: `
+                rgba(0,0,123,0.4)
+            `,
+      // Tambahkan tombol download/buka asli di bawah gambar
+      footer: `<a href="${url}" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1" style="text-decoration:none;">
+                🔍 Buka / Download Gambar Asli
+            </a>`,
+    });
+  } else {
+    // TAMPILAN JIKA PDF / FILE LAIN
+    Swal.fire({
+      title: "<strong>Preview File</strong>",
+      html: `
+                <div class="w-full h-96">
+                    <iframe src="${url}" class="w-full h-full border rounded shadow-sm"></iframe>
+                </div>
+            `,
+      showCloseButton: true,
+      focusConfirm: false,
+      confirmButtonText: "Tutup",
+      confirmButtonColor: "#3085d6",
+      width: "800px", // Lebih lebar buat PDF
+      footer: `<a href="${url}" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium">
+                ⬇️ Download File
+            </a>`,
+    });
+  }
+};
+
+// 3. Fungsi Tutup Modal
+window.closePreviewModal = function () {
+  document.getElementById("filePreviewModal").classList.add("hidden");
 };
 
 document.getElementById("addButton").addEventListener("click", () => {
   showFormModal();
+  // Load kedua dropdown saat tambah baru
   loadAccountOptions();
+  loadCategoryOptions();
 });
 
+// Update struktur form sesuai payload baru
 formHtml = `
 <form id="dataform" class="space-y-3" enctype="multipart/form-data">
 
   <input type="hidden" id="formOwnerId" name="owner_id">
   <input type="hidden" id="formUserId" name="user_id">
-
+  <input type="hidden" name="tanggal_request" value="">
 
   <div class="form-group">
       <label for="formTanggal" class="block text-left text-sm font-medium text-gray-700 dark:text-gray-200">Tanggal Transaksi</label>
@@ -77,23 +191,25 @@ formHtml = `
   </div>
 
     <div class="form-group">
-      <label for="formNoKwitansi" class="block text-left text-sm font-medium text-gray-700 dark:text-gray-200">No. Kwitansi</label>
-      <input id="formNoKwitansi" name="no_kwitansi" type="text" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500" placeholder="-">
+      <label for="formNoRef" class="block text-left text-sm font-medium text-gray-700 dark:text-gray-200">No. Ref / Kwitansi</label>
+      <input id="formNoRef" name="no_ref" type="text" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500" placeholder="-">
   </div>
 
  <div class="form-group">
       <label for="formCategory" class="block text-left text-sm font-medium text-gray-700 dark:text-gray-200">Kategori</label>
-      <input id="formCategory" name="nama_expenses" type="text" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500" placeholder="Contoh: Marketing Operational" required>
+      <select id="formCategory" name="kategori" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500" required>
+          <option value="">Pilih Kategori</option>
+      </select>
   </div>
 
   <div class="form-group">
-      <label for="formKeterangan" class="block text-left  text-sm font-medium text-gray-700 dark:text-gray-200">Keterangan</label>
-      <textarea id="formKeterangan" name="keterangan" rows="2" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500" required></textarea>
+      <label for="formDeskripsi" class="block text-left  text-sm font-medium text-gray-700 dark:text-gray-200">Deskripsi / Keterangan</label>
+      <textarea id="formDeskripsi" name="deskripsi" rows="2" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500" required></textarea>
   </div>
 
   <div class="form-group">
     <label for="formAkun" class="block text-left text-sm font-medium text-gray-700 dark:text-gray-200">Akun Pembayaran</label>
-    <select id="formAkun" name="akun" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500" required>
+    <select id="formAkun" name="akun_id" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500" required>
         <option value="">Pilih Akun</option>
     </select>
 </div>
@@ -111,84 +227,123 @@ formHtml = `
 
 </form>
 `;
+// Fungsi Baru: Load Kategori Expenses
+async function loadCategoryOptions(selectedCategoryName = null) {
+  const elSelect = document.getElementById("formCategory");
+  let catOptions = "<option value=''>Pilih Kategori</option>";
+
+  // Ambil user/owner ID dari localStorage untuk URL
+  let currentOwnerId = "";
+  const userSessionStr = localStorage.getItem("user");
+  if (userSessionStr) {
+    const userSession = JSON.parse(userSessionStr);
+    currentOwnerId = userSession.owner_id;
+  }
+
+  if (!currentOwnerId) {
+    console.error("Owner ID not found for categories");
+    elSelect.innerHTML = "<option value=''>Error: No Owner ID</option>";
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      `${baseUrl}/list/expenses_category/${currentOwnerId}`,
+      {
+        headers: { Authorization: `Bearer ${API_TOKEN}` },
+      }
+    );
+    const result = await res.json();
+
+    if (res.ok && result.listData) {
+      catOptions += result.listData
+        .map((cat) => {
+          // LOGIC: Ambil value category nya langsung (String), bukan ID
+          const isSelected =
+            selectedCategoryName && cat.category === selectedCategoryName
+              ? "selected"
+              : "";
+          return `<option value="${cat.category}" ${isSelected}>${cat.category}</option>`;
+        })
+        .join("");
+    }
+    elSelect.innerHTML = catOptions;
+  } catch (err) {
+    console.error("❌ Gagal load kategori:", err);
+    elSelect.innerHTML = "<option value=''>Gagal memuat data</option>";
+  }
+}
+
 async function fillFormData(data) {
-  // 1. Ambil object item dari API
   let source = data.detail ? data.detail : data;
   const item = Array.isArray(source) ? source[0] : source;
 
   console.log("🔄 Isi form dengan data:", item);
 
-  // --- PERBAIKAN LOGIKA USER ID ---
+  // Logic User ID (sama seperti sebelumnya)
   let userId = item.user_id;
-
-  // Cek apakah user_id dari API itu 0, null, atau undefined
   if (!userId || userId == 0 || userId == "0") {
-    // LANGKAH BARU: Ambil object 'user' dari Local Storage
     const userSessionStr = localStorage.getItem("user");
-
     if (userSessionStr) {
       try {
-        // Parse string JSON menjadi Object asli
         const userSession = JSON.parse(userSessionStr);
-        // Ambil user_id dari dalam object tersebut
         userId = userSession.user_id;
-        console.log("✅ User ID diambil dari LocalStorage:", userId);
       } catch (e) {
-        console.error("Gagal parse localStorage user:", e);
         userId = "";
       }
     } else {
       userId = "";
     }
   }
-  // --------------------------------
 
   document.getElementById("formOwnerId").value = item.owner_id ?? "";
-  document.getElementById("formUserId").value = userId; // Sekarang harusnya terisi '5'
+  document.getElementById("formUserId").value = userId;
 
-  // Load akun dan isi field lainnya...
+  // Load Akun
   await loadAccountOptions(item.akun_id);
 
+  // Load Kategori (Penting: Kirim nama kategorinya untuk selected state)
+  // Mapping: Cek apakah data source menggunakan 'kategori' atau 'project_name'
+  const categoryValue = item.kategori || item.project_name || "";
+  await loadCategoryOptions(categoryValue);
+
   document.getElementById("formTanggal").value = item.tanggal_transaksi || "";
-  document.getElementById("formCategory").value = item.project_name || "";
-  document.getElementById("formKeterangan").value = item.keterangan || "";
+
+  // Mapping Description
+  document.getElementById("formDeskripsi").value =
+    item.deskripsi || item.keterangan || "";
+
   document.getElementById("formNominal").value = item.nominal || "";
-  document.getElementById("formNoKwitansi").value = item.no_kwitansi || "-";
+
+  // Mapping No Ref
+  document.getElementById("formNoRef").value =
+    item.no_ref || item.no_kwitansi || "-";
 }
 
 requiredFields = [
-  { field: "akun", message: "Silakan pilih Akun Pembayaran!" },
+  // UBAH key 'akun' menjadi 'akun_id'
+  { field: "akun_id", message: "Silakan pilih Akun Pembayaran!" },
+
   { field: "tanggal_transaksi", message: "Tanggal Transaksi wajib diisi!" },
-  // PERUBAHAN DISINI: Key validasi mengikuti name di HTML
-  { field: "nama_expenses", message: "Nama Expenses wajib diisi!" },
-  { field: "keterangan", message: "Keterangan wajib diisi!" },
+  { field: "kategori", message: "Kategori Expenses wajib dipilih!" },
+  { field: "deskripsi", message: "Deskripsi wajib diisi!" },
   { field: "nominal", message: "Nominal wajib diisi!" },
 ];
 
 function validateFormData(formData) {
   console.log("✅ Validasi Form dimulai...", formData);
-
-  // Loop cek field required
   for (const { field, message } of requiredFields) {
-    // Cek key di object formData (kalau pakai FormData.entries())
-    // Atau cek langsung value element jika formData adalah object key-value
-    const value = formData.get ? formData.get(field) : formData[field]; // Support FormData object atau plain object
-
+    const value = formData.get ? formData.get(field) : formData[field];
     if (!value || (typeof value === "string" && value.trim() === "")) {
-      console.warn(`⚠️ Field kosong: ${field}`);
       alert(message);
       return false;
     }
   }
-
-  // Validasi tambahan: Nominal harus angka valid
   const nominal = formData.get ? formData.get("nominal") : formData["nominal"];
   if (nominal <= 0) {
     alert("Nominal harus lebih dari 0!");
     return false;
   }
-
-  console.log("✅ Semua field terisi");
   return true;
 }
 
