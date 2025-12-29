@@ -835,6 +835,10 @@ function renderHistoryTable(data) {
                 `
                     : ""
                 }
+<button onclick="printInvoice(${item.purchase_id})" 
+        class="text-left w-full px-4 py-2 hover:bg-gray-100 text-gray-700 flex items-center gap-2">
+    📄 Print PO
+</button>
 
                 <div class="border-t my-1"></div>
 
