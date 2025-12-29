@@ -92,7 +92,7 @@ async function fetchAndRenderProject(isRefresh = false) {
     // ============================================================
     document.getElementById("projectNameDisplay").textContent = `${
       data.project_name
-    } (${data.project_number || "-"})`;
+    } (${data.project_number || "-"}) - ${data.project_type}`;
 
     document.getElementById("projectAmount").innerHTML = `
         <div>${finance(data.project_value)}</div>

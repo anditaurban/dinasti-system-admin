@@ -1,0 +1,49 @@
+{
+  "folders": [
+    {
+      "path": "../.."
+    },
+    {
+      "path": "../../../EEI-finance-app"
+    },
+    {
+      "path": "../../../MKI-order-system"
+    },
+    {
+      "path": "../../../MSI-order-system"
+    },
+    {
+      "path": "../../../MSI-werehouse"
+    },
+    {
+      "path": "../../../../project-portofolio"
+    },
+    {
+      "path": "C:/laragon/www/pembayaran_spp"
+    },
+    {
+      "path": "C:/laragon/www/project-joki-dea"
+    },
+    {
+      "path": "C:/laragon/www/project-joki-neng"
+    },
+    {
+      "path": "C:/laragon/www/workshop-app"
+    },
+    {
+      "path": "C:/laragon/www/workshop-app-baron"
+    },
+    {
+      "path": "../../../../SKRIPSI/Semangatt"
+    },
+    {
+      "path": "../../../../ChatBot-LLM-main/ChatBot-LLM-main"
+    },
+    {
+      "path": "C:/laragon/www/yatamasakin"
+    }
+  ],
+  "settings": {
+    "liveServer.settings.multiRootWorkspaceName": "MSI-order-system"
+  }
+}

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Purchase Order</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: #fff;
+            font-size: 12px;
+            position: relative;
+            min-height: 297mm;
+        }
+
+        .bordered th,
+        .bordered td {
+            border: 1px solid #000;
+            padding: 4px 6px;
+        }
+
+        .total-row {
+            background-color: #f8fafc;
+        }
+
+        .compact-table {
+            font-size: 11px;
+        }
+
+        .compact-table th,
+        .compact-table td {
+            padding: 3px 4px;
+            border: 1px solid #000;
+            /* Hitam tegas sesuai template */
+        }
+
+        /* Footer khusus */
+        .quotation-footer {
+            position: absolute;
+            bottom: 10mm;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 11px;
+            width: 210mm;
+            margin: 0 auto;
+        }
+
+        @media print {
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+        }
+    </style>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const script = document.createElement('script');
+            script.src = `./assets/js/api.js?v=${new Date().getTime()}`;
+            document.body.appendChild(script);
+        });
+
+
+    </script>
+</head>
+
+<body>
+    <div id="invoiceContainer" class="w-[210mm] mx-auto p-[10mm] bg-white min-h-[277mm] relative pb-20">
+        <div class="flex justify-center items-center h-64">Loading Data...</div>
+    </div>
+
+    <script>
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        const urlParams = new URLSearchParams(window.location.search);
+        const purchase_id = urlParams.get("id");
+        const isDownload = urlParams.get("mode") === "download";
+        const container = document.getElementById("invoiceContainer");
+        // Fallback jika user localStorage kosong
+        const companyInfo = {
+            name: user.company || "PT. Dinasti Elektrik Indonesia",
+            tagline: user.tagline || "ELECTRICAL ENGINEERING & MAINTENANCE",
+            address: user.address || "Jl. Krisa Ayu 4 RT/RW 002/008 Blok A3 No. 19\nCipondoh, Tangerang",
+            instagram: user.instagram || "Dinastielektrik.id",
+            other_sosmed: user.other_sosmed || "Dinasti_Electrical_Projectz",
+            logo_url: user.logo_url || ""
+        };
+
+        function finance(value) {
+            return new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(value);
+        }
+
+        function terbilang(n) {
+            const satuan = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
+            n = Math.floor(n);
+            if (n < 12) return satuan[n];
+            if (n < 20) return terbilang(n - 10) + " Belas";
+            if (n < 100) return terbilang(Math.floor(n / 10)) + " Puluh " + terbilang(n % 10);
+            if (n < 200) return "Seratus " + terbilang(n - 100);
+            if (n < 1000) return terbilang(Math.floor(n / 100)) + " Ratus " + terbilang(n % 100);
+            if (n < 2000) return "Seribu " + terbilang(n - 1000);
+            if (n < 1000000) return terbilang(Math.floor(n / 1000)) + " Ribu " + terbilang(n % 1000);
+            if (n < 1000000000) return terbilang(Math.floor(n / 1000000)) + " Juta " + terbilang(n % 1000000);
+            return "";
+        }
+
+        // --- FUNGSI UNTUK GENERATE KODE UNIK SIGNATURE ---
+        function encodeSign(invNumber) {
+            if (!invNumber) return "UNKNOWN";
+            let base = btoa(invNumber);
+            return base
+                .replace(/=/g, "")
+                .replace(/\+/g, "X")
+                .replace(/\//g, "9");
+        }
+
+        async function loadLogoWithAuth(url) {
+            if (!url) return;
+            try {
+                const res = await fetch(url, {
+                    headers: { "Authorization": `Bearer ${API_TOKEN}` }
+                });
+                if (!res.ok) throw new Error("Gagal load logo");
+
+                const blob = await res.blob();
+                const objectUrl = URL.createObjectURL(blob);
+                const logoPreview = document.getElementById("logo_preview");
+                if (logoPreview) {
+                    logoPreview.src = objectUrl;
+                    logoPreview.classList.remove("hidden");
+                }
+            } catch (err) {
+                console.error("Error load logo:", err);
+            }
+        }
+
+        async function loadData() {
+            try {
+                if (!purchase_id) throw new Error("ID tidak ditemukan di URL");
+
+                const res = await fetch(`${baseUrl}/detail/actual_costing/${purchase_id}`, {
+                    headers: { Authorization: `Bearer ${API_TOKEN}` }
+                });
+
+                const json = await res.json();
+                if (!json.success || !json.data) throw new Error("Data tidak ditemukan");
+
+                const data = json.data.header;
+                const items = data.items || [];
+
+                // --- PERSIAPAN QR CODE ---
+                const signUrl = `https://digitalsign.dinastikelektrik.id/ref=${data.no_po}`;
+                const encodedSign = encodeSign(data.no_po);
+
+                // Render Table Rows
+                let globalIndex = 1;
+                const tableRows = items.map(item => `
+            <tr class="bg-white">
+                <td class="text-center text-gray-700 border border-black p-1">${globalIndex++}</td>
+                <td class="p-1 text-black border border-black">
+                    <div class="font-medium text-xs">${item.name}</div>
+                    ${item.project_materials_id != 0 ? `<div class="text-[10px] text-gray-600 italic">Material ID: ${item.project_materials_id}</div>` : ''}
+                </td>
+                <td class="text-center border border-black p-1">${item.qty}</td>
+                <td class="text-center border border-black p-1">${item.unit}</td>
+                <td class="border border-black p-1 text-right">
+                    <div class="flex justify-between"><span>Rp</span><span>${finance(item.unit_price)}</span></div>
+                </td>
+                <td class="border border-black p-1 font-medium text-right">
+                    <div class="flex justify-between"><span>Rp</span><span>${finance(item.total || (item.qty * item.unit_price))}</span></div>
+                </td>
+            </tr>
+        `).join("");
+
+                // Empty Rows Filler
+                let emptyRows = "";
+                if (items.length < 5) {
+                    for (let i = 0; i < (5 - items.length); i++) {
+                        emptyRows += `
+                <tr class="bg-white text-transparent">
+                    <td class="border border-black p-1">&nbsp;</td>
+                    <td class="border border-black p-1">&nbsp;</td>
+                    <td class="border border-black p-1">&nbsp;</td>
+                    <td class="border border-black p-1">&nbsp;</td>
+                    <td class="border border-black p-1">&nbsp;</td>
+                    <td class="border border-black p-1">&nbsp;</td>
+                </tr>`;
+                    }
+                }
+
+                const html = `
+            <div class="flex justify-between items-start mb-6">
+                <div class="shrink-0">
+                    <img id="logo_preview" class="h-24 w-40 object-contain" alt="Logo" />
+                </div>
+                <div class="flex-1 px-4">
+                    <h1 class="font-bold text-red-600 text-lg leading-tight uppercase">${companyInfo.name}</h1>
+                    <p class="font-bold text-sm text-gray-700">${companyInfo.tagline}</p>
+                    <p class="text-xs leading-snug mt-1 text-gray-600 whitespace-pre-line">${companyInfo.address}</p>
+                    <div class="text-xs mt-2 space-y-0.5 text-gray-600">
+                        <p>Instagram : ${companyInfo.instagram}</p>
+                        <p>Instagram : ${companyInfo.other_sosmed}</p>
+                    </div>
+                </div>
+                <div class="flex justify-end">
+                    <div class="text-right shrink-0">
+                        <h2 class="font-bold text-xl text-indigo-800">PURCHASE ORDER</h2>
+                        <table class="border-collapse text-xs mt-2 ml-auto">
+                            <tr>
+                                <td class="px-2 py-1 text-left font-semibold">DATE</td>
+                                <td class="border border-gray-400 px-3 py-1 text-center bg-gray-50">${data.po_date}</td>
+                            </tr>
+                            <tr>
+                                <td class="px-2 py-1 text-left font-semibold">PO NO</td>
+                                <td class="border border-gray-400 px-3 py-1 text-center bg-gray-50 font-bold">${data.no_po}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-4 mb-4">
+                <div class="w-1/2">
+                    <div class="bg-indigo-900 text-white font-bold text-xs px-2 py-1 inline-block mb-1">PURCHASE FROM</div>
+                    <div class="text-sm leading-snug border p-2 border-gray-300 min-h-[80px]">
+                        <p class="font-bold text-gray-800">${data.vendor}</p>
+                        ${data.vendor_pic ? `<p>UP: ${data.vendor_pic}</p>` : ''}
+                        <p class="text-xs mt-1 text-gray-600">${data.vendor_alamat || '-'}</p>
+                        ${data.vendor_phone ? `<p class="text-xs">Ph: ${data.vendor_phone}</p>` : ''}
+                    </div>
+                </div>
+                <div class="w-1/2">
+                    <div class="bg-indigo-900 text-white font-bold text-xs px-2 py-1 inline-block mb-1">SHIP TO</div>
+                    <div class="text-sm leading-snug border p-2 border-gray-300 min-h-[80px]">
+                        <p class="font-bold text-gray-800">${data.purchaser_name}</p>
+                        <p class="font-semibold text-xs">${companyInfo.name}</p>
+                        <p class="text-xs mt-1 text-gray-600 whitespace-pre-line">${companyInfo.address}</p>
+                        ${data.purchaser_phone ? `<p class="text-xs">Ph: ${data.purchaser_phone}</p>` : ''}
+                    </div>
+                </div>
+            </div>
+
+            <table class="w-full compact-table border-collapse border border-black mb-3">
+                <thead class="bg-blue-900">
+                    <tr class="text-white">
+                        <th class="text-center w-10 border border-black">No.</th>
+                        <th class="text-left pl-2 border border-black">DESCRIPTION</th>
+                        <th class="text-center w-12 border border-black">QTY</th>
+                        <th class="text-center w-12 border border-black">UNIT</th>
+                        <th class="text-center w-28 border border-black">UNIT PRICE</th>
+                        <th class="text-center w-28 border border-black">TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableRows}
+                    ${emptyRows}
+                </tbody>
+            </table>
+
+            <div class="flex justify-between items-start mt-4 text-xs">
+                <div class="w-1/2 border border-gray-400">
+                    <div class="bg-gray-300 font-semibold px-3 py-1 border-b border-gray-400">Comments or Special Instructions</div>
+                    <div class="px-3 py-2 text-gray-700 min-h-[100px]">
+                         <p class="mb-2 whitespace-pre-line">${data.notes || '-'}</p>
+                    </div>
+                </div>
+                <div class="w-5/12">
+                    <table class="text-xs w-full">
+                        <tr>
+                            <td class="pr-3 py-1 text-right font-semibold text-gray-700">SUBTOTAL</td>
+                            <td class="py-1 text-gray-800 border-b border-gray-200">
+                                <div class="flex justify-between"><span>Rp</span><span>${finance(data.subtotal)}</span></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="pr-3 py-1 text-right font-semibold text-gray-700">DISC ${data.discount_percent > 0 ? `(${data.discount_percent}%)` : ''}</td>
+                            <td class="py-1 text-gray-800 border-b border-gray-200">
+                                <div class="flex justify-between text-red-600"><span>Rp</span><span>- ${finance(data.discount_nominal)}</span></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="pr-3 py-1 text-right font-semibold text-gray-700">PPN ${data.ppn_percent}%</td>
+                            <td class="py-1 text-gray-800 border-b border-gray-200">
+                                <div class="flex justify-between"><span>Rp</span><span>${finance(data.ppn_nominal)}</span></div>
+                            </td>
+                        </tr>
+                        <tr class="font-bold border-t-2 border-black total-row">
+                            <td class="pr-3 py-2 text-right text-gray-900 text-sm">TOTAL</td>
+                            <td class="py-2 text-blue-900 bg-blue-100 px-1">
+                                <div class="flex justify-between text-sm"><span>Rp</span><span>${finance(data.total_purchase)}</span></div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+\
+            <div class="text-sm text-right mt-8 pr-4">
+                <p class="font-semibold mb-2">APPROVED BY</p>
+                
+                <div id="qrcode" class="inline-block p-1 bg-white mb-2"></div>
+                
+                <div>
+                    <p class="font-bold border-b border-black inline-block min-w-[200px] text-center">
+                        Rian Septiadi Saimima
+                    </p>
+                </div>
+                <p class="text-[10px] text-gray-500 mt-1">
+                    Digitally signed: <span class="font-mono font-bold">${encodedSign}</span>
+                </p>
+            </div>
+
+            <div class="quotation-footer text-gray-500">
+                <p>
+                    If you have any questions about this Purchase Order, please contact<br>
+                    Septri Noerjhani, 0816516825, septrinoerjhani@dinasti.id
+                </p>
+            </div>
+        `;
+
+                container.innerHTML = html;
+                loadLogoWithAuth(companyInfo.logo_url);
+
+                // --- GENERATE QR CODE ---
+                // Kita beri sedikit delay agar DOM container render dulu
+                setTimeout(() => {
+                    const qrElement = document.getElementById("qrcode");
+                    if (qrElement) {
+                        // Hapus isi lama jika ada (prevent double)
+                        qrElement.innerHTML = "";
+
+                        new QRCode(qrElement, {
+                            text: signUrl,
+                            width: 75, // Ukuran QR
+                            height: 75,
+                            colorDark: "#000000",
+                            colorLight: "#ffffff",
+                            correctLevel: QRCode.CorrectLevel.H
+                        });
+                    }
+                }, 100);
+
+                // Auto Download
+                if (isDownload) {
+                    setTimeout(() => {
+                        const opt = {
+                            margin: 0,
+                            filename: `PO_${data.no_po.replace(/[\/\\]/g, '-')}.pdf`,
+                            image: { type: 'jpeg', quality: 0.98 },
+                            html2canvas: { scale: 2 },
+                            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                        };
+                        html2pdf().set(opt).from(container).save();
+                    }, 1500); // Delay agak lama biar QR code selesai render
+                }
+
+            } catch (err) {
+                console.error("Gagal memuat data", err);
+                container.innerHTML = `<div class="text-center text-red-500 mt-10 p-4 border border-red-200 bg-red-50 rounded"><h3 class="font-bold">Gagal Memuat Data</h3><p>${err.message}</p></div>`;
+            }
+        }
+
+        window.onload = loadData;
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+</body>
+
+</html>

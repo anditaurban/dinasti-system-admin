@@ -46,55 +46,7 @@
         </div>
 
         <!-- Filter Dropdown -->
-        <div class="relative">
-          <button id="dropdownFilterButton" onclick="toggleDropdownButton('dropdownFilterMenu')"
-            class="flex items-center justify-between px-3 py-2 border rounded w-52 hover:bg-gray-50">
-            <span>Filter Data</span>
-            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          <div id="dropdownFilterMenu"
-            class="hidden absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-
-            <!-- Status Filters -->
-            <button onclick="filterData('status=2')"
-              class="flex justify-between w-full px-4 py-2 text-sm hover:bg-gray-100">
-              <span>Menunggu Pembayaran</span><span id="unpaid" class="font-bold">0</span>
-            </button>
-            <button onclick="filterData('status=6')"
-              class="flex justify-between w-full px-4 py-2 text-sm hover:bg-gray-100">
-              <span>Pembayaran Sebagian</span><span id="partialpaid" class="font-bold">0</span>
-            </button>
-            <button onclick="filterData('status=7')"
-              class="flex justify-between w-full px-4 py-2 text-sm hover:bg-gray-100">
-              <span>Sedang di verifikasi</span><span id="unverified" class="font-bold">0</span>
-            </button>
-            <button onclick="filterData('status=1')"
-              class="flex justify-between w-full px-4 py-2 text-sm hover:bg-gray-100">
-              <span>Di Proses</span><span id="process" class="font-bold">0</span>
-            </button>
-            <button onclick="filterData('salesman=0')"
-              class="flex justify-between w-full px-4 py-2 text-sm hover:bg-gray-100">
-              <span>Belum Ada Salesman</span><span id="unsalesman" class="font-bold">0</span>
-            </button>
-
-            <div class="border-t border-gray-200 my-1"></div>
-
-            <!-- Type Filters -->
-            <button onclick="filterData('type=1')"
-              class="block w-full px-4 py-2 text-sm hover:bg-gray-100">Reguler</button>
-            <button onclick="filterData('type=2')" class="block w-full px-4 py-2 text-sm hover:bg-gray-100">COD</button>
-            <button onclick="filterData('type=3')"
-              class="block w-full px-4 py-2 text-sm hover:bg-gray-100">Marketplace</button>
-
-            <div class="border-t border-gray-200 my-1"></div>
-
-            <!-- Reset -->
-            <button onclick="filterData('')" class="block w-full px-4 py-2 text-sm hover:bg-gray-100">Semua</button>
-          </div>
-        </div>
+        <!--  -->
       </div>
     </div>
 

@@ -11,6 +11,10 @@
       <h1 class="text-xl font-bold text-gray-800"><span id="projectNameDisplay">Loading...</span></h1>
     </div>
     <div class="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto">
+      <button type="button" onclick="printInvoice(currentUpdateCostId)"
+        class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded text-sm flex items-center gap-2">
+        📄 Download PDF
+      </button>
       <button onclick="loadModuleContent('project')"
         class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium text-sm px-4 py-2 rounded transition flex items-center gap-2">
         ⬅️ Back
@@ -27,117 +31,174 @@
     <button onclick="loadModuleContent('project_actual', window.detail_id, window.detail_desc)"
       class="px-4 py-2 font-semibold transition hover:text-gray-700
             ${subpagemodule === 'Real Calculation' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'} border-b-2 border-blue-600 text-blue-600 focus:outline-none">
-      💰 Real Calculation
+      💰 Real Calculation (Purchase Order)
     </button>
 
     <button onclick="loadModuleContent('project_purchase', window.detail_id, window.detail_desc)"
       class="px-4 py-2 font-semibold transition hover:text-gray-700 text-gray-500">
-      💳 Purchase
+      💳 Payable
     </button>
   </div>
 
-  <div class="bg-gray-50 p-4 rounded-lg border shadow-sm mb-6">
-    <h3 class="text-lg font-semibold mb-3">Input Detail Pengeluaran</h3>
-    <form id="realCalcForm" class="grid grid-cols-1 gap-4 text-sm">
+  <div class="bg-white p-6 rounded-lg shadow mb-6 border">
+    <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Form Input Real Calculation</h3>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block mb-1 font-medium">Korelasi Pekerjaan <span class="text-red-500">*</span></label>
-          <select id="calcKorelasiPekerjaan" class="w-full border p-2 rounded">
-            <option value="">-- Pilih --</option>
-          </select>
-        </div>
-        <div>
-          <label class="block mb-1 font-medium">Korelasi Material</label>
-          <select id="calcKorelasiMaterial" class="w-full border p-2 rounded bg-gray-100" disabled>
-            <option value="">-- Pilih --</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
-          <label class="block mb-1 font-medium">No Tagihan</label>
-          <input type="text" id="calcNoTagihan" class="w-full border p-2 rounded" placeholder="INV-XXX">
-        </div>
-
-        <div>
-          <label class="block mb-1 font-medium">Tanggal PO</label>
-          <input type="date" id="calcPoDate" class="w-full border p-2 rounded">
-        </div>
-        <div>
-          <label class="block mb-1 font-medium">Nama Vendor</label>
-          <div class="relative">
-            <input type="text" id="calcNamaVendor" class="w-full border p-2 rounded" placeholder="Cari vendor..."
-              autocomplete="off" oninput="filterVendorSuggestions(this)">
-            <ul
-              class="absolute z-20 w-full bg-white border rounded mt-1 text-sm shadow hidden max-h-48 overflow-y-auto">
-            </ul>
+    <form id="realCalcForm">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Tanggal PO (Dinasti)</label>
+            <input type="date" id="calcPoDate"
+              class="w-full border p-2 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              onchange="generateNoPO()">
           </div>
-          <input type="hidden" id="calcVendorId" value="0">
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">No PO (Dinasti)</label>
+            <div class="flex gap-1">
+              <input type="text" id="calcNoPo"
+                class="w-full border p-2 rounded text-sm bg-gray-100 text-gray-600 font-semibold"
+                placeholder="Otomatis terisi..." readonly>
+            </div>
+          </div>
         </div>
 
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Tanggal Invoice (Vendor)</label>
+            <input type="date" id="calcInvoiceDate"
+              class="w-full border p-2 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Nomor Invoice (Vendor)</label>
+            <input type="text" id="calcInvoiceNo"
+              class="w-full border p-2 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              placeholder="INV-XXX">
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Nama Vendor</label>
+            <div class="relative">
+              <input type="text" id="calcNamaVendor"
+                class="w-full border p-2 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Cari vendor..." autocomplete="off" oninput="filterVendorSuggestions(this)">
+              <ul id="vendorSuggestionsList"
+                class="absolute z-20 w-full bg-white border rounded mt-1 text-sm shadow hidden max-h-48 overflow-y-auto">
+              </ul>
+            </div>
+            <input type="hidden" id="calcVendorId" value="0">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Nama PIC</label>
+            <select id="calcNamaPic" class="w-full border p-2 rounded text-sm bg-gray-100 focus:outline-none" disabled>
+              <option value="">-- Pilih Vendor Dulu --</option>
+            </select>
+            <input type="hidden" id="calcContactId" value="0">
+          </div>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto border rounded-lg mb-4 shadow-sm">
+        <table class="w-full text-sm min-w-[800px]">
+          <thead class="bg-gray-100 text-gray-700 font-bold border-b">
+            <tr>
+              <th class="p-4 text-center w-[50px] align-top">No</th>
+              <th class="p-4 text-left align-top">Detail Transaksi (Produk & Biaya)</th>
+              <th class="p-4 text-center w-[80px] align-top">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="inputItemsBody" class="bg-white divide-y">
+          </tbody>
+        </table>
+      </div>
+
+      <button type="button" onclick="addNewRow()"
+        class="mb-6 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm flex items-center gap-2 transition shadow">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+          <path
+            d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+        </svg>
+        Tambah Item
+      </button>
+
+      <div class="border-t pt-4 grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
-          <label class="block mb-1 font-medium">Nama PIC</label>
-          <select id="calcNamaPic" class="w-full border p-2 rounded bg-gray-100" disabled>
-            <option value="">-- Pilih Vendor Dulu --</option>
-          </select>
-          <input type="hidden" id="calcContactId" value="0">
+          <label class="block text-xs font-bold text-gray-600 mb-1">Notes Global</label>
+          <textarea id="calcGlobalNotes" rows="3" class="w-full border p-2 rounded text-sm"
+            placeholder="Catatan tambahan untuk transaksi ini..."></textarea>
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-semibold text-gray-600">Subtotal (Rp)</span>
+            <input type="text" id="summarySubtotal"
+              class="text-right font-bold text-gray-800 bg-transparent border-none focus:ring-0 w-[200px]" value="0"
+              readonly>
+          </div>
+
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-gray-600">Diskon</span>
+            <div class="flex items-center gap-2 justify-end w-[200px]">
+              <input type="number" id="summaryDiscPercent" class="border rounded px-2 py-1 w-[60px] text-right text-sm"
+                placeholder="%" oninput="calculateGrandTotal()">
+              <span class="text-gray-400 text-xs">%</span>
+              <input type="text" id="summaryDiscNominal"
+                class="border rounded px-2 py-1 w-[120px] text-right text-sm formatNumber" placeholder="Rp" value="0"
+                oninput="calculateGrandTotal(true)">
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="summaryTaxCheck" class="rounded text-blue-600 focus:ring-blue-500"
+                onchange="calculateGrandTotal()">
+              <span class="text-gray-600">PPN 11%</span>
+            </div>
+            <input type="text" id="summaryTaxNominal"
+              class="text-right text-gray-600 bg-gray-50 border rounded px-2 py-1 w-[200px] text-sm" value="0" readonly>
+          </div>
+
+          <div class="border-t my-2"></div>
+
+          <div class="flex items-center justify-between bg-blue-50 p-2 rounded">
+            <span class="font-bold text-blue-800 text-lg">TOTAL</span>
+            <input type="text" id="summaryGrandTotal"
+              class="text-right font-bold text-blue-800 bg-transparent border-none text-lg w-[200px]" value="0"
+              readonly>
+          </div>
         </div>
       </div>
 
-      <div><label class="block mb-1 font-medium">Produk / Item <span class="text-red-500">*</span></label><input
-          type="text" id="calcProduct" class="w-full border p-2 rounded" placeholder="Cth: Semen"></div>
-
-      <div><label class="block mb-1 font-medium">Notes</label><textarea id="calcNotes" rows="2"
-          class="w-full border p-2 rounded"></textarea></div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div><label class="block mb-1 font-medium">Harga Satuan</label><input type="text" id="calcUnitPrice"
-            class="w-full border p-2 rounded formatNumber"></div>
-        <div><label class="block mb-1 font-medium">Qty</label><input type="number" id="calcQty"
-            class="w-full border p-2 rounded" value="1"></div>
-        <div class="relative">
-          <label class="block mb-1 font-medium">Unit</label>
-
-          <!-- Input -->
-          <input type="text" id="calcUnit" class="w-full border p-2 rounded" oninput="filterUnitSuggestions(this)"
-            autocomplete="off">
-
-          <!-- Suggestions -->
-          <ul id="unitSuggestions" class="absolute left-0 w-full bg-white border shadow hidden 
-           max-h-48 overflow-y-auto rounded-md"></ul>
+      <div class="mt-6 flex justify-end gap-3">
+        <div class="mt-6 flex justify-end gap-3">
+          <button type="button" onclick="resetForm()"
+            class="px-6 py-2 rounded border bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold transition">Batal</button>
+          <button type="button" onclick="saveTransaction('create')"
+            class="px-6 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow transition">Simpan
+            Transaksi</button>
         </div>
-
       </div>
 
-      <div class="flex items-end gap-4">
-        <div class="flex-grow"><label class="block mb-1 font-medium">Total</label><input type="text" id="calcHarga"
-            class="w-full border p-2 rounded bg-gray-100" readonly></div>
-        <button type="submit" id="submitCalcFormBtn"
-          class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded h-[42px] transition">+ Tambah</button>
-        <button type="button" id="cancelUpdateBtn"
-          class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded h-[42px] hidden transition">Batal</button>
-      </div>
     </form>
   </div>
 
-  <div class="overflow-auto border rounded">
-    <table class="w-full text-sm">
-      <thead class="bg-gray-100 text-gray-700">
-        <tr>
-          <th class="px-3 py-2 border text-center">Korelasi</th>
-          <th class="px-3 py-2 border text-center">No Tagihan</th>
-          <th class="px-3 py-2 border text-center">Vendor</th>
-          <th class="px-3 py-2 border text-center">Produk</th>
-          <th class="px-3 py-2 border text-center">Harga</th>
-          <th class="px-3 py-2 border text-center">Qty</th>
-          <th class="px-3 py-2 border text-center">Total</th>
-          <th class="px-3 py-2 border text-center">Status</th>
-          <th class="px-3 py-2 border text-center w-[100px]">Aksi</th>
-        </tr>
-      </thead>
-      <tbody id="realCalcBody"></tbody>
-    </table>
+  <div class="bg-white rounded-lg border shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-gray-50 text-gray-600 font-semibold border-b uppercase text-xs">
+          <tr>
+            <th class="p-4 min-w-[200px]">Referensi & Tanggal</th>
+            <th class="p-4 min-w-[200px]">Vendor & PIC</th>
+            <th class="p-4 min-w-[250px] text-right">Rincian Keuangan</th>
+            <th class="p-4 min-w-[180px] text-center">Status & Approval</th>
+            <th class="p-4 text-center w-[80px]">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="actualCostTableBody" class="divide-y divide-gray-100">
+        </tbody>
+      </table>
+    </div>
+    <div id="paginationContainer" class="p-4 border-t bg-gray-50 flex justify-end"></div>
   </div>
 </div>

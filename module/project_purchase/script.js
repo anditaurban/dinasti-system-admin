@@ -67,7 +67,9 @@ async function fetchAndRenderPurchase(isRefresh = false) {
 
     document.getElementById("projectNameDisplay").textContent =
       detail.project_name
-        ? `${detail.project_name} (${detail.project_number || "-"})`
+        ? `${detail.project_name} (${detail.project_number || "-"}) - ${
+            detail.project_type
+          }`
         : window.detail_desc || "Project";
 
     handleFormLockState(isLocked);
