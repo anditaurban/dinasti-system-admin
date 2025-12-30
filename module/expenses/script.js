@@ -259,62 +259,238 @@ window.closePreviewModal = function () {
 };
 
 document.getElementById("addButton").addEventListener("click", () => {
-  showFormModal();
+  // showFormModal();
+  showCreateExpenseModal();
   // Load kedua dropdown saat tambah baru
   loadAccountOptions();
   loadCategoryOptions();
 });
 
-// Update struktur form sesuai payload baru
-formHtml = `
-<form id="dataform" class="space-y-3" enctype="multipart/form-data">
+// =========================================================
+// NEW FUNCTION: ADD EXPENSE (Updated Logic Account & Category)
+// =========================================================
 
-  <input type="hidden" id="formOwnerId" name="owner_id">
-  <input type="hidden" id="formUserId" name="user_id">
-  <input type="hidden" name="tanggal_request" value="">
+async function showCreateExpenseModal() {
+  // 1. Definisikan HTML Form
+  const expenseFormHtml = `
+    <form id="expenseForm" class="space-y-4 text-left" enctype="multipart/form-data">
+      
+      <input type="hidden" id="exp_owner_id" name="owner_id" value="${owner_id}">
+      <input type="hidden" id="exp_user_id" name="user_id" value="${user_id}">
 
-  <div class="form-group">
-      <label for="formTanggal" class="block text-left text-sm font-medium text-gray-700 dark:text-gray-200">Tanggal Transaksi</label>
-      <input id="formTanggal" name="tanggal_transaksi" type="date" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500" required>
-  </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+           <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Transaksi</label>
+           <input type="date" id="exp_tanggal_transaksi" name="tanggal_transaksi" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+        </div>
+        <div>
+           <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Request</label>
+           <input type="date" id="exp_tanggal_request" name="tanggal_request" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+      </div>
 
-    <div class="form-group">
-      <label for="formNoRef" class="block text-left text-sm font-medium text-gray-700 dark:text-gray-200">No. Ref / Kwitansi</label>
-      <input id="formNoRef" name="no_ref" type="text" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500" placeholder="-">
-  </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+           <label class="block text-sm font-medium text-gray-700 mb-1">No. Ref / Kwitansi</label>
+           <input type="text" id="exp_no_ref" name="no_ref" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="-">
+        </div>
+        <div>
+           <label class="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
+           <select id="exp_kategori" name="kategori" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+              <option value="">Memuat Kategori...</option>
+           </select>
+        </div>
+      </div>
 
- <div class="form-group">
-      <label for="formCategory" class="block text-left text-sm font-medium text-gray-700 dark:text-gray-200">Kategori</label>
-      <select id="formCategory" name="kategori" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500" required>
-          <option value="">Pilih Kategori</option>
-      </select>
-  </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+         <div>
+           <label class="block text-sm font-medium text-gray-700 mb-1">Akun Pembayaran</label>
+           <select id="exp_akun" name="akun" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+              <option value="">Memuat Akun...</option>
+           </select>
+        </div>
+        <div>
+           <label class="block text-sm font-medium text-gray-700 mb-1">Nominal (Rp)</label>
+           <input type="number" id="exp_nominal" name="nominal" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="0" required>
+        </div>
+      </div>
 
-  <div class="form-group">
-      <label for="formDeskripsi" class="block text-left  text-sm font-medium text-gray-700 dark:text-gray-200">Deskripsi / Keterangan</label>
-      <textarea id="formDeskripsi" name="deskripsi" rows="2" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500" required></textarea>
-  </div>
+      <div>
+         <label class="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
+         <textarea id="exp_deskripsi" name="deskripsi" rows="2" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Keterangan pengeluaran..."></textarea>
+      </div>
 
-  <div class="form-group">
-    <label for="formAkun" class="block text-left text-sm font-medium text-gray-700 dark:text-gray-200">Akun Pembayaran</label>
-    <select id="formAkun" name="akun_id" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500" required>
-        <option value="">Pilih Akun</option>
-    </select>
-</div>
+      <div>
+         <label class="block text-sm font-medium text-gray-700 mb-1">Bukti / File</label>
+         <input type="file" id="exp_file" name="file" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+         <p class="text-xs text-gray-500 mt-1">*Format: JPG, PNG, PDF (Max 2MB)</p>
+      </div>
 
-  <div class="form-group">
-      <label for="formNominal" class="block text-left text-sm font-medium text-gray-700 dark:text-gray-200">Nominal (Rp)</label>
-      <input id="formNominal" name="nominal" type="number" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500" placeholder="0" required>
-  </div>
+    </form>
+  `;
 
+  // 2. Tampilkan Modal
+  Swal.fire({
+    title: "Tambah Pengeluaran (Expense)",
+    html: expenseFormHtml,
+    width: "700px",
+    showCancelButton: true,
+    confirmButtonText: "Simpan Data",
+    cancelButtonText: "Batal",
+    didOpen: async () => {
+      // A. Set Tanggal Default
+      const today = new Date().toISOString().split("T")[0];
+      document.getElementById("exp_tanggal_transaksi").value = today;
+      document.getElementById("exp_tanggal_request").value = today;
 
-  <div class="form-group">
-      <label for="formFile" class="block text-left text-sm font-medium text-gray-700 dark:text-gray-200">Bukti Transfer / File</label>
-      <input id="formFile" name="file" type="file" class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500">
-  </div>
+      // -------------------------------------------------------------
+      // B. LOAD AKUN (Menggunakan Logika loadAccountOptions kamu)
+      // -------------------------------------------------------------
+      const akunSelect = document.getElementById("exp_akun");
+      try {
+        const resAkun = await fetch(`${baseUrl}/list/finance_accounts`, {
+          headers: { Authorization: `Bearer ${API_TOKEN}` },
+        });
+        const resultAkun = await resAkun.json();
 
-</form>
-`;
+        let akunOptions = "<option value=''>Pilih Akun</option>";
+        if (resAkun.ok && resultAkun.listData) {
+          akunOptions += resultAkun.listData
+            .map((acc) => {
+              return `<option value="${acc.akun_id}">
+                    ${acc.nama_akun} - ${acc.number_account} (${acc.owner_account})
+                </option>`;
+            })
+            .join("");
+        }
+        akunSelect.innerHTML = akunOptions;
+      } catch (err) {
+        console.error("Gagal load akun:", err);
+        akunSelect.innerHTML = "<option value=''>Gagal memuat data</option>";
+      }
+
+      // -------------------------------------------------------------
+      // C. LOAD KATEGORI (Menggunakan Logika loadCategoryOptions kamu)
+      // -------------------------------------------------------------
+      const catSelect = document.getElementById("exp_kategori");
+      try {
+        // Ambil owner_id dari variabel global (karena di script.js sudah ada const owner_id)
+        // Atau ambil ulang dari localStorage untuk memastikan
+        let currentOwnerId = owner_id;
+        if (!currentOwnerId) {
+          const userSession = JSON.parse(localStorage.getItem("user") || "{}");
+          currentOwnerId = userSession.owner_id;
+        }
+
+        if (currentOwnerId) {
+          const resCat = await fetch(
+            `${baseUrl}/list/expenses_category/${currentOwnerId}`,
+            {
+              headers: { Authorization: `Bearer ${API_TOKEN}` },
+            }
+          );
+          const resultCat = await resCat.json();
+
+          let catOptions = "<option value=''>Pilih Kategori</option>";
+          if (resCat.ok && resultCat.listData) {
+            catOptions += resultCat.listData
+              .map((cat) => {
+                return `<option value="${cat.category}">${cat.category}</option>`;
+              })
+              .join("");
+          }
+          catSelect.innerHTML = catOptions;
+        } else {
+          catSelect.innerHTML =
+            "<option value=''>Error: Owner ID Missing</option>";
+        }
+      } catch (err) {
+        console.error("Gagal load kategori:", err);
+        catSelect.innerHTML = "<option value=''>Gagal memuat data</option>";
+      }
+    },
+    preConfirm: () => {
+      // 3. Validasi & Ambil Data
+      const form = document.getElementById("expenseForm");
+      const nominal = document.getElementById("exp_nominal").value;
+      const akun = document.getElementById("exp_akun").value;
+      const kategori = document.getElementById("exp_kategori").value;
+
+      if (!nominal || !akun || !kategori) {
+        Swal.showValidationMessage(
+          "Mohon lengkapi Kategori, Akun, dan Nominal!"
+        );
+        return false;
+      }
+
+      const formData = new FormData(form);
+      formData.set("owner_id", owner_id);
+      formData.set("user_id", user_id);
+
+      return formData;
+    },
+  }).then((result) => {
+    if (result.isConfirmed) {
+      submitExpenseData(result.value);
+    }
+  });
+}
+
+// =========================================================
+// FUNCTION SUBMIT DATA KE API
+// =========================================================
+
+async function submitExpenseData(formData) {
+  // Tampilkan Loading
+  Swal.fire({
+    title: "Menyimpan Data...",
+    text: "Mohon tunggu sebentar",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
+  });
+
+  try {
+    // Sesuaikan endpoint dengan Postman kamu
+    // Asumsi: baseUrl sudah didefinisikan di script.js / api.js
+    const url = `${baseUrl}/add/expenses`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+        // PENTING: JANGAN SET 'Content-Type': 'multipart/form-data'
+        // Biarkan browser mengaturnya otomatis agar boundary file terbaca
+      },
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (response.ok || result.status === 200 || result.response === "200") {
+      Swal.fire({
+        icon: "success",
+        title: "Berhasil!",
+        text: "Data pengeluaran berhasil disimpan.",
+        timer: 1500,
+        showConfirmButton: false,
+      }).then(() => {
+        // Refresh Tabel jika ada di halaman expense
+        if (typeof fetchAndUpdateData === "function") {
+          fetchAndUpdateData();
+        }
+      });
+    } else {
+      throw new Error(result.message || "Gagal menyimpan data");
+    }
+  } catch (error) {
+    console.error(error);
+    Swal.fire({
+      icon: "error",
+      title: "Gagal",
+      text: error.message || "Terjadi kesalahan server",
+    });
+  }
+}
 // Fungsi Baru: Load Kategori Expenses
 async function loadCategoryOptions(selectedCategoryName = null) {
   const elSelect = document.getElementById("formCategory");
