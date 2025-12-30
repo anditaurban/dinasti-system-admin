@@ -79,9 +79,9 @@ window.rowTemplate = function (item, index, perPage = 10) {
         
         <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow-lg z-50 text-sm right-0 mt-2 py-1">
             
-            <button onclick="event.stopPropagation(); handleEdit('${
-              item.keuangan_id
-            }', '${displayKategori}')" 
+<button onclick="event.stopPropagation(); showExpenseModal('${
+    item.keuangan_id
+  }')"
                 class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700 transition duration-150 ease-in-out">
                 ✏️ Edit
             </button>
@@ -260,7 +260,7 @@ window.closePreviewModal = function () {
 
 document.getElementById("addButton").addEventListener("click", () => {
   // showFormModal();
-  showCreateExpenseModal();
+  showExpenseModal();
   // Load kedua dropdown saat tambah baru
   loadAccountOptions();
   loadCategoryOptions();
@@ -270,34 +270,85 @@ document.getElementById("addButton").addEventListener("click", () => {
 // NEW FUNCTION: ADD EXPENSE (Updated Logic Account & Category)
 // =========================================================
 
-async function showCreateExpenseModal() {
-  // 1. Definisikan HTML Form
-  const expenseFormHtml = `
+// =========================================================
+// UNIFIED FUNCTION: ADD & EDIT EXPENSE
+// =========================================================
+
+async function showExpenseModal(id = null) {
+  const isEdit = id !== null;
+  let data = {};
+
+  // 1. Jika Mode Edit, ambil data detail dulu
+  if (isEdit) {
+    Swal.fire({
+      title: "Memuat Data...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    try {
+      const response = await fetch(`${baseUrl}/detail/expenses/${id}`, {
+        headers: { Authorization: `Bearer ${API_TOKEN}` },
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.detail)
+        throw new Error("Gagal mengambil data");
+      data = result.detail;
+
+      Swal.close(); // Tutup loading jika data sudah siap
+    } catch (error) {
+      Swal.fire("Error", "Gagal memuat data detail", "error");
+      return; // Stop eksekusi
+    }
+  }
+
+  // 2. Siapkan Variabel Default (Agar tidak error undefined saat Create)
+  const valNoRef = data.no_ref || "";
+  const valTglTransaksi =
+    data.tanggal_transaksi || new Date().toISOString().split("T")[0];
+  const valTglRequest =
+    data.tanggal_request || new Date().toISOString().split("T")[0];
+  const valNominal = data.nominal || "";
+  const valDeskripsi = data.deskripsi || "";
+  const valFile = data.file || "";
+
+  // Tentukan Judul & Tombol
+  const modalTitle = isEdit ? "Edit Pengeluaran" : "Tambah Pengeluaran";
+  const btnText = isEdit ? "Update Data" : "Simpan Data";
+
+  // 3. HTML Form (Satu template untuk keduanya)
+  const formHtml = `
     <form id="expenseForm" class="space-y-4 text-left" enctype="multipart/form-data">
       
-      <input type="hidden" id="exp_owner_id" name="owner_id" value="${owner_id}">
-      <input type="hidden" id="exp_user_id" name="user_id" value="${user_id}">
+      <input type="hidden" name="owner_id" value="${data.owner_id || owner_id}">
+      <input type="hidden" name="user_id" value="${data.user_id || user_id}">
+      ${
+        isEdit
+          ? `<input type="hidden" name="existing_file" value="${valFile}">`
+          : ""
+      }
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
            <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Transaksi</label>
-           <input type="date" id="exp_tanggal_transaksi" name="tanggal_transaksi" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+           <input type="date" id="modal_tgl_transaksi" name="tanggal_transaksi" value="${valTglTransaksi}" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
         </div>
         <div>
            <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Request</label>
-           <input type="date" id="exp_tanggal_request" name="tanggal_request" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+           <input type="date" id="modal_tgl_request" name="tanggal_request" value="${valTglRequest}" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
         </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
            <label class="block text-sm font-medium text-gray-700 mb-1">No. Ref / Kwitansi</label>
-           <input type="text" id="exp_no_ref" name="no_ref" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="-">
+           <input type="text" name="no_ref" value="${valNoRef}" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="-">
         </div>
         <div>
            <label class="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
-           <select id="exp_kategori" name="kategori" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
-              <option value="">Memuat Kategori...</option>
+           <select id="modal_kategori" name="kategori" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+              <option value="">Memuat...</option>
            </select>
         </div>
       </div>
@@ -305,190 +356,383 @@ async function showCreateExpenseModal() {
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
          <div>
            <label class="block text-sm font-medium text-gray-700 mb-1">Akun Pembayaran</label>
-           <select id="exp_akun" name="akun" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
-              <option value="">Memuat Akun...</option>
+           <select id="modal_akun" name="akun" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+              <option value="">Memuat...</option>
            </select>
         </div>
         <div>
            <label class="block text-sm font-medium text-gray-700 mb-1">Nominal (Rp)</label>
-           <input type="number" id="exp_nominal" name="nominal" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="0" required>
+           <input type="number" name="nominal" value="${valNominal}" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="0" required>
         </div>
       </div>
 
       <div>
          <label class="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
-         <textarea id="exp_deskripsi" name="deskripsi" rows="2" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Keterangan pengeluaran..."></textarea>
+         <textarea name="deskripsi" rows="2" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Keterangan...">${valDeskripsi}</textarea>
       </div>
 
       <div>
          <label class="block text-sm font-medium text-gray-700 mb-1">Bukti / File</label>
-         <input type="file" id="exp_file" name="file" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-         <p class="text-xs text-gray-500 mt-1">*Format: JPG, PNG, PDF (Max 2MB)</p>
+         ${
+           isEdit && valFile && valFile !== "-"
+             ? `<p class="text-xs text-blue-600 mb-1">File saat ini: ${valFile
+                 .split("/")
+                 .pop()}</p>`
+             : ""
+         }
+         <input type="file" name="file" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+         <p class="text-xs text-gray-500 mt-1">*Biarkan kosong jika tidak berubah (Max 2MB)</p>
       </div>
 
     </form>
   `;
 
-  // 2. Tampilkan Modal
+  // 4. Render Modal
   Swal.fire({
-    title: "Tambah Pengeluaran (Expense)",
-    html: expenseFormHtml,
+    title: modalTitle,
+    html: formHtml,
     width: "700px",
     showCancelButton: true,
-    confirmButtonText: "Simpan Data",
+    confirmButtonText: btnText,
     cancelButtonText: "Batal",
     didOpen: async () => {
-      // A. Set Tanggal Default
-      const today = new Date().toISOString().split("T")[0];
-      document.getElementById("exp_tanggal_transaksi").value = today;
-      document.getElementById("exp_tanggal_request").value = today;
+      // --- LOAD DROPDOWNS ---
 
-      // -------------------------------------------------------------
-      // B. LOAD AKUN (Menggunakan Logika loadAccountOptions kamu)
-      // -------------------------------------------------------------
-      const akunSelect = document.getElementById("exp_akun");
+      // A. Load Akun
+      const akunSelect = document.getElementById("modal_akun");
       try {
-        const resAkun = await fetch(`${baseUrl}/list/finance_accounts`, {
+        const res = await fetch(`${baseUrl}/list/finance_accounts`, {
           headers: { Authorization: `Bearer ${API_TOKEN}` },
         });
-        const resultAkun = await resAkun.json();
-
-        let akunOptions = "<option value=''>Pilih Akun</option>";
-        if (resAkun.ok && resultAkun.listData) {
-          akunOptions += resultAkun.listData
-            .map((acc) => {
-              return `<option value="${acc.akun_id}">
-                    ${acc.nama_akun} - ${acc.number_account} (${acc.owner_account})
-                </option>`;
-            })
-            .join("");
+        const json = await res.json();
+        let ops = "<option value=''>Pilih Akun</option>";
+        if (json.listData) {
+          json.listData.forEach((acc) => {
+            // Pre-select jika mode Edit dan ID cocok
+            const selected =
+              isEdit && String(acc.akun_id) === String(data.akun_id)
+                ? "selected"
+                : "";
+            ops += `<option value="${acc.akun_id}" ${selected}>${acc.nama_akun} - ${acc.number_account}</option>`;
+          });
         }
-        akunSelect.innerHTML = akunOptions;
-      } catch (err) {
-        console.error("Gagal load akun:", err);
-        akunSelect.innerHTML = "<option value=''>Gagal memuat data</option>";
+        akunSelect.innerHTML = ops;
+      } catch (e) {
+        console.error(e);
       }
 
-      // -------------------------------------------------------------
-      // C. LOAD KATEGORI (Menggunakan Logika loadCategoryOptions kamu)
-      // -------------------------------------------------------------
-      const catSelect = document.getElementById("exp_kategori");
+      // B. Load Kategori
+      const katSelect = document.getElementById("modal_kategori");
       try {
-        // Ambil owner_id dari variabel global (karena di script.js sudah ada const owner_id)
-        // Atau ambil ulang dari localStorage untuk memastikan
-        let currentOwnerId = owner_id;
-        if (!currentOwnerId) {
-          const userSession = JSON.parse(localStorage.getItem("user") || "{}");
-          currentOwnerId = userSession.owner_id;
+        const oid = data.owner_id || owner_id;
+        const res = await fetch(`${baseUrl}/list/expenses_category/${oid}`, {
+          headers: { Authorization: `Bearer ${API_TOKEN}` },
+        });
+        const json = await res.json();
+        let ops = "<option value=''>Pilih Kategori</option>";
+        if (json.listData) {
+          json.listData.forEach((cat) => {
+            // Pre-select jika mode Edit dan Nama Kategori cocok
+            const selected =
+              isEdit && cat.category === data.kategori ? "selected" : "";
+            ops += `<option value="${cat.category}" ${selected}>${cat.category}</option>`;
+          });
         }
-
-        if (currentOwnerId) {
-          const resCat = await fetch(
-            `${baseUrl}/list/expenses_category/${currentOwnerId}`,
-            {
-              headers: { Authorization: `Bearer ${API_TOKEN}` },
-            }
-          );
-          const resultCat = await resCat.json();
-
-          let catOptions = "<option value=''>Pilih Kategori</option>";
-          if (resCat.ok && resultCat.listData) {
-            catOptions += resultCat.listData
-              .map((cat) => {
-                return `<option value="${cat.category}">${cat.category}</option>`;
-              })
-              .join("");
-          }
-          catSelect.innerHTML = catOptions;
-        } else {
-          catSelect.innerHTML =
-            "<option value=''>Error: Owner ID Missing</option>";
-        }
-      } catch (err) {
-        console.error("Gagal load kategori:", err);
-        catSelect.innerHTML = "<option value=''>Gagal memuat data</option>";
+        katSelect.innerHTML = ops;
+      } catch (e) {
+        console.error(e);
       }
     },
     preConfirm: () => {
-      // 3. Validasi & Ambil Data
       const form = document.getElementById("expenseForm");
-      const nominal = document.getElementById("exp_nominal").value;
-      const akun = document.getElementById("exp_akun").value;
-      const kategori = document.getElementById("exp_kategori").value;
+      const formData = new FormData(form);
 
-      if (!nominal || !akun || !kategori) {
+      // Validasi sederhana
+      if (
+        !formData.get("nominal") ||
+        !formData.get("akun") ||
+        !formData.get("kategori")
+      ) {
         Swal.showValidationMessage(
-          "Mohon lengkapi Kategori, Akun, dan Nominal!"
+          "Data belum lengkap (Akun, Kategori, Nominal)!"
         );
         return false;
       }
-
-      const formData = new FormData(form);
-      formData.set("owner_id", owner_id);
-      formData.set("user_id", user_id);
-
       return formData;
     },
   }).then((result) => {
     if (result.isConfirmed) {
-      submitExpenseData(result.value);
+      // 5. Tentukan URL dan Method
+      const url = isEdit
+        ? `${baseUrl}/update/expenses/${id}`
+        : `${baseUrl}/add/expenses`;
+      const method = isEdit ? "PUT" : "POST";
+
+      submitUnifiedExpense(url, method, result.value);
     }
   });
 }
 
 // =========================================================
-// FUNCTION SUBMIT DATA KE API
+// UNIFIED FUNCTION: ADD & EDIT EXPENSE (FULL FIX)
 // =========================================================
 
-async function submitExpenseData(formData) {
-  // Tampilkan Loading
+// =========================================================
+// UNIFIED FUNCTION: ADD & EDIT EXPENSE (FULL CODE)
+// =========================================================
+
+async function showExpenseModal(id = null) {
+  const isEdit = id !== null;
+
+  // 1. Loading Data Awal
   Swal.fire({
-    title: "Menyimpan Data...",
-    text: "Mohon tunggu sebentar",
+    title: "Memuat Data...",
+    html: "Sedang mengambil data akun & kategori...",
     allowOutsideClick: false,
     didOpen: () => Swal.showLoading(),
   });
 
   try {
-    // Sesuaikan endpoint dengan Postman kamu
-    // Asumsi: baseUrl sudah didefinisikan di script.js / api.js
-    const url = `${baseUrl}/add/expenses`;
+    // 2. Fetch Data Paralel
+    const requests = [
+      fetch(`${baseUrl}/list/finance_accounts`, {
+        headers: { Authorization: `Bearer ${API_TOKEN}` },
+      }),
+      fetch(`${baseUrl}/list/expenses_category/${owner_id}`, {
+        headers: { Authorization: `Bearer ${API_TOKEN}` },
+      }),
+    ];
 
+    if (isEdit) {
+      requests.push(
+        fetch(`${baseUrl}/detail/expenses/${id}`, {
+          headers: { Authorization: `Bearer ${API_TOKEN}` },
+        })
+      );
+    }
+
+    const responses = await Promise.all(requests);
+    const akunData = await responses[0].json();
+    const katData = await responses[1].json();
+
+    let detailData = {};
+    if (isEdit) {
+      const detailRes = await responses[2].json();
+      detailData = detailRes.detail || {};
+    }
+
+    // 3. Siapkan Value Default
+    const valNoRef = detailData.no_ref || "";
+    const valTglTransaksi =
+      detailData.tanggal_transaksi || new Date().toISOString().split("T")[0];
+    const valTglRequest =
+      detailData.tanggal_request || new Date().toISOString().split("T")[0];
+    const valNominal = detailData.nominal || "";
+    const valDeskripsi = detailData.deskripsi || "";
+    const valFile = detailData.file || "";
+
+    // ID untuk Pre-select
+    const selectedAkunId = detailData.akun_id || "";
+    const selectedKategori = detailData.kategori || "";
+
+    // 4. Susun HTML Opsi Akun
+    let akunOptionsHtml = `<option value="">-- Pilih Akun --</option>`;
+    if (akunData.listData) {
+      akunData.listData.forEach((acc) => {
+        // Robust ID check
+        const realId = acc.akun_id || acc.account_id || acc.id;
+        const isSelected =
+          isEdit && String(realId) === String(selectedAkunId) ? "selected" : "";
+
+        akunOptionsHtml += `<option value="${realId}" ${isSelected}>
+                                  ${acc.nama_akun} - ${acc.number_account}
+                                </option>`;
+      });
+    }
+
+    // 5. Susun HTML Opsi Kategori
+    let katOptionsHtml = `<option value="">-- Pilih Kategori --</option>`;
+    if (katData.listData) {
+      katData.listData.forEach((cat) => {
+        const isSelected =
+          isEdit && cat.category === selectedKategori ? "selected" : "";
+        katOptionsHtml += `<option value="${cat.category}" ${isSelected}>${cat.category}</option>`;
+      });
+    }
+
+    Swal.close(); // Tutup loading
+
+    // 6. Form HTML
+    const modalTitle = isEdit ? "Edit Pengeluaran" : "Tambah Pengeluaran";
+    const btnText = isEdit ? "Update Data" : "Simpan Data";
+
+    const formHtml = `
+      <form id="expenseForm" class="space-y-4 text-left" enctype="multipart/form-data">
+        
+        <input type="hidden" name="owner_id" value="${
+          detailData.owner_id || owner_id
+        }">
+        <input type="hidden" name="user_id" value="${
+          detailData.user_id || user_id
+        }">
+        ${
+          isEdit
+            ? `<input type="hidden" name="existing_file" value="${valFile}">`
+            : ""
+        }
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+             <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Transaksi</label>
+             <input type="date" name="tanggal_transaksi" value="${valTglTransaksi}" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+          </div>
+          <div>
+             <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Request</label>
+             <input type="date" name="tanggal_request" value="${valTglRequest}" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+             <label class="block text-sm font-medium text-gray-700 mb-1">No. Ref / Kwitansi</label>
+             <input type="text" name="no_ref" value="${valNoRef}" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="-">
+          </div>
+          <div>
+             <label class="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
+             <select id="input_kategori" name="kategori" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                ${katOptionsHtml}
+             </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+           <div>
+             <label class="block text-sm font-medium text-gray-700 mb-1">Akun Pembayaran</label>
+             <select id="input_akun" name="akun_id" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                ${akunOptionsHtml}
+             </select>
+          </div>
+          <div>
+             <label class="block text-sm font-medium text-gray-700 mb-1">Nominal (Rp)</label>
+             <input type="number" name="nominal" value="${valNominal}" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="0" required>
+          </div>
+        </div>
+
+        <div>
+           <label class="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
+           <textarea name="deskripsi" rows="2" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Keterangan...">${valDeskripsi}</textarea>
+        </div>
+
+        <div>
+           <label class="block text-sm font-medium text-gray-700 mb-1">Bukti / File</label>
+           ${
+             isEdit && valFile && valFile !== "-"
+               ? `<p class="text-xs text-blue-600 mb-1">File saat ini: ${valFile
+                   .split("/")
+                   .pop()}</p>`
+               : ""
+           }
+           <input type="file" name="file" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+           <p class="text-xs text-gray-500 mt-1">*Maksimal 2MB</p>
+        </div>
+      </form>
+    `;
+
+    // 7. Render SweetAlert
+    Swal.fire({
+      title: modalTitle,
+      html: formHtml,
+      width: "700px",
+      showCancelButton: true,
+      confirmButtonText: btnText,
+      cancelButtonText: "Batal",
+      preConfirm: () => {
+        const form = document.getElementById("expenseForm");
+
+        const akunVal = document.getElementById("input_akun").value;
+        const katVal = document.getElementById("input_kategori").value;
+        const nominalVal = form.querySelector('[name="nominal"]').value;
+
+        // Validasi
+        if (!akunVal || !katVal || !nominalVal) {
+          Swal.showValidationMessage(
+            "Mohon lengkapi Akun, Kategori, dan Nominal!"
+          );
+          return false;
+        }
+
+        const formData = new FormData(form);
+
+        // --- PERUBAHAN DI SINI: Set key menjadi 'akun_id' ---
+        formData.set("akun_id", akunVal);
+        formData.set("kategori", katVal);
+
+        // Jika backend meminta hapus key lama 'akun' agar tidak double (opsional)
+        formData.delete("akun");
+
+        return formData;
+      },
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const url = isEdit
+          ? `${baseUrl}/update/expenses/${id}`
+          : `${baseUrl}/add/expenses`;
+        const method = isEdit ? "PUT" : "POST";
+
+        submitUnifiedExpense(url, method, result.value);
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    Swal.fire("Gagal", "Terjadi kesalahan sistem saat memuat data.", "error");
+  }
+}
+
+async function submitUnifiedExpense(url, method, formData) {
+  Swal.fire({
+    title: "Menyimpan Data...",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
+  });
+
+  // Debugging: Pastikan method yang dikirim benar
+  console.log(`Submitting to ${url} with method ${method}`);
+
+  try {
     const response = await fetch(url, {
-      method: "POST",
+      method: method, // Akan otomatis jadi 'PUT' saat edit
       headers: {
         Authorization: `Bearer ${API_TOKEN}`,
-        // PENTING: JANGAN SET 'Content-Type': 'multipart/form-data'
-        // Biarkan browser mengaturnya otomatis agar boundary file terbaca
+        // PENTING: Jangan set Content-Type manual untuk FormData
       },
       body: formData,
     });
 
     const result = await response.json();
+    console.log("SERVER RESPONSE:", result);
 
-    if (response.ok || result.status === 200 || result.response === "200") {
+    // Cek sukses (Handle berbagai format response backend)
+    if (
+      response.ok ||
+      result.status === 200 ||
+      result.response === "200" ||
+      result.success === true
+    ) {
       Swal.fire({
         icon: "success",
-        title: "Berhasil!",
-        text: "Data pengeluaran berhasil disimpan.",
+        title: "Berhasil",
+        text: "Data berhasil disimpan",
         timer: 1500,
         showConfirmButton: false,
       }).then(() => {
-        // Refresh Tabel jika ada di halaman expense
-        if (typeof fetchAndUpdateData === "function") {
-          fetchAndUpdateData();
-        }
+        if (typeof fetchAndUpdateData === "function") fetchAndUpdateData();
       });
     } else {
       throw new Error(result.message || "Gagal menyimpan data");
     }
   } catch (error) {
     console.error(error);
-    Swal.fire({
-      icon: "error",
-      title: "Gagal",
-      text: error.message || "Terjadi kesalahan server",
-    });
+    Swal.fire("Gagal", error.message, "error");
   }
 }
 // Fungsi Baru: Load Kategori Expenses
