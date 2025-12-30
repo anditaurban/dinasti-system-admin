@@ -20,13 +20,25 @@ window.rowTemplate = function (item, index, perPage = 10) {
   const displayKategori = item.kategori || item.project_name || "-";
   const displayDeskripsi = item.deskripsi || item.keterangan || "-";
 
-  // 3. Logic Tombol Preview File (New Feature)
-  // Cek apakah item.file ada isinya (tidak null, tidak undefined, tidak string kosong)
-  let previewButtonHtml = "";
+  // 3. Logic Tombol Preview File (Tombol Mata di Dropdown)
+  let viewProofButton = "";
+
+  // Cek apakah file ada isinya
   if (item.file && item.file !== "null" && item.file !== "") {
-    previewButtonHtml = `
-      <button onclick="event.stopPropagation(); handlePreview('${item.file}')" 
-              class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600 font-medium">
+    // a. Ambil nama file saja (jaga-jaga jika database menyimpan full path)
+    const rawFilename = item.file.split("/").pop();
+
+    // b. Encode spasi dan karakter khusus agar URL valid
+    const safeFilename = encodeURIComponent(rawFilename);
+
+    // c. Susun URL sesuai endpoint expenses
+    // Format: {{baseUrl}}/file/expenses/NAMA_FILE
+    const fileUrl = `${baseUrl}/file/expenses/${safeFilename}`;
+
+    // d. Buat tombol untuk Dropdown
+    viewProofButton = `
+      <button onclick="event.stopPropagation(); handlePreview('${fileUrl}')" 
+              class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600 font-medium transition duration-150 ease-in-out">
           👁️ Lihat Bukti
       </button>
     `;
@@ -65,21 +77,22 @@ window.rowTemplate = function (item, index, perPage = 10) {
         <span class="font-medium sm:hidden">Nominal</span>
         ${finance(item.nominal)}
         
-        <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow-lg z-50 text-sm right-0 mt-2">
+        <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow-lg z-50 text-sm right-0 mt-2 py-1">
             
             <button onclick="event.stopPropagation(); handleEdit('${
               item.keuangan_id
             }', '${displayKategori}')" 
-                class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700">
+                class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700 transition duration-150 ease-in-out">
                 ✏️ Edit
             </button>
-            
-         
 
+            ${viewProofButton}
+            
+            <div class="border-t my-1"></div>
             <button onclick="event.stopPropagation(); handleDelete(${
               item.keuangan_id
             })" 
-                class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 border-t">
+                class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 transition duration-150 ease-in-out">
                 🗑 Delete
             </button>
         </div>
@@ -121,47 +134,122 @@ if (!document.getElementById("filePreviewModal")) {
 
 // 2. Fungsi Handle Click Preview
 // Fungsi Preview menggunakan SweetAlert2
-window.handlePreview = function (url) {
-  const ext = url.split(".").pop().toLowerCase();
-  const isImage = ["jpg", "jpeg", "png", "gif", "webp", "bmp"].includes(ext);
+window.handlePreview = async function (fileUrl) {
+  // Cek awal: Jika URL kosong/null, beri info santai atau return saja
+  if (!fileUrl || fileUrl === "null" || fileUrl.trim() === "") {
+    Swal.fire({
+      icon: "info",
+      title: "Tidak Ada File",
+      text: "Transaksi ini tidak memiliki lampiran bukti.",
+    });
+    return;
+  }
 
-  if (isImage) {
-    // TAMPILAN JIKA GAMBAR (Preview Besar & Jelas)
-    Swal.fire({
-      imageUrl: url,
-      imageAlt: "Bukti Transaksi",
-      // Opsi Tampilan
-      width: "600px", // Lebar modal pas
-      padding: "1em",
-      background: "#fff",
-      showCloseButton: true,
-      showConfirmButton: false, // Hilangkan tombol OK biar fokus ke gambar
-      backdrop: `
-                rgba(0,0,123,0.4)
-            `,
-      // Tambahkan tombol download/buka asli di bawah gambar
-      footer: `<a href="${url}" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1" style="text-decoration:none;">
-                🔍 Buka / Download Gambar Asli
-            </a>`,
+  // 1. Tampilkan Loading
+  Swal.fire({
+    title: "Memuat File...",
+    html: "Sedang mengambil data dari server...",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
+  });
+
+  try {
+    // 2. Request File
+    const response = await fetch(fileUrl, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
     });
-  } else {
-    // TAMPILAN JIKA PDF / FILE LAIN
-    Swal.fire({
-      title: "<strong>Preview File</strong>",
-      html: `
-                <div class="w-full h-96">
-                    <iframe src="${url}" class="w-full h-full border rounded shadow-sm"></iframe>
-                </div>
-            `,
-      showCloseButton: true,
-      focusConfirm: false,
-      confirmButtonText: "Tutup",
-      confirmButtonColor: "#3085d6",
-      width: "800px", // Lebih lebar buat PDF
-      footer: `<a href="${url}" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium">
-                ⬇️ Download File
-            </a>`,
-    });
+
+    // --- VALIDASI RESPONS SERVER (BAGIAN PENTING) ---
+
+    // Kasus 1: File Tidak Ditemukan (404)
+    if (response.status === 404) {
+      throw new Error("FILE_NOT_FOUND");
+    }
+
+    // Kasus 2: Token Salah / Tidak Ada Izin (401 / 403)
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("UNAUTHORIZED");
+    }
+
+    // Kasus 3: Error Lainnya (500, dll)
+    if (!response.ok) {
+      throw new Error("GENERIC_ERROR");
+    }
+
+    // 3. Proses File jika Sukses
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const isPdf =
+      fileUrl.toLowerCase().endsWith(".pdf") || blob.type === "application/pdf";
+
+    if (isPdf) {
+      // Tampilan PDF
+      await Swal.fire({
+        title: "Preview Dokumen",
+        html: `
+          <div style="width:100%; height:500px;">
+             <iframe src="${objectUrl}" style="width:100%; height:100%; border:none;"></iframe>
+          </div>
+          <div style="margin-top:10px;">
+             <a href="${objectUrl}" download="dokumen.pdf" class="text-blue-600 hover:underline">⬇️ Download PDF</a>
+          </div>
+        `,
+        width: 800,
+        showCloseButton: true,
+        showConfirmButton: false,
+      });
+    } else {
+      // Tampilan Gambar
+      await Swal.fire({
+        title: "Bukti Transaksi",
+        html: `
+          <div style="display: flex; justify-content: center; align-items: center; min-height: 200px;">
+             <img src="${objectUrl}" 
+                  alt="Bukti Transaksi" 
+                  style="max-width: 100%; max-height: 500px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          </div>
+          <div style="margin-top: 15px;">
+             <a href="${objectUrl}" download="bukti-transaksi.png" class="text-blue-600 hover:underline font-semibold">
+               ⬇️ Download Gambar
+             </a>
+          </div>
+        `,
+        width: 650,
+        showCloseButton: true,
+        showConfirmButton: false,
+        background: "#fff",
+      });
+    }
+  } catch (error) {
+    console.warn("Preview Info:", error.message);
+
+    // --- PENANGANAN PESAN ERROR SPESIFIK ---
+
+    if (error.message === "FILE_NOT_FOUND") {
+      // Validasi Khusus: Jika file tidak ada (404)
+      Swal.fire({
+        icon: "warning",
+        title: "File Tidak Ditemukan",
+        text: "File fisik belum diunggah atau sudah dihapus dari server.",
+      });
+    } else if (error.message === "UNAUTHORIZED") {
+      // Validasi Khusus: Jika masalah token
+      Swal.fire({
+        icon: "error",
+        title: "Akses Ditolak",
+        text: "Sesi login Anda mungkin sudah berakhir. Silakan login ulang.",
+      });
+    } else {
+      // Error Umum (Jaringan putus, Server error, dll)
+      Swal.fire({
+        icon: "error",
+        title: "Gagal Memuat",
+        text: "Terjadi kesalahan saat mengunduh file.",
+      });
+    }
   }
 };
 

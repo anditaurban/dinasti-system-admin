@@ -6,56 +6,80 @@ setDataType("account_receivable");
 fetchAndUpdateData();
 
 window.rowTemplate = function (item, index, perPage = 10) {
-  const { currentPage } = state[currentDataType];
-  const globalIndex = (currentPage - 1) * perPage + index + 1;
+  // Hitung sisa tagihan (Balance) = Nilai Kontrak - Nominal yang diterima
+  // Jika nominal 0, maka balance = contract_amount
+  const balanceAmount = item.contract_amount - item.nominal;
+
+  // Hitung persentase sisa
+  const receivedPercent = parseFloat(item.payment_percentage || 0);
+  const balancePercent = (100 - receivedPercent).toFixed(1);
 
   return `
-    <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50">  
-     <td class="align-top px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-        <span class="font-medium sm:hidden">Name</span>  
-        <div class="font-semibold text-center">${item.tanggal_transaksi}</div>
-        <div class="text-gray-600 text-center">${item.po_number}</div>
-      </td>
-
-    <td class="align-top px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Email</span>
-    <div class="font-semibold">${item.project_name}</div>
-        <div class="text-gray-500">${item.pelanggan_nama}</div>
-    </td>
-  
-    <td class="align-top px-6 py-4 text-sm text-gray-700 border-b sm:border-0 sm:table-cell">
-      <span class="font-medium sm:hidden">Email</span>
-      <div class="flex flex-col">
-        <div class="font-semibol">${finance(item.contract_amount)}</div>
+  <tr class="flex flex-col sm:table-row border-b border-gray-200 hover:bg-gray-50 text-sm text-gray-700 transition">
+    
+    <td class="align-top px-4 py-3 border-r border-gray-200 sm:table-cell">
+      <div class="flex flex-col gap-1">
+        <div class="text-xs text-gray-500">${item.tanggal_transaksi}</div>
+        <div class="text-gray-900 font-medium break-all">${
+          item.inv_number
+        }</div>
       </div>
     </td>
 
-
-  
-    <td class="align-top px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Email</span>
-      <div class="font-semibold">${finance(item.nominal)}</div>
-        <div class="text-gray-500">${item.payment_percentage}</div>
+    <td class="align-top px-4 py-3 border-r border-gray-200 sm:table-cell">
+      <div class="flex flex-col gap-1">
+        <div class="font-bold text-gray-900 line-clamp-2">${
+          item.project_name
+        }</div>
+        <div class="text-xs text-gray-500">${item.pelanggan_nama}</div>
+      </div>
     </td>
 
-    <td class="align-top px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Email</span>
-      <div class="">${item.keterangan}</div>
+    <td class="align-top px-4 py-3 border-r border-gray-200 sm:table-cell">
+      <div class="flex flex-col gap-1">
+        <div class="font-medium text-gray-900">${finance(item.nominal)}</div>
+        <div class="text-xs text-gray-500">${receivedPercent}% from Total</div>
+      </div>
     </td>
-   
-  
-    <td class="align-top px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Email</span>
-      ${item.nama_akun} (${item.number_account})- ${item.owner_account}
+
+    <td class="align-top px-4 py-3 border-r border-gray-200 sm:table-cell">
+      <div class="flex flex-col gap-1">
+        <div class="font-medium text-gray-900">${finance(balanceAmount)}</div>
+        <div class="text-xs text-gray-500">${balancePercent}% from Total</div>
+      </div>
     </td>
-  
-    <td class="align-top px-6 py-4 text-sm text-gray-700 text-right border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Email</span>
-      ${item.aging_days}
+
+    <td class="align-top px-4 py-3 border-r border-gray-200 sm:table-cell">
+      <div class="text-gray-700 line-clamp-3">${item.keterangan}</div>
     </td>
-     <td class="align-top px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Email</span>
-      <div class="font-semibold">${item.receivable_status}</div>
+
+    <td class="align-top px-4 py-3 border-r border-gray-200 sm:table-cell">
+       <div class="flex flex-col">
+        ${
+          item.nama_akun !== "-"
+            ? `<span class="font-semibold">${item.nama_akun} (${item.number_account})</span>`
+            : "-"
+        }
+        <span class="text-xs text-gray-500">${
+          item.owner_account !== "-" ? item.owner_account : ""
+        }</span>
+      </div>
+    </td>
+
+    <td class="align-middle px-4 py-3 border-r border-gray-200 text-center sm:table-cell">
+      <span class="text-xs font-medium text-gray-600 block">
+        ${item.aging_days.replace("days", "Days").replace("to", "<br>to")}
+      </span>
+    </td>
+
+    <td class="align-middle px-4 py-3 text-center sm:table-cell">
+      <span class="text-xs font-bold px-2 py-1 rounded ${
+        item.receivable_status === "Received"
+          ? "text-green-700 bg-green-100"
+          : "text-gray-600 bg-gray-200"
+      }">
+        ${item.receivable_status.toUpperCase()}
+      </span>
     </td>
 
   </tr>`;

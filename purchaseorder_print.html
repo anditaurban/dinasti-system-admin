@@ -178,21 +178,7 @@
             </tr>
         `).join("");
 
-                // Empty Rows Filler
-                let emptyRows = "";
-                if (items.length < 5) {
-                    for (let i = 0; i < (5 - items.length); i++) {
-                        emptyRows += `
-                <tr class="bg-white text-transparent">
-                    <td class="border border-black p-1">&nbsp;</td>
-                    <td class="border border-black p-1">&nbsp;</td>
-                    <td class="border border-black p-1">&nbsp;</td>
-                    <td class="border border-black p-1">&nbsp;</td>
-                    <td class="border border-black p-1">&nbsp;</td>
-                    <td class="border border-black p-1">&nbsp;</td>
-                </tr>`;
-                    }
-                }
+                // --- BAGIAN EMPTY ROWS FILLER SUDAH DIHAPUS ---
 
                 const html = `
             <div class="flex justify-between items-start mb-6">
@@ -259,7 +245,6 @@
                 </thead>
                 <tbody>
                     ${tableRows}
-                    ${emptyRows}
                 </tbody>
             </table>
 
@@ -299,7 +284,7 @@
                     </table>
                 </div>
             </div>
-\
+
             <div class="text-sm text-right mt-8 pr-4">
                 <p class="font-semibold mb-2">APPROVED BY</p>
                 
@@ -327,16 +312,13 @@
                 loadLogoWithAuth(companyInfo.logo_url);
 
                 // --- GENERATE QR CODE ---
-                // Kita beri sedikit delay agar DOM container render dulu
                 setTimeout(() => {
                     const qrElement = document.getElementById("qrcode");
                     if (qrElement) {
-                        // Hapus isi lama jika ada (prevent double)
                         qrElement.innerHTML = "";
-
                         new QRCode(qrElement, {
                             text: signUrl,
-                            width: 75, // Ukuran QR
+                            width: 75,
                             height: 75,
                             colorDark: "#000000",
                             colorLight: "#ffffff",
@@ -356,7 +338,7 @@
                             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                         };
                         html2pdf().set(opt).from(container).save();
-                    }, 1500); // Delay agak lama biar QR code selesai render
+                    }, 1500);
                 }
 
             } catch (err) {

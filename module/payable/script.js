@@ -101,83 +101,80 @@ function loadDropdownCall() {
 }
 
 window.rowTemplate = function (item, index, perPage = 10) {
-  const { currentPage } = state[currentDataType];
-  const globalIndex = (currentPage - 1) * perPage + index + 1;
+  // Fungsi helper kecil untuk format persen (opsional, biar rapi)
+  const formatPercent = (num) => (num ? `${num}%` : "0%");
+
+  // Pastikan fungsi finance() sudah ada di kodemu sebelumnya untuk format Rp.
+  // Jika belum, anggap saja ini hanya menampilkan angka mentah.
 
   return `
-  <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50">  
-     <td class="align-top px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-    <span class="font-medium sm:hidden">Name</span>  
-    ${item.tanggal_transaksi}
-    </td>
-
-    <td class="align-top px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Email</span>
-    ${item.no_po}
-    </td>
-  
-<td class="align-top px-6 py-4 text-sm text-gray-700 border-b sm:border-0 sm:table-cell">
-  <span class="font-medium sm:hidden">Email</span>
-  <div class="flex flex-col">
-    <div class="font-semibold">${item.project_name}</div>
-    <div class="text-gray-600">${item.payable_number}</div>
-    <div class="text-gray-500">${item.vendor}</div>
-  </div>
-</td>
-
-
-  
-    <td class="align-top px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Email</span>
-      ${item.keterangan}
-    </td>
-  
-    <td class="align-top px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Email</span>
-      ${item.nama_akun} (${item.number_account})- ${item.owner_account}
-    </td>
-  
-    <td class="align-top px-6 py-4 text-sm text-gray-700 text-right border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Email</span>
-      ${finance(item.nominal)}
-      <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
-
-      ${
-        item.approval_status === "Approved"
-          ? ""
-          : `
-          <button 
-            onclick="event.stopPropagation(); openAccountPayableApproval('${item.payable_id}', '${item.approval_status}')"
-            class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600">
-            🟢 Update Approval
-          </button>
-          `
-      }
-        
-        ${
-          // LOGIC REMINDER:
-          // Tampilkan tombol HANYA jika status BUKAN Approved DAN approval_reminder BUKAN "reminded"
-          item.approval_status !== "Approved" &&
-          item.approval_reminder !== "reminded"
-            ? `
-          <button 
-            onclick="event.stopPropagation(); sendApprovalReminder('${
-              item.payable_id
-            }', '${item.payable_number || item.no_po}')"
-            class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-orange-500">
-            📧 Reminder Approval
-          </button>
-          `
-            : ""
-        }
-
-      
-
+  <tr class="flex flex-col sm:table-row border-b hover:bg-gray-50 text-sm text-gray-700">
+    
+    <td class="align-top px-4 py-3 border-r sm:table-cell">
+      <div class="flex flex-col gap-1">
+        <div class="text-xs text-gray-500">Pay.Req <span class="text-gray-900">${
+          item.request_date
+        }</span></div>
+        <div class="text-xs text-gray-500">Paid <span class="text-gray-900">${
+          item.payment_date
+        }</span></div>
       </div>
     </td>
-    <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Approval</span>
-      ${item.approval_status}
+
+    <td class="align-top px-4 py-3 border-r font-medium sm:table-cell">
+      ${item.vendor}
+    </td>
+
+    <td class="align-top px-4 py-3 border-r sm:table-cell">
+      <div class="flex flex-col gap-1">
+        <div class="text-gray-900">${item.no_po}</div>
+        <div class="text-xs text-gray-500">${item.no_inv}</div>
+      </div>
+    </td>
+
+    <td class="align-top px-4 py-3 border-r sm:table-cell">
+      ${item.description}
+    </td>
+
+    <td class="align-top px-4 py-3 border-r sm:table-cell">
+      <div class="flex flex-col">
+        ${
+          item.nama_akun !== "-"
+            ? `<span class="font-semibold">${item.nama_akun} (${item.number_account})</span>`
+            : "-"
+        }
+        <span class="text-xs text-gray-500">${
+          item.owner_account !== "-" ? item.owner_account : ""
+        }</span>
+      </div>
+    </td>
+
+    <td class="align-top px-4 py-3 border-r sm:table-cell">
+      <div class="flex flex-col gap-1">
+        <div class="font-medium">${finance(item.amount_payment)}</div>
+        <div class="text-xs text-gray-500">${
+          item.amount_payment_percent
+        }% from Total</div>
+      </div>
+    </td>
+
+    <td class="align-top px-4 py-3 border-r sm:table-cell">
+      <div class="flex flex-col gap-1">
+        <div class="font-medium">${finance(item.remaining_payment)}</div>
+        <div class="text-xs text-gray-500">${
+          item.remaining_payment_percent
+        }% from Total</div>
+      </div>
+    </td>
+
+    <td class="align-middle px-4 py-3 text-center sm:table-cell">
+      <span class="${
+        item.status === "PAID"
+          ? "text-green-600 font-bold"
+          : "text-gray-500 font-semibold"
+      }">
+        ${item.status}
+      </span>
     </td>
 
   </tr>`;
