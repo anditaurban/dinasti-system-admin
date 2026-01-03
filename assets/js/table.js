@@ -612,3 +612,124 @@ function handleUpdateResponse(data) {
     fetchAndUpdateData(detail_id);
   });
 }
+
+async function exportData() {
+  console.log("📦 [1/6] Membuka form filter tanggal...");
+
+  const { value: formValues } = await Swal.fire({
+    title: "Filter Data Export",
+    html: `
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+        <div>
+          <label class="block text-sm mb-1">Dari tanggal:</label>
+          <input id="start-date" type="date" class="form-control w-full px-3 py-2 border rounded-md">
+        </div>
+
+        <div>
+          <label class="block text-sm mb-1">Sampai tanggal:</label>
+          <input id="end-date" type="date" class="form-control w-full px-3 py-2 border rounded-md">
+        </div>
+      </div>
+    `,
+    confirmButtonText: "Download",
+    preConfirm: () => {
+      const start = document.getElementById("start-date").value;
+      const end = document.getElementById("end-date").value;
+
+      if (!start || !end) {
+        Swal.showValidationMessage("Silakan isi kedua tanggal!");
+        return false;
+      }
+      return { start, end };
+    },
+  });
+
+  if (!formValues) return;
+
+  const { start, end } = formValues;
+
+  Swal.fire({
+    title: "Mengambil data...",
+    text: "Mohon tunggu, sistem sedang mengumpulkan data dari server.",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
+  });
+
+  let page = 1;
+  let allData = [];
+
+  try {
+    console.log("🚀 Mulai ambil data...");
+
+    while (true) {
+      const url = `${baseUrl}/export/${currentDataType}/${owner_id}?start_date=${start}&end_date=${end}&page=${page}`;
+
+      console.log(`🔍 Fetching halaman ${page}...`);
+
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      const tableData = data.tableData || [];
+      const totalPages = data.totalPages || 1;
+
+      console.log(
+        `📌 Halaman ${page} berisi ${tableData.length} data (totalPages=${totalPages})`
+      );
+
+      if (tableData.length === 0) break;
+
+      allData.push(...tableData);
+
+      if (page >= totalPages) break;
+
+      page++;
+    }
+
+    console.log(`📊 Total data: ${allData.length}`);
+
+    // ============================
+    // 🔥 Hapus kolom *_id
+    // ============================
+    const cleanedData = allData.map((row) => {
+      const newRow = {};
+      Object.keys(row).forEach((key) => {
+        if (key.endsWith("_id")) return;
+        newRow[key] = row[key];
+      });
+      return newRow;
+    });
+
+    // ============================
+    // Export ke Excel
+    // ============================
+    const ws = XLSX.utils.json_to_sheet(cleanedData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Export");
+
+    const fileName = `Export_${currentDataType}_${start}_to_${end}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+
+    Swal.fire({
+      icon: "success",
+      title: "Berhasil!",
+      text: `Data berhasil diunduh (${cleanedData.length} baris).`,
+    });
+  } catch (error) {
+    console.error("❌ Error:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Gagal!",
+      text: error.message || "Terjadi kesalahan saat mengambil data.",
+    });
+  }
+}

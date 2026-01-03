@@ -243,7 +243,7 @@ function renderTableHtml(data, isLocked) {
             d.keterangan || "-"
           }</td>
           <td class="px-3 py-2 text-center flex justify-center items-center">
-             ${viewBtn} ${editBtn} ${deleteBtn}
+             ${viewBtn} ${editBtn} 
           </td>
         </tr>
       `;
@@ -317,27 +317,29 @@ async function handleViewProof(fileUrl) {
   }
 }
 // --- 2. HANDLE SUBMIT (CREATE / UPDATE) ---
-// --- 2. HANDLE SUBMIT (CREATE / UPDATE) ---
 async function handlePurchaseSubmit(e) {
   e.preventDefault();
 
   const btnSubmit = document.getElementById("submitPurchBtn");
   if (btnSubmit.disabled) return;
 
+  // --- 1. DEKLARASI VARIABEL (PENTING: Jangan Lupa Baris Ini) ---
   const elNominal = document.getElementById("purchNominal");
+  const elPercent = document.getElementById("purchPercent"); // <--- INI YANG KURANG
+
   const nominalVal = parseRupiah(elNominal.value);
   const maxVal = parseFloat(elNominal.dataset.maxVal || 0);
 
   // --- VALIDASI ---
   const akunVal = document.getElementById("purchAkun").value;
-  const purchaseId = document.getElementById("purchNoPo").value; // Value dropdown adalah purchase_id
+  const purchaseId = document.getElementById("purchNoPo").value;
   const vendorId = document.getElementById("purchVendorId").value;
 
   if (!akunVal)
     return Swal.fire("Gagal", "Silakan pilih Akun Pembayaran", "warning");
   if (!purchaseId) return Swal.fire("Gagal", "Silakan pilih No PO", "warning");
 
-  // Validasi Nominal (hanya warning di frontend, backend tetap validasi final)
+  // Validasi Nominal
   if (!currentUpdatePurchId && maxVal > 0 && nominalVal > maxVal) {
     return Swal.fire({
       icon: "error",
@@ -346,43 +348,46 @@ async function handlePurchaseSubmit(e) {
     });
   }
 
-  // --- SUSUN FORMDATA SESUAI POSTMAN ---
+  // --- SUSUN FORMDATA ---
   const formData = new FormData();
   formData.append("owner_id", user.owner_id);
   formData.append("user_id", user.user_id);
-
-  // 1. Masukkan purchase_id
   formData.append("purchase_id", purchaseId);
-
   formData.append("project_id", projectId);
   formData.append("vendor_id", vendorId || "0");
-
-  // 2. Gunakan key 'akun' (Sesuai screenshot)
   formData.append("akun", akunVal);
-
   formData.append("payable_date", document.getElementById("purchDate").value);
-  formData.append("nominal", nominalVal);
-  formData.append("keterangan", document.getElementById("purchNotes").value);
 
-  // Note: 'no_po' (string) TIDAK dikirim karena tidak ada di screenshot body req
+  formData.append("nominal", nominalVal);
+
+  // --- 2. PENGGUNAAN VARIABEL elPercent ---
+  // Pastikan elPercent sudah didefinisikan di atas (langkah 1)
+  let percentVal = 0;
+  if (elPercent) {
+    percentVal = parseFloat(elPercent.value) || 0;
+  }
+  formData.append("nominal_percent", percentVal);
+
+  formData.append("keterangan", document.getElementById("purchNotes").value);
+  formData.append("no_po_file", document.getElementById("purchNoPoFile").value);
 
   const fileInput = document.getElementById("purchFile");
   if (fileInput.files[0]) {
     formData.append("file", fileInput.files[0]);
   }
 
+  // --- KIRIM DATA ---
   const url = currentUpdatePurchId
     ? `${baseUrl}/update/project_payable/${currentUpdatePurchId}`
     : `${baseUrl}/add/project_payable`;
 
-  // Gunakan POST (standar FormData)
-  const method = "POST";
+  const method = currentUpdatePurchId ? "PUT" : "POST";
 
   Swal.fire({ title: "Menyimpan...", didOpen: () => Swal.showLoading() });
 
   try {
     const res = await fetch(url, {
-      method: method,
+      method,
       headers: { Authorization: `Bearer ${API_TOKEN}` },
       body: formData,
     });
@@ -403,13 +408,12 @@ async function handlePurchaseSubmit(e) {
         timer: 1500,
         showConfirmButton: false,
       });
-
       resetForm();
       fetchAndRenderPurchase(true);
     } else {
-      const errorMsg =
-        json.message || json.data?.message || "Gagal menyimpan data";
-      throw new Error(errorMsg);
+      throw new Error(
+        json.message || json.data?.message || "Gagal menyimpan data"
+      );
     }
   } catch (e) {
     console.error(e);
@@ -418,90 +422,147 @@ async function handlePurchaseSubmit(e) {
 }
 
 // --- 3. HANDLE DELETE ---
-async function handleDelete(id) {
-  const c = await Swal.fire({
-    title: "Hapus?",
-    text: "Data tidak bisa dikembalikan",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonText: "Ya, Hapus",
-    cancelButtonText: "Batal",
-  });
+// async function handleDelete(id) {
+//   const c = await Swal.fire({
+//     title: "Hapus?",
+//     text: "Data tidak bisa dikembalikan",
+//     icon: "warning",
+//     showCancelButton: true,
+//     confirmButtonText: "Ya, Hapus",
+//     cancelButtonText: "Batal",
+//   });
 
-  if (!c.isConfirmed) return;
+//   if (!c.isConfirmed) return;
 
-  Swal.fire({ title: "Menghapus...", didOpen: () => Swal.showLoading() });
+//   Swal.fire({ title: "Menghapus...", didOpen: () => Swal.showLoading() });
 
-  try {
-    const res = await fetch(`${baseUrl}/delete/project_payable/${id}`, {
-      method: "PUT",
-      headers: { Authorization: `Bearer ${API_TOKEN}` },
-    });
+//   try {
+//     const res = await fetch(`${baseUrl}/delete/project_payable/${id}`, {
+//       method: "PUT",
+//       headers: { Authorization: `Bearer ${API_TOKEN}` },
+//     });
 
-    if (res.ok) {
-      await Swal.fire({
-        icon: "success",
-        title: "Terhapus",
-        text: "Data berhasil dihapus. Merefresh tabel...",
-        timer: 3000,
-        timerProgressBar: true,
-        showConfirmButton: false,
-      });
+//     if (res.ok) {
+//       await Swal.fire({
+//         icon: "success",
+//         title: "Terhapus",
+//         text: "Data berhasil dihapus. Merefresh tabel...",
+//         timer: 3000,
+//         timerProgressBar: true,
+//         showConfirmButton: false,
+//       });
 
-      fetchAndRenderPurchase(true);
-    } else {
-      throw new Error("Gagal menghapus data");
-    }
-  } catch (e) {
-    Swal.fire("Error", "Gagal hapus data", "error");
-  }
-}
+//       fetchAndRenderPurchase(true);
+//     } else {
+//       throw new Error("Gagal menghapus data");
+//     }
+//   } catch (e) {
+//     Swal.fire("Error", "Gagal hapus data", "error");
+//   }
+// }
 
 // --- 4. HELPER FUNCTIONS & LOGIC FORM ---
-
 function handlePoChange() {
-  const selectedPurchaseId = document.getElementById("purchNoPo").value; // Ini sekarang purchase_id
+  const selectedPurchaseId = document.getElementById("purchNoPo").value;
+
+  // Element-element Input
   const elNominal = document.getElementById("purchNominal");
+  const elPercent = document.getElementById("purchPercent");
   const elVendorId = document.getElementById("purchVendorId");
+  const elNoPoFile = document.getElementById("purchNoPoFile");
   const elInfo = document.getElementById("poInfoText");
 
+  // 1. Jika User Memilih "Pilih PO" (Reset/Kosong)
   if (!selectedPurchaseId) {
-    elNominal.value = "";
-    elNominal.dataset.maxVal = "0";
-    elVendorId.value = "0";
-    elInfo.textContent = "";
+    resetFieldPo();
     return;
   }
 
-  // Cari data berdasarkan purchase_id
+  // 2. Cari Data PO di Variable Global poList
   const poData = poList.find((p) => p.purchase_id == selectedPurchaseId);
 
   if (poData) {
+    // --- [LOGIC BARU] CEK APPROVAL STATUS ---
+    // Mengambil value dari JSON: "approval_status": "yes"
+    const statusApproval = poData.approval_status
+      ? poData.approval_status.toLowerCase()
+      : "no";
+
+    if (statusApproval !== "yes") {
+      // Tampilkan Alert Warning
+      Swal.fire({
+        icon: "warning",
+        title: "Belum Disetujui",
+        text: `Nomor PO ${poData.no_po} belum di-approve (Status: ${
+          poData.approval_status || "No"
+        }). Anda tidak bisa memproses pembayaran ini.`,
+      });
+
+      // Reset Dropdown kembali ke kosong
+      document.getElementById("purchNoPo").value = "";
+
+      // Bersihkan field lain
+      resetFieldPo();
+
+      return; // STOP STOP STOP: Jangan lanjut ke bawah
+    }
+    // ----------------------------------------
+
     const sisaTagihan = parseFloat(poData.total_tagihan);
 
+    // 3. Cek Status Lunas / Sisa 0
+    // Note: Kadang status 'Partial Paid' tapi sisa tagihan sudah 0 (tergantung logic backend), jadi cek nominal sisa paling aman
     if (poData.status === "Paid" || sisaTagihan <= 0) {
       Swal.fire({
         icon: "warning",
-        title: "PO Sudah Lunas",
-        text: `Nomor PO ${poData.no_po} sudah lunas (Paid). Tidak dapat menambah pembayaran.`,
+        title: "Tagihan Lunas",
+        text: `Nomor PO ${poData.no_po} sudah lunas atau sisa tagihan Rp 0.`,
       });
       document.getElementById("purchNoPo").value = "";
-      elInfo.textContent = "";
-      elNominal.value = "";
+      resetFieldPo();
       return;
     }
 
+    // 4. Jika Lolos Validasi (Approved "Yes" & Belum Lunas)
     elVendorId.value = poData.vendor_id || 0;
+    elNoPoFile.value = poData.no_po_file || ""; // Pastikan JSON list/no_po return field ini jika butuh
+
+    // Set Default Pelunasan (100%)
+    elPercent.value = "100";
     elNominal.value = finance(sisaTagihan);
+
+    // Simpan Base Data untuk Kalkulasi Persen
     elNominal.dataset.maxVal = sisaTagihan;
+    elNominal.dataset.totalBase = sisaTagihan;
 
     const vendorName = poData.vendor || "Vendor Tidak Diketahui";
-    elInfo.innerHTML = `Vendor: <b>${vendorName}</b> <br> Sisa Tagihan: Rp ${finance(
-      sisaTagihan
-    )}`;
+
+    // Info Text Tambahan (Optional: Tampilkan Approved By)
+    const approvedBy = poData.approved_by
+      ? `(Appr. by ${poData.approved_by})`
+      : "";
+
+    elInfo.innerHTML = `
+        Vendor: <b>${vendorName}</b> <span class="text-green-600 text-xs font-bold">✓ APPROVED ${approvedBy}</span><br> 
+        Sisa Tagihan: Rp ${finance(sisaTagihan)}
+    `;
   }
 }
 
+// Helper untuk mereset field (copas ini juga jika belum ada)
+function resetFieldPo() {
+  const elNominal = document.getElementById("purchNominal");
+  const elPercent = document.getElementById("purchPercent");
+
+  elNominal.value = "";
+  elNominal.dataset.maxVal = "0";
+  elNominal.dataset.totalBase = "0";
+  elPercent.value = "";
+
+  document.getElementById("purchVendorId").value = "0";
+  document.getElementById("purchNoPoFile").value = "";
+  document.getElementById("poInfoText").textContent = "";
+}
 function resetForm() {
   document.getElementById("purchaseForm").reset();
   currentUpdatePurchId = null;
@@ -525,6 +586,8 @@ function resetForm() {
   document.getElementById("poInfoText").textContent = "";
   document.getElementById("purchVendorId").value = "0";
   document.getElementById("purchNominal").dataset.maxVal = "0";
+  document.getElementById("purchNoPoFile").value = "";
+  document.getElementById("purchPercent").value = "";
 
   const today = new Date().toISOString().split("T")[0];
   document.getElementById("purchDate").value = today;
@@ -562,9 +625,20 @@ async function populateForm(id) {
       console.warn("API Detail tidak mengembalikan purchase_id");
     }
 
+    document.getElementById("purchNoPoFile").value = data.no_po_file || "";
+
     const elNominal = document.getElementById("purchNominal");
     elNominal.value = finance(data.nominal);
     elNominal.dataset.maxVal = data.nominal; // Di mode edit, maxVal mungkin perlu logic khusus, tapi sementara disamakan
+
+    const elPercent = document.getElementById("purchPercent");
+
+    // Cek apakah API detail mengembalikan nominal_percent
+    if (data.nominal_percent) {
+      elPercent.value = data.nominal_percent;
+    } else {
+      elPercent.value = ""; // Biarkan kosong atau user isi ulang
+    }
 
     const elInfo = document.getElementById("poInfoText");
     const vendorName = data.vendor || "Vendor";
@@ -643,5 +717,41 @@ document.getElementById("purchaseBody").addEventListener("click", (e) => {
   }
 });
 
+// 1. Jika User mengetik Persen (Contoh: 50%)
+document.getElementById("purchPercent").addEventListener("input", function (e) {
+  const percent = parseFloat(this.value) || 0;
+  const elNominal = document.getElementById("purchNominal");
+
+  // Ambil total tagihan (base) dari dataset yang diset saat pilih PO
+  const totalBase = parseFloat(elNominal.dataset.totalBase) || 0;
+
+  if (totalBase > 0) {
+    // Rumus: (Persen / 100) * Sisa Tagihan
+    const hasilRupiah = (percent / 100) * totalBase;
+
+    // Update kolom rupiah (gunakan fungsi finance() formatting Anda)
+    elNominal.value = finance(hasilRupiah);
+  }
+});
+
+// 2. Jika User mengetik Nominal Rupiah (Contoh: 1.000.000)
+document.getElementById("purchNominal").addEventListener("input", function (e) {
+  // Ambil value angka murni (hapus titik/koma format)
+  const rawValue = parseFloat(this.value.replace(/\D/g, "")) || 0;
+  const elPercent = document.getElementById("purchPercent");
+
+  // Ambil total tagihan (base)
+  const totalBase = parseFloat(this.dataset.totalBase) || 0;
+
+  if (totalBase > 0) {
+    // Rumus: (Nominal Input / Sisa Tagihan) * 100
+    let hasilPersen = (rawValue / totalBase) * 100;
+
+    // Batasi desimal biar rapi (maks 2 desimal), dan tidak lebih dari 100% secara visual
+    // if(hasilPersen > 100) hasilPersen = 100; // Opsional: un-comment jika ingin melimit visual
+
+    elPercent.value = hasilPersen.toFixed(2).replace(/\.00$/, ""); // Hapus .00 jika bulat
+  }
+});
 // --- 6. START APPLICATION ---
 fetchAndRenderPurchase();

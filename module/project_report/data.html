@@ -110,22 +110,25 @@
     </div>
 
     <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
-        <table class="w-full text-left text-xs">
-            <thead class="bg-blue-500 text-white font-bold uppercase tracking-wider">
-                <tr class="text-center">
-                    <th class="px-4 py-4 border-r border-blue-400">No.</th>
-                    <th class="px-4 py-4 border-r border-blue-400 text-left">Project</th>
-                    <th class="px-4 py-4 border-r border-blue-400">Plan Cost</th>
-                    <th class="px-4 py-4 border-r border-blue-400">Actual Cost</th>
-                    <th class="px-4 py-4 border-r border-blue-400">Variance</th>
-                    <th class="px-4 py-4 border-r border-blue-400">% Variance</th>
-                    <th class="px-4 py-4">Status</th>
-                </tr>
-            </thead>
-            <tbody id="projectTableBody" class="text-gray-700 font-medium">
-            </tbody>
-        </table>
+        <div class="max-h-96 overflow-y-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-blue-500 text-white font-bold uppercase tracking-wider sticky top-0 z-10">
+                    <tr class="text-center">
+                        <th class="px-4 py-4 border-r border-blue-400">No.</th>
+                        <th class="px-4 py-4 border-r border-blue-400 text-left">Project</th>
+                        <th class="px-4 py-4 border-r border-blue-400">Plan Cost</th>
+                        <th class="px-4 py-4 border-r border-blue-400">Actual Cost</th>
+                        <th class="px-4 py-4 border-r border-blue-400">Variance</th>
+                        <th class="px-4 py-4 border-r border-blue-400">% Variance</th>
+                        <th class="px-4 py-4">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="projectTableBody" class="text-gray-700 font-medium">
+                </tbody>
+            </table>
+        </div>
     </div>
+
 </div>
 <script>
     // --- LOGIC SCRIPT PROJECT COSTING DASHBOARD ---

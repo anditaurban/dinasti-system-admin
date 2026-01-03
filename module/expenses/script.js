@@ -48,7 +48,14 @@ window.rowTemplate = function (item, index, perPage = 10) {
   <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50">    
       <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
         <span class="font-medium sm:hidden">Date</span>   
-        ${item.tanggal_transaksi}
+        <div class="flex flex-col gap-1">
+        <div class="text-xs text-gray-500">Pay.Req <span class="text-gray-900">${
+          item.tanggal_request
+        }</span></div>
+        <div class="text-xs text-gray-500">Paid <span class="text-gray-900">${
+          item.tanggal_transaksi
+        }</span></div>
+      </div>
       </td>
       
       <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
@@ -59,18 +66,6 @@ window.rowTemplate = function (item, index, perPage = 10) {
       <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
         <span class="font-medium sm:hidden">Category</span>
         ${displayKategori}
-      </td>
-    
-      <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-        <span class="font-medium sm:hidden">Description</span>
-        <div class="max-w-xs break-words truncate" title="${displayDeskripsi}">
-            ${displayDeskripsi}
-        </div>
-      </td>
-
-      <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-        <span class="font-medium sm:hidden">Via</span>
-        ${item.account}
       </td>
 
       <td class="px-6 py-4 text-sm text-gray-700 flex justify-between sm:table-cell">
@@ -97,6 +92,31 @@ window.rowTemplate = function (item, index, perPage = 10) {
             </button>
         </div>
       </td>
+    
+      <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
+        <span class="font-medium sm:hidden">Description</span>
+        <div class="max-w-xs break-words truncate" title="${displayDeskripsi}">
+            ${displayDeskripsi}
+        </div>
+      </td>
+
+      <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
+        <span class="font-medium sm:hidden">Bank Account</span>
+        ${
+          item.account !== "-"
+            ? `<span class="font-semibold">${item.account} (${item.number_account})</span>`
+            : "-"
+        }
+        <br>
+        <span class="text-xs text-gray-500">${
+          item.owner_account !== "-" ? item.owner_account : ""
+        }</span>
+      </td>
+      <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
+        <span class="font-medium sm:hidden">Status</span>   
+        ${item.status || "Paid"}
+      </td>
+      
   </tr>`;
 };
 
@@ -614,7 +634,7 @@ async function showExpenseModal(id = null) {
           </div>
           <div>
              <label class="block text-sm font-medium text-gray-700 mb-1">Nominal (Rp)</label>
-             <input type="number" name="nominal" value="${valNominal}" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="0" required>
+             <input type="text" name="nominal" value="${valNominal}" onkeyup="formatCurrencyInput(this)" class="formatNumber w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="0" required>
           </div>
         </div>
 

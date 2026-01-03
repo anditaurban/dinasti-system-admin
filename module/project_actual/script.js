@@ -84,16 +84,13 @@ async function fetchInitialData() {
 // ================================================================
 // 2. GENERATE NO PO (API)
 // ================================================================
-
 async function generateNoPO() {
   const dateInput = document.getElementById("calcPoDate").value;
   const inputPo = document.getElementById("calcNoPo");
+  const inputPoPdf = document.getElementById("calcNoPoPdf");
 
-  // Validasi: Pastikan tanggal dan variabel global tersedia
   if (!dateInput) return;
 
-  // Pastikan variabel global owner_id dan projectId sudah ada
-  // (Biasanya owner_id diambil dari session user login)
   if (typeof owner_id === "undefined" || !owner_id) {
     console.error("Owner ID tidak ditemukan (Global Variable Missing)");
     return;
@@ -102,11 +99,10 @@ async function generateNoPO() {
   inputPo.value = "Generating...";
 
   try {
-    // Susun Body sesuai request server
     const payload = {
-      owner_id: parseInt(owner_id), // Wajib ada
-      po_date: dateInput, // Key harus "po_date"
-      project_id: parseInt(projectId), // Wajib ada
+      owner_id: parseInt(owner_id),
+      po_date: dateInput,
+      project_id: parseInt(projectId),
     };
 
     const res = await fetch(`${baseUrl}/generate/no_po`, {
@@ -120,15 +116,32 @@ async function generateNoPO() {
 
     if (res.ok) {
       const json = await res.json();
-      // Ambil no_po dari json.data.no_po
       if (json.data && json.data.no_po) {
-        inputPo.value = json.data.no_po;
+        // --- PERBAIKAN: BERSIHKAN TAG HTML ---
+        // Ambil data mentah dari server
+        const rawNoPo = json.data.no_po;
+
+        // Hapus semua tag HTML (<b>, <i>, dll) menggunakan Regex
+        const cleanNoPo = rawNoPo.replace(/<[^>]*>?/gm, "");
+
+        // Masukkan teks bersih ke Input agar user melihat teks biasa
+        inputPo.value = cleanNoPo;
+
+        // --- UPDATE PDF FIELD ---
+        if (inputPoPdf) {
+          // Untuk PDF (nama file), kita gunakan yang bersih juga
+          // lalu ganti garis miring dengan underscore
+          const cleanForPdf = cleanNoPo.replace(/[\/\\ ]/g, "_");
+
+          // Prioritas: gunakan data dari server jika ada, jika tidak gunakan hasil generate sendiri
+          inputPoPdf.value = json.data.no_po_pdf || cleanForPdf;
+        }
       } else {
         inputPo.value = "";
+        if (inputPoPdf) inputPoPdf.value = "";
         console.warn("Response OK tapi data No PO kosong");
       }
     } else {
-      // Jika masih error 500/400, kosongkan field tanpa alert
       inputPo.value = "";
       console.error("Gagal generate PO:", res.status, res.statusText);
     }
@@ -139,10 +152,6 @@ async function generateNoPO() {
 }
 // ================================================================
 // 3. CORE: SAVE TRANSACTION (ADAPTED FROM saveInvoice)
-// ================================================================
-
-// ================================================================
-// 3. CORE: SAVE TRANSACTION (WITH VENDOR_PIC & LOGS)
 // ================================================================
 
 async function saveTransaction() {
@@ -169,14 +178,20 @@ async function saveTransaction() {
     const vendorIdInput = document.getElementById("calcVendorId").value;
     const noPo = document.getElementById("calcNoPo").value;
 
+    // ============================================================
+    // 🔥 PERBAIKAN DISINI: Definisikan noPoPdf sebelum dipakai
+    // ============================================================
+    const inputPoPdf = document.getElementById("calcNoPoPdf");
+    // Jika input hidden ada, ambil nilainya. Jika tidak, pakai noPo biasa.
+    const noPoPdf = inputPoPdf ? inputPoPdf.value : noPo;
+    // ============================================================
+
     // --- LOGIKA BARU: AMBIL NAMA PIC DARI TEXT DROPDOWN ---
     const picSelect = document.getElementById("calcNamaPic");
     let selectedPicName = null; // Default null jika kosong
 
     // Cek apakah ada PIC yang dipilih (value tidak 0/kosong)
     if (picSelect && picSelect.value && picSelect.value != "0") {
-      // Ambil text dari option yang dipilih (Misal: "Budi Santoso")
-      // .options[index].text mengambil apa yang tampil di layar
       selectedPicName = picSelect.options[picSelect.selectedIndex].text;
     }
 
@@ -184,7 +199,7 @@ async function saveTransaction() {
     console.group("🔍 Cek Header & Vendor");
     console.log("Vendor ID:", vendorIdInput);
     console.log("Contact ID (Value):", picSelect ? picSelect.value : "N/A");
-    console.log("Vendor PIC (Name):", selectedPicName); // Cek ini di console nanti
+    console.log("Vendor PIC (Name):", selectedPicName);
     console.groupEnd();
 
     if (!vendorIdInput || vendorIdInput == "0") {
@@ -245,6 +260,10 @@ async function saveTransaction() {
       po_date: document.getElementById("calcPoDate").value,
       inv_date: document.getElementById("calcInvoiceDate").value,
       no_po: noPo,
+
+      // Variable ini sekarang sudah didefinisikan di atas (Line fix)
+      no_po_pdf: noPoPdf,
+
       no_inv: document.getElementById("calcInvoiceNo").value,
 
       ppn_percent: document.getElementById("summaryTaxCheck").checked ? 11 : 0,
@@ -305,7 +324,20 @@ async function saveTransaction() {
     console.log("📥 RESPONSE:", json);
 
     if (res.ok && json.success !== false) {
-      Swal.fire("Berhasil", "Data tersimpan", "success");
+      // --- PERBAIKAN TIMING NOTIFIKASI ---
+      // Kita pakai 'await' dan 'timer' agar script PAUSE dulu selama 1.5 detik
+      // sebelum menjalankan resetForm().
+
+      await Swal.fire({
+        icon: "success",
+        title: "Berhasil",
+        text: "Data tersimpan dengan sukses!",
+        timer: 1500, // Muncul selama 1.5 detik
+        showConfirmButton: false, // Hilangkan tombol OK (otomatis)
+        timerProgressBar: true, // Ada bar loading kecil (visual cue)
+      });
+
+      // Kode di bawah ini baru jalan SETELAH 1.5 detik lewat
       resetForm();
       fetchInitialData();
     } else {
@@ -354,6 +386,7 @@ function addNewRow() {
             </div>
             
             <div class="mb-3">
+            <label class="text-xs text-gray-500">Nama Produk</label>
                 <input type="text" class="w-full border p-2 rounded text-sm font-semibold input-product" placeholder="Nama Item / Produk Real (Struk)">
                
             </div>
@@ -450,14 +483,6 @@ function updateRowNumbers() {
 // 5. CALCULATION LOGIC
 // ================================================================
 
-function formatCurrencyInput(input) {
-  input.value = finance(input.value.replace(/\D/g, ""));
-}
-
-function formatCurrencyInput(input) {
-  input.value = finance(input.value.replace(/\D/g, ""));
-}
-
 // UBAH NAMA dari calculateGrandTotal MENJADI calculateGrandTotal
 function calculateGrandTotal() {
   let subTotal = 0;
@@ -501,18 +526,6 @@ function calculateGrandTotal() {
   // Grand Total
   const grandTotalEl = document.getElementById("summaryGrandTotal");
   if (grandTotalEl) grandTotalEl.value = finance(afterDisc + tax);
-}
-
-function resetForm() {
-  document.getElementById("realCalcForm").reset();
-  document.getElementById("calcVendorId").value = "0";
-  document.getElementById("calcContactId").value = "0";
-  document.getElementById("calcNamaPic").innerHTML =
-    "<option>-- Pilih Vendor Dulu --</option>";
-  document.getElementById("inputItemsBody").innerHTML = "";
-  addNewRow();
-  generateNoPO(); // Generate baru
-  calculateGrandTotal();
 }
 
 // ================================================================
@@ -680,9 +693,11 @@ function renderHistoryTable(data) {
       statusBadge = `<span class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs font-medium border border-gray-200">${item.status}</span>`;
     }
 
-    // --- 2. Logic Approval HTML (Kolom 4) ---
+    // --- 2. Logic Approval HTML ---
+    const isApproved = item.approval_status === "yes"; // Cek status approval
+
     let approvalHtml = "";
-    if (item.approval_status === "yes") {
+    if (isApproved) {
       approvalHtml = `
             <div class="flex items-center gap-1 justify-center mt-1 text-green-600">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -700,7 +715,7 @@ function renderHistoryTable(data) {
         `;
     }
 
-    // Reminder Icon (Lonceng)
+    // Reminder Icon
     let reminderIcon = "";
     if (item.approval_reminder === "reminded") {
       reminderIcon = `
@@ -726,11 +741,26 @@ function renderHistoryTable(data) {
           }%)</span> <span>- ${finance(item.discount_nominal)}</span></div>`
         : "";
 
+    // --- LOGIC TOMBOL EDIT (HIDDEN IF APPROVED) ---
+    const editBtnHtml = isApproved
+      ? "" // Jika Approved, kosongkan string (Hidden)
+      : `<button onclick="editActualCost(${item.purchase_id})" 
+           class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700 flex items-center gap-2"> 
+           ✏️ Edit Transaction 
+         </button>`;
+
+    // --- LOGIC TOMBOL DELETE (HIDDEN IF APPROVED) ---
+    const deleteBtnHtml = isApproved
+      ? "" // Jika Approved, kosongkan string (Hidden)
+      : `<button onclick="handleDeleteActualCost(${item.purchase_id})" 
+           class="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center gap-2">
+           🗑 Delete Order
+         </button>`;
+
     // --- 4. RENDER ROW ---
     const tr = document.createElement("tr");
     tr.className = "hover:bg-gray-50 transition group border-b";
 
-    // Kita gunakan ID unik untuk dropdown toggle
     const dropdownId = `dropdown-action-${item.purchase_id}`;
 
     tr.innerHTML = `
@@ -738,7 +768,7 @@ function renderHistoryTable(data) {
             <div class="flex flex-col gap-3">
                 <div>
                     <div class="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Purchase Order</div>
-                    <div class="font-bold text-gray-800 text-sm">${
+                    <div class="text-gray-800 text-sm">${
                       item.no_po || "-"
                     }</div>
                     <div class="text-xs text-gray-500 flex items-center gap-1">📅 ${
@@ -808,25 +838,19 @@ function renderHistoryTable(data) {
 
             <div id="${dropdownId}" class="dropdown-menu-po hidden absolute right-0 mt-2 w-48 bg-white border rounded shadow-lg z-50 text-sm text-left overflow-hidden">
                 
-                <button onclick="editActualCost(${item.purchase_id})" 
-        class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700 flex items-center gap-2"> 
-    ✏️ Edit Transaction 
-</button>
-
-                ${
-                  item.approval_status !== "yes"
-                    ? `
+                ${editBtnHtml} ${
+      !isApproved
+        ? `
                     <button onclick="openPurchaseApproval('${item.purchase_id}', '${item.no_po}')" 
                             class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600 flex items-center gap-2">
                         🟢 Update Approval
                     </button>
                 `
-                    : ""
-                }
+        : ""
+    }
 
                 ${
-                  item.approval_status !== "yes" &&
-                  item.approval_reminder !== "reminded"
+                  !isApproved && item.approval_reminder !== "reminded"
                     ? `
                     <button onclick="sendPurchaseReminder('${item.purchase_id}', '${item.no_po}')" 
                             class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-orange-500 flex items-center gap-2">
@@ -835,18 +859,15 @@ function renderHistoryTable(data) {
                 `
                     : ""
                 }
-<button onclick="printInvoice(${item.purchase_id})" 
-        class="text-left w-full px-4 py-2 hover:bg-gray-100 text-gray-700 flex items-center gap-2">
-    📄 Print PO
-</button>
-
-                <div class="border-t my-1"></div>
-
-                <button onclick="handleDeleteActualCost(${item.purchase_id})" 
-                        class="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center gap-2">
-                    🗑 Delete Order
+                
+                <button onclick="printInvoice(${item.purchase_id})" 
+                        class="text-left w-full px-4 py-2 hover:bg-gray-100 text-gray-700 flex items-center gap-2">
+                    📄 Print PO
                 </button>
-            </div>
+
+                ${!isApproved ? '<div class="border-t my-1"></div>' : ""}
+
+                ${deleteBtnHtml} </div>
         </td>
     `;
     tbody.appendChild(tr);
@@ -926,6 +947,9 @@ function resetForm() {
   document.getElementById("summaryTaxCheck").checked = false;
   document.getElementById("summaryTaxNominal").value = "0";
   document.getElementById("summaryGrandTotal").value = "0";
+  if (document.getElementById("calcNoPoPdf")) {
+    document.getElementById("calcNoPoPdf").value = "";
+  }
 
   // KEMBALI KE MODE CREATE
   currentUpdateCostId = null;
@@ -985,6 +1009,12 @@ async function editActualCost(id) {
     // --- 2. RENDER FORM ---
     document.getElementById("calcPoDate").value = data.po_date_ymd;
     document.getElementById("calcNoPo").value = data.no_po;
+    if (document.getElementById("calcNoPoPdf")) {
+      // Mengisi nilai dari database, atau fallback ke no_po biasa jika null
+      document.getElementById("calcNoPoPdf").value =
+        data.no_po_pdf || data.no_po;
+    }
+
     document.getElementById("calcInvoiceDate").value = data.inv_date_ymd;
     document.getElementById("calcInvoiceNo").value = data.no_inv;
     document.getElementById("calcGlobalNotes").value = data.notes;

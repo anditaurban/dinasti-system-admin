@@ -224,6 +224,11 @@
         const data = pesananResult?.detail;
         if (!data) throw new Error("Data pesanan DP tidak ditemukan");
 
+        const ppnPercent = data.ppn_percent || 0;
+        const ppnAmount = data.ppn_amount || 0;
+        // Jika total_amount dari API null, hitung manual: amount + ppn
+        const totalAmount = data.total_amount || (data.amount + ppnAmount);
+
         const today = new Date();
         const options = {
           year: 'numeric',
@@ -237,79 +242,76 @@
         // HTML DI BAWAH INI ADALAH GABUNGAN STYLE DARI FILE 2
         // (HEADER, INFO BANK, TTD) DENGAN TABEL ASLI DARI FILE 1
         const html = `
-        <div class="invoice-header border-b-4 border-black pb-2">
-          <div class="relative flex items-start justify-center">
-            <div class="absolute left-0 top-0">
-              <img id="logo_preview" class="h-20 w-auto object-contain" alt="logo" />
-            </div>
+<div class="invoice-header border-b-4 border-black pb-2">
+  <div class="relative flex items-start justify-center">
+    <div class="absolute left-0 top-0">
+      <img id="logo_preview" class="h-20 w-auto object-contain" alt="logo" />
+    </div>
 
-            <div class="text-center">
-              <div class="company-name text-2xl font-bold text-red-700">
-                ${user.company || ''}
-              </div>
-              <div class="text-sm font-semibold mt-1 uppercase">
-                ${user.tagline || ''}
-              </div>
-              <div class="text-xs mt-2 leading-tight">
-                ${user.address || ''}
-              </div>
-              <div class="text-xs mt-1">
-                ${user.company_phone ? 'Telp: ' + user.company_phone : ''} 
-                ${user.company_email ? ' • ' + user.company_email : ''}
-              </div>
-            </div>
-          </div>
-        </div>
+    <div class="text-center">
+      <div class="company-name text-2xl font-bold text-red-700">
+        ${user.company || ''}
+      </div>
+      <div class="text-sm font-semibold mt-1 uppercase">
+        ${user.tagline || ''}
+      </div>
+      <div class="text-xs mt-2 leading-tight">
+        ${user.address || ''}
+      </div>
+      <div class="text-xs mt-1">
+        ${user.company_phone ? 'Telp: ' + user.company_phone : ''} 
+        ${user.company_email ? ' • ' + user.company_email : ''}
+      </div>
+    </div>
+  </div>
+</div>
 
-        <div class="text-center underline font-bold text-xl mb-2 py-3">PROFORMA INVOICE</div>
+<div class="text-center underline font-bold text-xl mb-2 py-3">PROFORMA INVOICE</div>
 
-        <div class="flex justify-between items-start mt-4 mb-4 text-sm">
-
-          <div class="w-1/2">
-            <div class="mt-1 leading-snug">
-              <p>Kepada Yth,</p>
-              <p class="font-semibold">${data.pelanggan_nama || ''}</p>
-              
-              <p class="max-w-[500px] break-words">${data.alamat || ''}</p>
-              ${data.project_name
+<div class="flex justify-between items-start mt-4 mb-4 text-sm">
+  <div class="w-1/2">
+    <div class="mt-1 leading-snug">
+      <p>Kepada Yth,</p>
+      <p class="font-semibold">${data.pelanggan_nama || ''}</p>
+      <p class="max-w-[500px] break-words">${data.alamat || ''}</p>
+      ${data.project_name
             ? `<p class="text-base font-bold text-gray-800 mt-2">${data.project_name}</p>`
             : ""}
-            </div>
-          </div>
+    </div>
+  </div>
 
-          <div class="w-1/2 flex justify-end">
-            <table>
-              <tr>
-                <td class="px-2 font-medium">No</td>
-                <td class="px-2 ">: ${data.dp_number || '-'}</td>
-              </tr>
-              <tr>
-                <td class="px-2 font-medium">Tanggal</td>
-                <td class="px-2 ">: ${tanggalFormatted}</td>
-              </tr>
-              <tr>
-                <td class="px-2 font-medium">Ref. Dokumen</td>
-                <td class="px-2 ">: ${data.inv_number || '-'}</td>
-              </tr>
-              <tr>
-                <td class="px-2 font-medium">No. PO</td>
-                <td class="px-2 ">: ${data.po_number || '-'}</td>
-              </tr>
-            </table>
-          </div>
-        </div>
+  <div class="w-1/2 flex justify-end">
+    <table>
+      <tr>
+        <td class="px-2 font-medium">No</td>
+        <td class="px-2 ">: ${data.dp_number || '-'}</td>
+      </tr>
+      <tr>
+        <td class="px-2 font-medium">Tanggal</td>
+        <td class="px-2 ">: ${tanggalFormatted}</td>
+      </tr>
+      <tr>
+        <td class="px-2 font-medium">Ref. Dokumen</td>
+        <td class="px-2 ">: ${data.inv_number || '-'}</td>
+      </tr>
+      <tr>
+        <td class="px-2 font-medium">No. PO</td>
+        <td class="px-2 ">: ${data.po_number || '-'}</td>
+      </tr>
+    </table>
+  </div>
+</div>
 
-
-        <table class="w-full border border-black border-collapse text-sm">
+<table class="w-full border border-black border-collapse text-sm">
   <thead>
     <tr class="bg-white text-black border-b border-black">
-      <th class="text-left px-4 py-2 border border-black">Deskripsi</th>
-      <th class="text-right px-4 py-2 border border-black">Invoice Uang Muka</th>
+      <th class="text-left px-4 py-2 border border-black">Deskripsi Invoice</th>
+      <th class="text-right px-4 py-2 border border-black">Jumlah</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td class="px-4 py-2 border border-black align-top">
+      <td class="px-4 py-2 border border-black align-top min-h-[100px]">
         ${data.description}
       </td>
       <td class="px-4 py-2 text-right border border-black align-top">
@@ -322,18 +324,28 @@
   </tbody>
 </table>
 
-<!-- Kurangi jarak dari mt-6 jadi mt-1 -->
 <div class="flex justify-between items-start mt-1 text-xs">
   <div></div>
 
   <div class="w-1/3">
-    <table class="text-xs w-full">
-      <tr class="font-bold border-t border-gray-300 total-row">
+    <table class="text-xs w-full border-collapse">
+
+      <tr>
+       <td class="pr-3 py-1 border border-black text-right font-medium">
+
+            PPN ${ppnPercent}%
+        </td>
+        <td class="py-1 px-2 border border-black text-right">
+            ${finance(ppnAmount)}
+        </td>
+      </tr>
+
+      <tr class="font-bold total-row">
         <td class="pr-3 py-1 border border-black text-right bg-gray-300 text-black">TOTAL</td>
-        <td class="py-1 text-black bg-gray-300 border border-black">
-          <div class="flex justify-between">
+        <td class="py-1 px-2 text-black bg-gray-300 border border-black text-right">
+          <div class="flex justify-between font-bold">
             <span>Rp</span>
-            <span>${finance(data.amount)}</span>
+            <span>${finance(totalAmount)}</span>
           </div>
         </td>
       </tr>
@@ -341,47 +353,45 @@
   </div>
 </div>
 
-        </div>
-        <div class="flex justify-between mt-10 text-xs">
+<div class="flex justify-between mt-10 text-xs">
+  <div class="w-1/2">
+    <div class="flex items-start text-sm mb-2 leading-relaxed">
+      <span class="font-semibold w-20">Terbilang</span>
+      <span class="mr-1">:</span>
+      <p class="italic text-gray-800 flex-1 break-words font-medium">
+        # ${terbilang(totalAmount)} Rupiah
+      </p>
+    </div>
 
-          <div class="w-1/2">
-            <div class="flex items-start text-sm mb-2 leading-relaxed">
-              <span class="font-semibold w-20">Terbilang</span>
-              <span class="mr-1">:</span>
-              <p class="italic text-gray-800 flex-1 break-words">
-                # ${terbilang(data.amount)} Rupiah
-              </p>
-            </div>
-
-            <div>
-              <div class="font-semibold text-sm py-1">
-                Pembayaran melalui:
-              </div>
-              <div class="py-2 text-sm text-gray-700">
-                ${financeAccount
+    <div>
+      <div class="font-semibold text-sm py-1">
+        Pembayaran melalui:
+      </div>
+      <div class="py-2 text-sm text-gray-700">
+        ${financeAccount
             ? `
-                      <strong>Bank :</strong> ${financeAccount.nama_akun}<br>
-                      <strong>Nama :</strong> ${financeAccount.owner_account}<br>
-                      <strong>A/C No :</strong> ${financeAccount.number_account}
-                    `
+              <strong>Bank :</strong> ${financeAccount.nama_akun}<br>
+              <strong>Nama :</strong> ${financeAccount.owner_account}<br>
+              <strong>A/C No :</strong> ${financeAccount.number_account}
+            `
             : "<em>Informasi rekening tidak tersedia</em>"
           }
-              </div>
-            </div>
-          </div>
+      </div>
+    </div>
+  </div>
 
-          <div class="w-1/3 text-center flex flex-col items-center justify-center ml-auto"> <p class="font-semibold">Jakarta, ${tanggalFormatted}</p>
+  <div class="w-1/3 text-center flex flex-col items-center justify-center ml-auto">
+    <p class="font-semibold">Jakarta, ${tanggalFormatted}</p>
 
-            <div id="qrcode-container" class="h-24 flex items-center justify-center mt-2">
-              <div class="inline-block p-2 bg-white rounded shadow"></div>
-            </div>
+    <div id="qrcode-container" class="h-24 flex items-center justify-center mt-2">
+      <div class="inline-block p-2 bg-white rounded shadow"></div>
+    </div>
 
-            <p class="mt-2 font-semibold underline">Nanda Febby Yuliantina</p>
-            <p class="mt-2">Finance Manager</p>
-          </div>
-
-        </div>
-        `;
+    <p class="mt-2 font-semibold underline">Nanda Febby Yuliantina</p>
+    <p class="mt-2">Finance Manager</p>
+  </div>
+</div>
+`;
 
         container.innerHTML = html;
 

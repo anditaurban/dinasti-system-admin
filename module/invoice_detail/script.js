@@ -173,31 +173,91 @@ async function loadDetailSales(Id, Detail) {
     }
 
     // ===========================
-    // 🔹 Render Pembayaran
+    // 🔹 Render Pembayaran (SECURE VIEW)
+    // ===========================
+    // ===========================
+    // 🔹 Render Pembayaran (FIX ERROR 404 & EMPTY FILE)
     // ===========================
     const pembayaranSection = document.getElementById("pembayaranSection");
     pembayaranSection.innerHTML = "";
+
     if (data.payments?.length) {
       data.payments.forEach((p) => {
+        // Debugging: Cek data di console browser jika error lagi
+        // console.log("Payment Data:", p);
+
         const div = document.createElement("div");
-        div.className = "border p-2 rounded bg-gray-50 text-sm mb-1";
+        div.className = "border p-2 rounded bg-white mb-2 shadow-sm";
+
+        // 1. Validasi Ketat: Pastikan file ada, bukan null, bukan "null" (string), dan bukan kosong
+        const hasFile =
+          p.file && p.file !== "null" && String(p.file).trim() !== "";
+
+        let actionBtn = "";
+
+        if (hasFile) {
+          let fileUrl = "";
+          const rawFile = String(p.file).trim(); // Pastikan string bersih
+
+          // Cek apakah format URL lengkap (http/https)
+          if (rawFile.startsWith("http")) {
+            fileUrl = rawFile;
+          } else {
+            // Rakit dengan Base URL jika hanya nama file
+            const cleanBaseUrl = baseUrl.replace(/\/api\/?$/, "");
+            fileUrl = `${cleanBaseUrl}/file/receipt/${rawFile}`;
+          }
+
+          // Tombol View (Aktif)
+          actionBtn = `
+                <button onclick="handleViewProof('${fileUrl}')" 
+                   class="ml-2 w-6 h-6 flex items-center justify-center text-blue-500 hover:text-blue-700 transition"
+                   title="Lihat Bukti" type="button">
+                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                   </svg>
+                </button>
+             `;
+        } else {
+          // Tombol Disabled (File Kosong/Invalid)
+          actionBtn = `
+                <span class="ml-2 w-6 h-6 flex items-center justify-center text-gray-300 cursor-not-allowed" title="Tidak ada file">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29" />
+                  </svg>
+                </span>
+             `;
+        }
+
         div.innerHTML = `
-          <div class="flex justify-between">
-            <span>💳 ${p.description || "Pembayaran"}</span>
-            <span class="font-medium text-green-700">${formatNumber(
-              p.amount || 0
-            )}</span>
-          </div>
-          <div class="flex justify-between text-xs text-gray-500 mt-1">
-            <span>📅 ${p.payment_date || "-"}</span>
-            <span>🏦 ${p.account.nama_akun || "Cash"}</span>
+          <div class="flex justify-between items-start">
+            <div>
+                <div class="font-medium text-gray-800 text-sm flex items-center gap-2">
+                    💳 ${p.description || "Pembayaran"} ${actionBtn}
+                </div>
+                <div class="text-[11px] text-gray-500 mt-1">
+                    📅 ${p.payment_date || "-"}
+                </div>
+            </div>
+
+            <div class="text-right">
+                <div class="flex items-center justify-end">
+                    <span class="font-bold text-green-700 text-base">
+                        ${formatNumber(p.amount || 0)} 
+                    </span>
+                    
+                </div>
+                <div class="text-[11px] text-gray-500 mt-1">
+                    🏦 ${p.account?.nama_akun || "Cash"}
+                </div>
+            </div>
           </div>`;
         pembayaranSection.appendChild(div);
       });
     } else {
-      pembayaranSection.innerHTML = `<div class="text-gray-500 italic">-</div>`;
+      pembayaranSection.innerHTML = `<div class="text-xs text-gray-400 italic text-center py-2 border border-dashed rounded bg-gray-50">- Belum ada data pembayaran -</div>`;
     }
-
     // console.log('DP: ', data.down_payments);
     // console.log('DP: ', data.down_payments);
     const dpString = encodeURIComponent(
@@ -250,7 +310,7 @@ async function loadDetailSales(Id, Detail) {
     }
 
     // ===========================
-    // 🔹 Invoice Uang Muka
+    // 🔹 Invoice Uang Muka (VERSI COMPACT / KECIL)
     // ===========================
     const uangMukaSection = document.getElementById("uangMukaSection");
     uangMukaSection.innerHTML = "";
@@ -258,46 +318,90 @@ async function loadDetailSales(Id, Detail) {
     if (data.down_payments?.length) {
       data.down_payments.forEach((dp) => {
         const div = document.createElement("div");
-        div.className = "border p-2 rounded bg-gray-50 text-sm mb-2";
+        // [UBAH] Padding jadi p-2, margin mb-2, background putih
+        div.className = "border p-2 rounded bg-white mb-2 shadow-sm relative";
 
-        // [BARU] Ubah data 'dp' menjadi string agar aman ditaruh di HTML
         const dpDataString = encodeURIComponent(JSON.stringify(dp));
+
+        // Logic Status Badge
+        let statusLabel = "Unpaid";
+        let statusClass = "bg-red-50 text-red-600 border-red-100";
+        if (dp.status_payment === "paid") {
+          statusLabel = "Paid";
+          statusClass = "bg-green-50 text-green-600 border-green-100";
+        } else if (dp.status_payment === "partial") {
+          statusLabel = "Partial";
+          statusClass = "bg-orange-50 text-orange-600 border-orange-100";
+        }
+
+        // Logic PPN
+        const ppnPercent = parseFloat(dp.ppn_percent || 0);
+        const ppnAmount = parseFloat(dp.ppn_amount || 0);
+        let ppnDisplay = "";
+
+        if (ppnAmount > 0) {
+          // [UBAH] Font size sangat kecil (text-[10px]) agar irit tempat
+          ppnDisplay = `
+                <div class="flex items-center gap-2 mt-0.5 text-[10px] text-gray-500">
+                    <span class="bg-gray-100 px-1 rounded border">Tax ${ppnPercent}%: ${formatNumber(
+            ppnAmount
+          )}</span>
+                    <span class="font-semibold text-gray-600">Total: ${formatNumber(
+                      (dp.amount || 0) + ppnAmount
+                    )}</span>
+                </div>
+            `;
+        }
 
         div.innerHTML = `
         <div class="flex justify-between items-start">
-          <div>
-           <div>
-            <span class="block">${dp.dp_number || "DP"}</span>
-            <span class="block font-medium text-green-700 mt-1">
-              ${formatNumber(dp.amount || 0)}
-            </span>
-          </div>
+          
+          <div class="flex-1">
+            <div class="text-xs font-bold text-gray-500 mb-0.5">
+                ${dp.dp_number || "DP-XXX"}
+            </div>
 
-            <div class="flex justify-between text-xs text-gray-500 mt-1">
-              <span>${dp.description || "-"}</span>
-              <span>${dp.status_payment || "Unpaid"}</span>
+            <div class="flex items-center gap-2">
+                <span class="font-bold text-green-700 text-base">
+                    ${formatNumber(dp.amount || 0)}
+                </span>
+                
+                <span class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold border ${statusClass}">
+                    ${statusLabel}
+                </span>
+            </div>
+
+            ${ppnDisplay}
+
+            <div class="text-[11px] text-gray-400 italic mt-1 leading-tight truncate w-11/12">
+               ${dp.description ? dp.description : "-"}
             </div>
           </div>
-          <div class="flex flex-col gap-1 ml-4">
-            
-            <button 
-              onclick="openUpdateDPModal('${dpDataString}')" 
-              class="px-2 py-1 border rounded text-xs bg-yellow-50 text-yellow-700 hover:bg-yellow-100">
-              ✏️ Update
-            </button>
+
+          <div class="flex flex-col gap-1 ml-2">
+             ${
+               dp.status_payment !== "paid"
+                 ? `<button 
+                    onclick="openUpdateDPModal('${dpDataString}')" 
+                    class="px-2 py-0.5 border rounded text-[10px] bg-yellow-50 text-yellow-700 hover:bg-yellow-100 font-medium transition whitespace-nowrap">
+                    ✏️ Edit
+                  </button>`
+                 : ``
+             }
 
             <button 
               onclick="printInvoiceDP('${dp.dp_id}')" 
-              class="px-2 py-1 border rounded text-xs bg-green-50 text-green-700 hover:bg-green-100">
+              class="px-2 py-0.5 border rounded text-[10px] bg-green-50 text-green-700 hover:bg-green-100 font-medium transition whitespace-nowrap">
               🖨 Print
             </button>
           </div>
+
         </div>
       `;
         uangMukaSection.appendChild(div);
       });
     } else {
-      uangMukaSection.innerHTML = `<div class="text-gray-500 italic">-</div>`;
+      uangMukaSection.innerHTML = `<div class="text-xs text-gray-400 italic text-center py-2 border border-dashed rounded bg-gray-50">- Tidak ada data DP -</div>`;
     }
 
     // [MODIFIKASI] Ambil elemen container tombol DP
@@ -330,6 +434,100 @@ async function loadDetailSales(Id, Detail) {
   }
 }
 
+/**
+ * Fungsi Mengambil Gambar Terproteksi (Secure Fetch)
+ * Versi Revisi: Menampilkan INFO jika file tidak ada (bukan Error)
+ */
+async function handleViewProof(fileUrl) {
+  // 1. Cek Validitas URL di awal
+  // Jika URL kosong, null, atau hanya berisi path folder tanpa nama file
+  if (
+    !fileUrl ||
+    fileUrl === "null" ||
+    fileUrl.trim() === "" ||
+    fileUrl.endsWith("/receipt/")
+  ) {
+    Swal.fire({
+      icon: "info", // 🔵 Pakai icon Info (bukan Error)
+      title: "Tidak Ada File",
+      text: "Bukti pembayaran belum diunggah atau data kosong.",
+      confirmButtonColor: "#3085d6",
+    });
+    return;
+  }
+
+  // 2. Tampilkan Loading
+  Swal.fire({
+    title: "Memuat...",
+    text: "Sedang mengecek file bukti...",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
+  });
+
+  try {
+    // 3. Request ke Server
+    const response = await fetch(fileUrl, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+    });
+
+    // 4. Cek Status Respons
+    // Jika server merespons 404 (File Not Found)
+    if (response.status === 404) {
+      Swal.fire({
+        icon: "info", // 🔵 Info
+        title: "File Tidak Ditemukan",
+        text: "File fisik bukti transaksi tidak ditemukan di server.",
+        confirmButtonColor: "#3085d6",
+      });
+      return;
+    }
+
+    // Jika error lain (misal 500 atau 401 token expired)
+    if (!response.ok) {
+      // Kita anggap saja sebagai info "Gagal memuat" agar tidak terlihat error sistem
+      throw new Error("Gagal mengambil data.");
+    }
+
+    // 5. Jika Berhasil, Tampilkan Gambar
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+
+    await Swal.fire({
+      title: "Bukti Transaksi",
+      html: `
+        <div style="display: flex; justify-content: center; align-items: center; min-height: 200px; background: #f3f4f6; padding: 10px; border-radius: 8px;">
+           <img src="${objectUrl}" 
+                alt="Bukti Transaksi" 
+                style="max-width: 100%; max-height: 80vh; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        </div>
+        <div style="margin-top: 15px;">
+           <a href="${objectUrl}" download="bukti-transaksi.jpg" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm font-medium">
+             ⬇️ Download Gambar
+           </a>
+        </div>
+      `,
+      width: 600,
+      showCloseButton: true,
+      showConfirmButton: false,
+      background: "#fff",
+    });
+  } catch (error) {
+    // Log error asli ke console developer saja (biar user tidak bingung)
+    console.warn("View proof info:", error);
+
+    // Tampilkan pesan INFO ke user
+    Swal.fire({
+      icon: "info", // 🔵 Tetap Info
+      title: "Data Tidak Tersedia",
+      text: "Tidak dapat menampilkan bukti transaksi saat ini.",
+      confirmButtonColor: "#3085d6",
+    });
+  }
+}
+
 function toggleSection(id) {
   const section = document.getElementById(id);
   const icon = document.getElementById("icon-" + id);
@@ -337,38 +535,173 @@ function toggleSection(id) {
   icon.textContent = section.classList.contains("hidden") ? "►" : "▼";
 }
 
-async function tambahUangMuka(pesananId) {
+async function tambahUangMuka(pesananId, contractAmountRaw) {
+  // Pastikan contractAmount berupa angka
+  const contractAmount = parseFloat(contractAmountRaw) || 0;
+
   const { value: formValues } = await Swal.fire({
-    title: "Tambah Uang Muka",
+    title: "Tambah Uang Muka (DP)",
+    width: "600px",
     html: `
-      <div class="space-y-3 text-left">
+  <div class="space-y-3 text-left text-gray-800">
+    <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-sm text-gray-600 mb-1">Tanggal DP</label>
-          <input type="date" id="dp_date" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring" />
+            <label class="block text-sm mb-1">Tanggal DP</label>
+            <input type="date" id="dp_date"
+              class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring" />
         </div>
         <div>
-          <label class="block text-sm text-gray-600 mb-1">Jatuh Tempo</label>
-          <input type="date" id="due_date" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring" />
+            <label class="block text-sm mb-1">Jatuh Tempo</label>
+            <input type="date" id="due_date"
+              class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring" />
         </div>
-        <div>
-          <label class="block text-sm text-gray-600 mb-1">Jumlah (Rp)</label>
-          <input type="number" id="amount" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring" placeholder="1000000" />
+    </div>
+
+    <div class="grid grid-cols-12 gap-3 bg-gray-50 p-3 rounded border border-gray-300">
+        <div class="col-span-12 mb-1 text-xs">
+            Basis Kontrak: ${formatRupiah(contractAmount)}
         </div>
-        <div>
-          <label class="block text-sm text-gray-600 mb-1">Keterangan</label>
-          <textarea id="description" rows="2" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring" placeholder="Contoh: Uang muka 50% untuk proyek ABC"></textarea>
+
+        <div class="col-span-4">
+            <label class="block text-sm mb-1">Persen (%)</label>
+            <div class="relative">
+                <input type="number" id="percentage" step="0.1"
+                    class="w-full border border-gray-300 rounded px-3 py-2 text-right focus:outline-none focus:ring"
+                    placeholder="0" />
+                <span class="absolute right-3 top-2 text-sm text-gray-500">%</span>
+            </div>
         </div>
-      </div>
-    `,
+
+        <div class="col-span-8">
+            <label class="block text-sm mb-1">Nominal Dasar (Exclude PPN)</label>
+            <input type="text" id="amount" onkeyup="formatCurrencyInput(this)"
+                class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring"
+                placeholder="Contoh: 1.000.000" />
+        </div>
+    </div>
+
+    <div class="flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-300">
+        <div class="flex items-center gap-2">
+            <input type="checkbox" id="is_tax" class="w-4 h-4">
+            <label for="is_tax" class="text-sm">Tax / PPN</label>
+        </div>
+        <div class="flex items-center gap-1 w-24">
+            <input type="number" id="tax_percent" value="11" disabled
+                class="w-full border border-gray-300 rounded px-2 py-1 text-right text-sm bg-gray-100 focus:outline-none">
+            <span class="text-sm">%</span>
+        </div>
+    </div>
+
+    <div class="space-y-1 text-right border-t border-gray-300 pt-2 text-sm">
+        <div class="flex justify-between">
+            <span>PPN Amount:</span>
+            <span id="preview_ppn_amount">Rp 0</span>
+        </div>
+        <div class="flex justify-between">
+            <span>Total Tagihan (Include PPN):</span>
+            <span id="preview_total_display">Rp 0</span>
+        </div>
+    </div>
+
+    <div>
+      <label class="block text-sm mb-1">Deskripsi Invoice</label>
+      <textarea id="description" rows="2"
+        class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring"
+        placeholder="Contoh: Uang muka 50%"></textarea>
+    </div>
+  </div>
+`,
+
     focusConfirm: false,
     showCancelButton: true,
     confirmButtonText: "Simpan",
     cancelButtonText: "Batal",
+    didOpen: () => {
+      // Set tanggal default hari ini
+      document.getElementById("dp_date").valueAsDate = new Date();
+
+      const percentageInput = document.getElementById("percentage");
+      const amountInput = document.getElementById("amount");
+      const isTaxCheck = document.getElementById("is_tax");
+      const taxPercentInput = document.getElementById("tax_percent");
+
+      const previewPpn = document.getElementById("preview_ppn_amount");
+      const previewTotal = document.getElementById("preview_total_display");
+
+      // 1. Logic Hitung dari Persen ke Nominal
+      percentageInput.addEventListener("input", () => {
+        let pct = parseFloat(percentageInput.value) || 0;
+        let nominal = contractAmount * (pct / 100);
+        amountInput.value = formatRupiah(nominal); // Format tampilan rupiah
+        calculateFinal();
+      });
+
+      // 2. Logic Hitung dari Nominal ke Persen
+      amountInput.addEventListener("keyup", () => {
+        let rawAmount = amountInput.value.replace(/[^0-9]/g, "");
+        let nominal = parseFloat(rawAmount) || 0;
+
+        if (contractAmount > 0) {
+          let pct = (nominal / contractAmount) * 100;
+          // Tampilkan max 2 desimal agar rapi
+          percentageInput.value = parseFloat(pct.toFixed(2));
+        }
+        calculateFinal();
+      });
+
+      // 3. Logic Hitung Pajak & Total Akhir
+      function calculateFinal() {
+        let rawAmount = amountInput.value.replace(/[^0-9]/g, "");
+        let amount = parseFloat(rawAmount) || 0;
+        let taxRate = 0;
+
+        if (isTaxCheck.checked) {
+          taxPercentInput.removeAttribute("disabled");
+          taxPercentInput.classList.remove("bg-gray-100");
+          taxRate = parseFloat(taxPercentInput.value) || 0;
+        } else {
+          taxPercentInput.setAttribute("disabled", true);
+          taxPercentInput.classList.add("bg-gray-100");
+        }
+
+        let taxValue = amount * (taxRate / 100);
+        let total = amount + taxValue;
+
+        // Update UI
+        previewPpn.textContent = formatRupiah(taxValue);
+        previewTotal.textContent = formatRupiah(total);
+      }
+
+      // Event Listeners Tambahan
+      isTaxCheck.addEventListener("change", calculateFinal);
+      taxPercentInput.addEventListener("input", calculateFinal);
+    },
     preConfirm: () => {
+      const rawAmount = document
+        .getElementById("amount")
+        .value.replace(/[^0-9]/g, "");
+      const amountVal = parseFloat(rawAmount) || 0;
+
+      // Hitung ulang nilai PPN dan Total untuk dikirim ke Backend
+      const isTax = document.getElementById("is_tax").checked;
+      const taxRate = isTax
+        ? parseFloat(document.getElementById("tax_percent").value) || 0
+        : 0;
+      const ppnAmount = amountVal * (taxRate / 100);
+      const totalAmount = amountVal + ppnAmount;
+
       return {
         dp_date: document.getElementById("dp_date").value,
         due_date: document.getElementById("due_date").value,
-        amount: document.getElementById("amount").value,
+
+        // Key Payload Baru
+        amount: amountVal, // Base Amount
+        percentage:
+          parseFloat(document.getElementById("percentage").value) || 0,
+        ppn_percent: taxRate,
+        ppn_amount: ppnAmount,
+        total_amount: totalAmount, // Grand Total
+
         description: document.getElementById("description").value,
       };
     },
@@ -380,7 +713,7 @@ async function tambahUangMuka(pesananId) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${API_TOKEN}`, // 🔑 pastikan token selalu dipakai
+          Authorization: `Bearer ${API_TOKEN}`,
         },
         body: JSON.stringify({
           pesanan_id: pesananId,
@@ -388,8 +721,14 @@ async function tambahUangMuka(pesananId) {
           user_id: user_id,
           dp_date: formValues.dp_date,
           due_date: formValues.due_date,
-          amount: parseFloat(formValues.amount) || 0,
-          percentage: "", // bisa diisi manual kalau dibutuhkan
+
+          // Sesuai Key Request Body yang diminta
+          amount: formValues.amount,
+          percentage: formValues.percentage,
+          ppn_percent: formValues.ppn_percent,
+          ppn_amount: formValues.ppn_amount,
+          total_amount: formValues.total_amount,
+
           description: formValues.description,
           invoice_id: window.detail_id,
         }),
@@ -399,18 +738,14 @@ async function tambahUangMuka(pesananId) {
 
       const result = await res.json();
 
-      // ✅ [DIPERBAIKI] Tunggu alert ini selesai
       await Swal.fire({
         icon: "success",
         title: "Berhasil",
         text: result.message || "Uang muka berhasil ditambahkan",
       });
 
-      // ✅ [DIPERBAIKI] Baru refresh setelah alert ditutup
       loadModuleContent("invoice_detail", window.detail_id, window.detail_desc);
-      console.log("✅ DP berhasil ditambahkan:", result);
     } catch (err) {
-      // ✅ [DIPERBAIKI] Tambahkan await
       await Swal.fire({
         icon: "error",
         title: "Gagal",
@@ -610,14 +945,14 @@ async function openSalesReceiptModal(
           <label class="block text-sm font-medium text-gray-700 mb-1">Nominal Bayar</label>
           <input type="text" id="sr_nominal"
             class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500"
-            placeholder="Masukkan nominal">
+            placeholder="Masukkan nominal" onkeyup="formatCurrencyInput(this)">
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Deksripsi Invoice</label>
           <textarea id="keterangan" rows="2"
             class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500"
-            placeholder="Masukkan keterangan"></textarea>
+            placeholder="Masukkan Deksripsi"></textarea>
         </div>
 
         <div>
@@ -909,90 +1244,219 @@ async function handleSaveInvoiceInfo(formData) {
  * ======================================
  */
 
-/**
- * 1. Membuka modal (pop-up) SweetAlert
- * Berisi form yang sudah diisi data DP yang ada.
- */
 async function openUpdateDPModal(dpDataString) {
   let dpData;
   try {
-    // Ambil data DP yang kita kirim dari tombol
     dpData = JSON.parse(decodeURIComponent(dpDataString));
   } catch (e) {
     console.error("Gagal parse data DP:", e);
-    Swal.fire("Error", "Gagal memuat data DP. Data tidak valid.", "error");
+    Swal.fire("Error", "Gagal memuat data DP.", "error");
     return;
   }
 
-  // OPSIONAL: Cek jika status sudah 'paid', mungkin tidak bisa di-edit
-  // Hapus blok 'if' ini jika Anda ingin tetap bisa mengedit DP yang sudah lunas
   if (dpData.status_payment === "paid") {
     Swal.fire(
       "Info",
-      "Invoice DP yang sudah lunas (paid) tidak dapat di-update.",
+      "Invoice DP yang sudah lunas tidak dapat di-update.",
       "info"
     );
     return;
   }
 
+  // Ambil total kontrak dari variabel global (karena tidak disimpan di table DP)
+  const contractAmount = parseFloat(
+    currentInvoiceData?.contract_amount || currentInvoiceData?.subtotal || 0
+  );
+
+  // Cek Logic Pajak dari data eksisting
+  // Jika ppn_percent > 0 atau is_tax == 1, maka aktifkan checkbox
+  const existingTaxPercent = parseFloat(
+    dpData.ppn_percent || dpData.tax_percent || 0
+  );
+  const isTaxActive = existingTaxPercent > 0 || dpData.is_tax == 1;
+  const displayTaxPercent = existingTaxPercent > 0 ? existingTaxPercent : 11;
+
+  // Hitung persentase awal jika backend tidak kirim (backward compatibility)
+  let initialPercent = dpData.percentage;
+  if (!initialPercent && contractAmount > 0 && dpData.amount > 0) {
+    initialPercent = (dpData.amount / contractAmount) * 100;
+  }
+
   const { value: formValues } = await Swal.fire({
     title: "Update Invoice DP",
+    width: "600px",
     html: `
-      <div class="space-y-3 text-left">
+  <div class="space-y-3 text-left text-gray-800">
+    <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-sm text-gray-600 mb-1">Tanggal DP</label>
-          <input type="date" id="dp_date_update" class="w-full border rounded px-3 py-2" value="${
-            dpData.dp_date || ""
-          }">
+            <label class="block text-sm mb-1">Tanggal DP</label>
+            <input type="date" id="dp_date_update"
+              class="w-full border border-gray-300 rounded px-3 py-2"
+              value="${dpData.dp_date || ""}">
         </div>
         <div>
-          <label class="block text-sm text-gray-600 mb-1">Jatuh Tempo</label>
-          <input type="date" id="due_date_update" class="w-full border rounded px-3 py-2" value="${
-            dpData.due_date || ""
-          }">
+            <label class="block text-sm mb-1">Jatuh Tempo</label>
+            <input type="date" id="due_date_update"
+              class="w-full border border-gray-300 rounded px-3 py-2"
+              value="${dpData.due_date || ""}">
         </div>
-        <div>
-          <label class="block text-sm text-gray-600 mb-1">Jumlah (Rp)</label>
-          <input type="number" id="amount_update" class="w-full border rounded px-3 py-2" value="${
-            dpData.amount || 0
-          }">
+    </div>
+
+    <div class="grid grid-cols-12 gap-3 bg-gray-50 p-3 rounded border border-gray-300">
+        <div class="col-span-12 mb-1 text-xs">
+            Basis Kontrak: ${formatRupiah(contractAmount)}
         </div>
-        <div>
-          <label class="block text-sm text-gray-600 mb-1">Keterangan</label>
-          <textarea id="description_update" rows="2" class="w-full border rounded px-3 py-2">${
-            dpData.description || ""
-          }</textarea>
+
+        <div class="col-span-4">
+            <label class="block text-sm mb-1">Persen (%)</label>
+            <div class="relative">
+                <input type="number" id="percentage_update" step="0.1"
+                    class="w-full border border-gray-300 rounded px-3 py-2 text-right focus:outline-none focus:ring"
+                    value="${parseFloat(initialPercent || 0).toFixed(2)}" />
+                <span class="absolute right-3 top-2 text-sm text-gray-500">%</span>
+            </div>
         </div>
-      </div>
-    `,
+
+        <div class="col-span-8">
+            <label class="block text-sm mb-1">Nominal (Exclude PPN)</label>
+            <input type="text" id="amount_update" onkeyup="formatCurrencyInput(this)"
+                class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring"
+                value="${formatNumber(dpData.amount || 0)}">
+        </div>
+    </div>
+
+    <div class="flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-300">
+        <div class="flex items-center gap-2">
+            <input type="checkbox" id="is_tax_update" class="w-4 h-4"
+              ${isTaxActive ? "checked" : ""}>
+            <label for="is_tax_update" class="text-sm">Tax / PPN</label>
+        </div>
+        <div class="flex items-center gap-1 w-24">
+            <input type="number" id="tax_percent_update"
+              value="${displayTaxPercent}"
+              class="w-full border border-gray-300 rounded px-2 py-1 text-right text-sm focus:outline-none ${
+                isTaxActive ? "" : "bg-gray-100"
+              }"
+              ${isTaxActive ? "" : "disabled"}>
+            <span class="text-sm">%</span>
+        </div>
+    </div>
+
+    <div class="space-y-1 text-right border-t border-gray-300 pt-2 text-sm">
+        <div class="flex justify-between">
+            <span>PPN Amount:</span>
+            <span id="preview_ppn_update">Rp 0</span>
+        </div>
+        <div class="flex justify-between">
+            <span>Total Tagihan (Include PPN):</span>
+            <span id="preview_total_update">Rp 0</span>
+        </div>
+    </div>
+
+    <div>
+      <label class="block text-sm mb-1">Deskripsi Invoice</label>
+      <textarea id="description_update" rows="2"
+        class="w-full border border-gray-300 rounded px-3 py-2">${
+          dpData.description || ""
+        }</textarea>
+    </div>
+  </div>
+`,
+
     focusConfirm: false,
     showCancelButton: true,
     confirmButtonText: "Simpan Perubahan",
     cancelButtonText: "Batal",
+    didOpen: () => {
+      const percentageInput = document.getElementById("percentage_update");
+      const amountInput = document.getElementById("amount_update");
+      const isTaxCheck = document.getElementById("is_tax_update");
+      const taxPercentInput = document.getElementById("tax_percent_update");
+      const previewPpn = document.getElementById("preview_ppn_update");
+      const previewTotal = document.getElementById("preview_total_update");
+
+      // Logic Kalkulasi Update (Mirip dengan Create)
+      percentageInput.addEventListener("input", () => {
+        let pct = parseFloat(percentageInput.value) || 0;
+        let nominal = contractAmount * (pct / 100);
+        amountInput.value = formatRupiah(nominal);
+        calculateTotal();
+      });
+
+      amountInput.addEventListener("keyup", () => {
+        let rawAmount = amountInput.value.replace(/[^0-9]/g, "");
+        let nominal = parseFloat(rawAmount) || 0;
+        if (contractAmount > 0) {
+          let pct = (nominal / contractAmount) * 100;
+          percentageInput.value = parseFloat(pct.toFixed(2));
+        }
+        calculateTotal();
+      });
+
+      function calculateTotal() {
+        let rawAmount = amountInput.value.replace(/[^0-9]/g, "");
+        let amount = parseFloat(rawAmount) || 0;
+        let taxRate = 0;
+
+        if (isTaxCheck.checked) {
+          taxPercentInput.removeAttribute("disabled");
+          taxPercentInput.classList.remove("bg-gray-100");
+          taxRate = parseFloat(taxPercentInput.value) || 0;
+        } else {
+          taxPercentInput.setAttribute("disabled", true);
+          taxPercentInput.classList.add("bg-gray-100");
+        }
+
+        let taxValue = amount * (taxRate / 100);
+        let total = amount + taxValue;
+
+        previewPpn.textContent = formatRupiah(taxValue);
+        previewTotal.textContent = formatRupiah(total);
+      }
+
+      // Hitung awal saat modal terbuka
+      calculateTotal();
+
+      // Listener
+      isTaxCheck.addEventListener("change", calculateTotal);
+      taxPercentInput.addEventListener("input", calculateTotal);
+    },
     preConfirm: () => {
+      const rawAmount = document
+        .getElementById("amount_update")
+        .value.replace(/[^0-9]/g, "");
+      const amountVal = parseFloat(rawAmount) || 0;
+
+      const isTax = document.getElementById("is_tax_update").checked;
+      const taxRate = isTax
+        ? parseFloat(document.getElementById("tax_percent_update").value) || 0
+        : 0;
+      const ppnAmount = amountVal * (taxRate / 100);
+      const totalAmount = amountVal + ppnAmount;
+
       return {
+        dp_id: dpData.dp_id,
         dp_date: document.getElementById("dp_date_update").value,
         due_date: document.getElementById("due_date_update").value,
-        amount: document.getElementById("amount_update").value,
+
+        amount: amountVal,
+        percentage:
+          parseFloat(document.getElementById("percentage_update").value) || 0,
+        ppn_percent: taxRate,
+        ppn_amount: ppnAmount,
+        total_amount: totalAmount,
+
         description: document.getElementById("description_update").value,
-        dp_id: dpData.dp_id, // Kirim ID DP untuk update
       };
     },
   });
 
   if (formValues) {
-    // Jika user klik "Simpan", panggil fungsi handler
     await handleUpdateDP(formValues);
   }
 }
 
-/**
- * 2. Mengirim data update ke API
- * (Fungsi ini dipanggil oleh openUpdateDPModal)
- * * [VERSI BARU DISESUAIKAN DENGAN ENDPOINT /update/sales_dp/ID]
- */
 async function handleUpdateDP(formValues) {
-  // Tampilkan loading
   Swal.fire({
     title: "Menyimpan...",
     text: "Sedang memperbarui data Invoice DP.",
@@ -1001,29 +1465,29 @@ async function handleUpdateDP(formValues) {
   });
 
   try {
-    // [DIUBAH] Gunakan endpoint dengan ID di URL
     const res = await fetch(`${baseUrl}/update/sales_dp/${formValues.dp_id}`, {
-      method: "PUT", // atau PUT/PATCH, sesuaikan dengan API Anda
+      method: "PUT",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${API_TOKEN}`,
       },
-      // [DIUBAH] Sesuaikan payload body
       body: JSON.stringify({
-        // Ambil ID konteks dari data invoice utama
         pesanan_id: currentInvoiceData.pesanan_id,
         invoice_id: window.detail_id,
+        owner_id: owner_id,
+        user_id: user_id,
 
-        // Data dari form modal
         dp_date: formValues.dp_date,
         due_date: formValues.due_date,
-        amount: parseFloat(formValues.amount) || 0,
-        description: formValues.description,
-        percentage: "", // Sesuai contoh payload Anda
 
-        // ID user/owner
-        user_id: user_id,
-        owner_id: owner_id,
+        // PAYLOAD UTAMA
+        amount: formValues.amount, // Nominal Dasar
+        percentage: formValues.percentage, // Persentase
+        ppn_percent: formValues.ppn_percent, // 11 atau 0
+        ppn_amount: formValues.ppn_amount, // Nilai Pajak
+        total_amount: formValues.total_amount, // Nominal + Pajak
+
+        description: formValues.description,
       }),
     });
 
@@ -1034,17 +1498,14 @@ async function handleUpdateDP(formValues) {
 
     const result = await res.json();
 
-    // ✅ [DIPERBAIKI] Tunggu alert ini selesai
     await Swal.fire({
       icon: "success",
       title: "Berhasil",
       text: result.message || "Invoice DP berhasil diperbarui",
     });
 
-    // ✅ [DIPERBAIKI] Baru refresh setelah alert ditutup
     loadModuleContent("invoice_detail", window.detail_id, window.detail_desc);
   } catch (err) {
-    // ✅ [DIPERBAIKI] Tambah await
     await Swal.fire({
       icon: "error",
       title: "Gagal",

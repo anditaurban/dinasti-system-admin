@@ -324,6 +324,10 @@ document.querySelectorAll(".formatNumber").forEach((input) => {
   });
 });
 
+function formatCurrencyInput(input) {
+  input.value = finance(input.value.replace(/\D/g, ""));
+}
+
 function parseRupiah(v) {
   return parseInt(String(v).replace(/[^\d]/g, "") || 0);
 }

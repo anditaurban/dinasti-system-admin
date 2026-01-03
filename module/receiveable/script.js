@@ -6,14 +6,6 @@ setDataType("account_receivable");
 fetchAndUpdateData();
 
 window.rowTemplate = function (item, index, perPage = 10) {
-  // Hitung sisa tagihan (Balance) = Nilai Kontrak - Nominal yang diterima
-  // Jika nominal 0, maka balance = contract_amount
-  const balanceAmount = item.contract_amount - item.nominal;
-
-  // Hitung persentase sisa
-  const receivedPercent = parseFloat(item.payment_percentage || 0);
-  const balancePercent = (100 - receivedPercent).toFixed(1);
-
   return `
   <tr class="flex flex-col sm:table-row border-b border-gray-200 hover:bg-gray-50 text-sm text-gray-700 transition">
     
@@ -37,15 +29,23 @@ window.rowTemplate = function (item, index, perPage = 10) {
 
     <td class="align-top px-4 py-3 border-r border-gray-200 sm:table-cell">
       <div class="flex flex-col gap-1">
-        <div class="font-medium text-gray-900">${finance(item.nominal)}</div>
-        <div class="text-xs text-gray-500">${receivedPercent}% from Total</div>
+        <div class="font-medium text-gray-900">${finance(
+          item.received_amount
+        )}</div>
+        <div class="text-xs text-gray-500">${
+          item.received_percentage
+        }% from Total</div>
       </div>
     </td>
 
     <td class="align-top px-4 py-3 border-r border-gray-200 sm:table-cell">
       <div class="flex flex-col gap-1">
-        <div class="font-medium text-gray-900">${finance(balanceAmount)}</div>
-        <div class="text-xs text-gray-500">${balancePercent}% from Total</div>
+        <div class="font-medium text-gray-900">${finance(
+          item.balance_amount
+        )}</div>
+        <div class="text-xs text-gray-500">${
+          item.balance_percentage
+        }% from Total</div>
       </div>
     </td>
 

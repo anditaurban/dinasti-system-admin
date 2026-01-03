@@ -14,21 +14,27 @@
 
       <!-- Search -->
       <div class="w-full md:w-auto">
-        <input
-          type="text"
-          id="searchInput"
-          onkeyup="debounceSearch()"
-          placeholder="🔎 Cari..."
-          class="px-3 py-2 border rounded w-full md:w-96"
-        />
+        <input type="text" id="searchInput" onkeyup="debounceSearch()" placeholder="🔎 Cari..."
+          class="px-3 py-2 border rounded w-full md:w-96" />
+      </div>
+
+      <!-- Actions -->
+      <div class="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto">
+
+        <!-- Export Dropdown -->
+        <button onclick="exportData()"
+          class="bg-green-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm flex items-center gap-2">
+          <span>Export</span>
+        </button>
+
+
       </div>
     </div>
 
     <!-- Table -->
     <div class="overflow-x-auto">
       <table id="receiptTable" class="min-w-full text-sm border">
-        <thead id="tableHeader"
-          class="hidden md:table-header-group bg-gray-100 text-gray-600">
+        <thead id="tableHeader" class="hidden md:table-header-group bg-gray-100 text-gray-600">
           <tr>
             <th class="px-4 py-2 border">Tanggal</th>
             <th class="px-4 py-2 border">No. Receipt</th>

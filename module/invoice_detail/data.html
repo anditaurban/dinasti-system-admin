@@ -113,6 +113,18 @@
         </div>
 
         <div class="border rounded bg-white text-sm">
+          <button onclick="toggleSection('uangMukaSection')"
+            class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
+            💰 Invoice Uang Muka
+            <span id="icon-uangMukaSection">▼</span>
+          </button>
+          <div id="uangMukaSection" class="p-3 space-y-2">
+            <div class="text-gray-500 italic">-</div>
+          </div>
+          <div id="invoiceDPbutton" class="border-t p-3"></div>
+        </div>
+
+        <div class="border rounded bg-white text-sm">
           <button onclick="toggleSection('pembayaranSection')"
             class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
             💳 Daftar Pembayaran
@@ -142,17 +154,7 @@
           </div>
         </div>
 
-        <div class="border rounded bg-white text-sm">
-          <button onclick="toggleSection('uangMukaSection')"
-            class="w-full flex justify-between items-center px-3 py-2 font-medium text-gray-700 border-b">
-            💰 Invoice Uang Muka
-            <span id="icon-uangMukaSection">▼</span>
-          </button>
-          <div id="uangMukaSection" class="p-3 space-y-2">
-            <div class="text-gray-500 italic">-</div>
-          </div>
-          <div id="invoiceDPbutton" class="border-t p-3"></div>
-        </div>
+
 
         <div class="border rounded bg-white text-sm">
           <button onclick="toggleSection('catatanSection')"
