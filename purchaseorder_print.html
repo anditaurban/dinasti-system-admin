@@ -149,164 +149,185 @@
                 });
 
                 const json = await res.json();
+
+                // Cek response API
                 if (!json.success || !json.data) throw new Error("Data tidak ditemukan");
 
-                const data = json.data.header;
-                const items = data.items || [];
+                // --- MAPPING DATA SESUAI JSON ---
+                const data = json.data.header;       // Data utama (Header PO)
+                const items = data.items || [];      // Array Items
+                const approval = json.data.approval; // Data Approval (Sejajar dengan header)
 
-                // --- PERSIAPAN QR CODE ---
-                const signUrl = `https://digitalsign.dinastikelektrik.id/ref=${data.no_po}`;
-                const encodedSign = encodeSign(data.no_po);
+                // Debugging di Console (Tekan F12 untuk cek)
+                console.log("Data Header:", data);
+                console.log("Data Approval:", approval);
+
+                // --- LOGIKA HTML SIGNATURE ---
+                let signatureHtml = "";
+
+                // Cek apakah object approval ada DAN statusnya 'yes'
+                if (approval && String(approval.status).toLowerCase() === 'yes') {
+                    // TAMPILKAN TANDA TANGAN
+                    signatureHtml = `
+                    <div class="text-sm text-right mt-8 pr-4">
+                        <p class="font-semibold mb-2">APPROVED BY</p>
+                        
+                        <div id="qrcode" class="inline-block p-1 bg-white mb-2"></div>
+                        
+                        <div>
+                            <p class="font-bold border-b border-black inline-block min-w-[200px] text-center uppercase">
+                                Rian Septiadi Saimima
+                            </p>
+                        </div>
+                        <p class="text-[10px] text-gray-500 mt-1">
+                            Digitally signed: <span class="font-mono font-bold">${approval.approval_code}</span><br>
+                            Date: ${approval.approved_at}
+                        </p>
+                    </div>
+                    `;
+                } else {
+                    // TAMPILKAN WAITING / KOSONG
+                    signatureHtml = `
+                    <div class="text-sm text-right mt-8 pr-4 h-32 flex flex-col justify-end">
+                        <p class="text-gray-400 italic text-xs"></p>
+                    </div>
+                    `;
+                }
 
                 // Render Table Rows
                 let globalIndex = 1;
                 const tableRows = items.map(item => `
-            <tr class="bg-white">
-                <td class="text-center text-gray-700 border border-black p-1">${globalIndex++}</td>
-                <td class="p-1 text-black border border-black">
-                    <div class="font-medium text-xs">${item.name}</div>
-                    ${item.project_materials_id != 0 ? `<div class="text-[10px] text-gray-600 italic">Material ID: ${item.project_materials_id}</div>` : ''}
-                </td>
-                <td class="text-center border border-black p-1">${item.qty}</td>
-                <td class="text-center border border-black p-1">${item.unit}</td>
-                <td class="border border-black p-1 text-right">
-                    <div class="flex justify-between"><span>Rp</span><span>${finance(item.unit_price)}</span></div>
-                </td>
-                <td class="border border-black p-1 font-medium text-right">
-                    <div class="flex justify-between"><span>Rp</span><span>${finance(item.total || (item.qty * item.unit_price))}</span></div>
-                </td>
-            </tr>
-        `).join("");
-
-                // --- BAGIAN EMPTY ROWS FILLER SUDAH DIHAPUS ---
+                    <tr class="bg-white">
+                        <td class="text-center text-gray-700 border border-black p-1">${globalIndex++}</td>
+                        <td class="p-1 text-black border border-black">
+                            <div class="font-medium text-xs">${item.name}</div>
+                            ${item.project_materials_id != 0 ? `<div class="text-[10px] text-gray-600 italic">Material ID: ${item.project_materials_id}</div>` : ''}
+                        </td>
+                        <td class="text-center border border-black p-1">${item.qty}</td>
+                        <td class="text-center border border-black p-1">${item.unit}</td>
+                        <td class="border border-black p-1 text-right">
+                            <div class="flex justify-between"><span>Rp</span><span>${finance(item.unit_price)}</span></div>
+                        </td>
+                        <td class="border border-black p-1 font-medium text-right">
+                            <div class="flex justify-between"><span>Rp</span><span>${finance(item.total || (item.qty * item.unit_price))}</span></div>
+                        </td>
+                    </tr>
+                `).join("");
 
                 const html = `
-            <div class="flex justify-between items-start mb-6">
-                <div class="shrink-0">
-                    <img id="logo_preview" class="h-24 w-40 object-contain" alt="Logo" />
-                </div>
-                <div class="flex-1 px-4">
-                    <h1 class="font-bold text-red-600 text-lg leading-tight uppercase">${companyInfo.name}</h1>
-                    <p class="font-bold text-sm text-gray-700">${companyInfo.tagline}</p>
-                    <p class="text-xs leading-snug mt-1 text-gray-600 whitespace-pre-line">${companyInfo.address}</p>
-                    <div class="text-xs mt-2 space-y-0.5 text-gray-600">
-                        <p>Instagram : ${companyInfo.instagram}</p>
-                        <p>Instagram : ${companyInfo.other_sosmed}</p>
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="shrink-0">
+                            <img id="logo_preview" class="h-24 w-40 object-contain" alt="Logo" />
+                        </div>
+                        <div class="flex-1 px-4">
+                            <h1 class="font-bold text-red-600 text-lg leading-tight uppercase">${companyInfo.name}</h1>
+                            <p class="font-bold text-sm text-gray-700">${companyInfo.tagline}</p>
+                            <p class="text-xs leading-snug mt-1 text-gray-600 whitespace-pre-line">${companyInfo.address}</p>
+                            <div class="text-xs mt-2 space-y-0.5 text-gray-600">
+                                <p>Instagram : ${companyInfo.instagram}</p>
+                                <p>Instagram : ${companyInfo.other_sosmed}</p>
+                            </div>
+                        </div>
+                        <div class="flex justify-end">
+                            <div class="text-right shrink-0">
+                                <h2 class="font-bold text-xl text-indigo-800">PURCHASE ORDER</h2>
+                                <table class="border-collapse text-xs mt-2 ml-auto">
+                                    <tr>
+                                        <td class="px-2 py-1 text-left font-semibold">DATE</td>
+                                        <td class="border border-gray-400 px-3 py-1 text-center bg-gray-50">${data.po_date}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-2 py-1 text-left font-semibold">PO NO</td>
+                                        <td class="border border-gray-400 px-3 py-1 text-center bg-gray-50 font-bold">${data.no_po_pdf}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="flex justify-end">
-                    <div class="text-right shrink-0">
-                        <h2 class="font-bold text-xl text-indigo-800">PURCHASE ORDER</h2>
-                        <table class="border-collapse text-xs mt-2 ml-auto">
-                            <tr>
-                                <td class="px-2 py-1 text-left font-semibold">DATE</td>
-                                <td class="border border-gray-400 px-3 py-1 text-center bg-gray-50">${data.po_date}</td>
+
+                    <div class="flex gap-4 mb-4">
+                        <div class="w-1/2">
+                            <div class="bg-indigo-900 text-white font-bold text-xs px-2 py-1 inline-block mb-1">PURCHASE FROM</div>
+                            <div class="text-sm leading-snug border p-2 border-gray-300 min-h-[80px]">
+                                <p class="font-bold text-gray-800">${data.vendor}</p>
+                                ${data.vendor_pic ? `<p>UP: ${data.vendor_pic}</p>` : ''}
+                                <p class="text-xs mt-1 text-gray-600">${data.vendor_alamat || '-'}</p>
+                                ${data.vendor_phone ? `<p class="text-xs">Ph: ${data.vendor_phone}</p>` : ''}
+                            </div>
+                        </div>
+                        <div class="w-1/2">
+                            <div class="bg-indigo-900 text-white font-bold text-xs px-2 py-1 inline-block mb-1">SHIP TO</div>
+                            <div class="text-sm leading-snug border p-2 border-gray-300 min-h-[80px]">
+                                <p class="font-bold text-gray-800">Septri Noerjhani</p>
+                                <p class="font-semibold text-xs">${companyInfo.name}</p>
+                                <p class="text-xs mt-1 text-gray-600 whitespace-pre-line">${companyInfo.address}</p>
+                                ${data.purchaser_phone ? `<p class="text-xs">Ph: 0816516825</p>` : ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    <table class="w-full compact-table border-collapse border border-black mb-3">
+                        <thead class="bg-blue-900">
+                            <tr class="text-white">
+                                <th class="text-center w-10 border border-black">No.</th>
+                                <th class="text-left pl-2 border border-black">DESCRIPTION</th>
+                                <th class="text-center w-12 border border-black">QTY</th>
+                                <th class="text-center w-12 border border-black">UNIT</th>
+                                <th class="text-center w-28 border border-black">UNIT PRICE</th>
+                                <th class="text-center w-28 border border-black">TOTAL</th>
                             </tr>
-                            <tr>
-                                <td class="px-2 py-1 text-left font-semibold">PO NO</td>
-                                <td class="border border-gray-400 px-3 py-1 text-center bg-gray-50 font-bold">${data.no_po_pdf}</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex gap-4 mb-4">
-                <div class="w-1/2">
-                    <div class="bg-indigo-900 text-white font-bold text-xs px-2 py-1 inline-block mb-1">PURCHASE FROM</div>
-                    <div class="text-sm leading-snug border p-2 border-gray-300 min-h-[80px]">
-                        <p class="font-bold text-gray-800">${data.vendor}</p>
-                        ${data.vendor_pic ? `<p>UP: ${data.vendor_pic}</p>` : ''}
-                        <p class="text-xs mt-1 text-gray-600">${data.vendor_alamat || '-'}</p>
-                        ${data.vendor_phone ? `<p class="text-xs">Ph: ${data.vendor_phone}</p>` : ''}
-                    </div>
-                </div>
-                <div class="w-1/2">
-                    <div class="bg-indigo-900 text-white font-bold text-xs px-2 py-1 inline-block mb-1">SHIP TO</div>
-                    <div class="text-sm leading-snug border p-2 border-gray-300 min-h-[80px]">
-                        <p class="font-bold text-gray-800">Septri Noerjhani</p>
-                        <p class="font-semibold text-xs">${companyInfo.name}</p>
-                        <p class="text-xs mt-1 text-gray-600 whitespace-pre-line">${companyInfo.address}</p>
-                        ${data.purchaser_phone ? `<p class="text-xs">Ph: 0816516825</p>` : ''}
-                    </div>
-                </div>
-            </div>
-
-            <table class="w-full compact-table border-collapse border border-black mb-3">
-                <thead class="bg-blue-900">
-                    <tr class="text-white">
-                        <th class="text-center w-10 border border-black">No.</th>
-                        <th class="text-left pl-2 border border-black">DESCRIPTION</th>
-                        <th class="text-center w-12 border border-black">QTY</th>
-                        <th class="text-center w-12 border border-black">UNIT</th>
-                        <th class="text-center w-28 border border-black">UNIT PRICE</th>
-                        <th class="text-center w-28 border border-black">TOTAL</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${tableRows}
-                </tbody>
-            </table>
-
-            <div class="flex justify-between items-start mt-4 text-xs">
-                <div class="w-1/2 border border-gray-400">
-                    <div class="bg-gray-300 font-semibold px-3 py-1 border-b border-gray-400">Comments or Special Instructions</div>
-                    <div class="px-3 py-2 text-gray-700 min-h-[100px]">
-                         <p class="mb-2 whitespace-pre-line">${data.notes || '-'}</p>
-                    </div>
-                </div>
-                <div class="w-5/12">
-                    <table class="text-xs w-full">
-                        <tr>
-                            <td class="pr-3 py-1 text-right font-semibold text-gray-700">SUBTOTAL</td>
-                            <td class="py-1 text-gray-800 border-b border-gray-200">
-                                <div class="flex justify-between"><span>Rp</span><span>${finance(data.subtotal)}</span></div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="pr-3 py-1 text-right font-semibold text-gray-700">DISC ${data.discount_percent > 0 ? `(${data.discount_percent}%)` : ''}</td>
-                            <td class="py-1 text-gray-800 border-b border-gray-200">
-                                <div class="flex justify-between text-red-600"><span>Rp</span><span>- ${finance(data.discount_nominal)}</span></div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="pr-3 py-1 text-right font-semibold text-gray-700">PPN ${data.ppn_percent}%</td>
-                            <td class="py-1 text-gray-800 border-b border-gray-200">
-                                <div class="flex justify-between"><span>Rp</span><span>${finance(data.ppn_nominal)}</span></div>
-                            </td>
-                        </tr>
-                        <tr class="font-bold border-t-2 border-black total-row">
-                            <td class="pr-3 py-2 text-right text-gray-900 text-sm">TOTAL</td>
-                            <td class="py-2 text-blue-900 bg-blue-100 px-1">
-                                <div class="flex justify-between text-sm"><span>Rp</span><span>${finance(data.total_purchase)}</span></div>
-                            </td>
-                        </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows}
+                        </tbody>
                     </table>
-                </div>
-            </div>
 
-            <div class="text-sm text-right mt-8 pr-4">
-                <p class="font-semibold mb-2">APPROVED BY</p>
-                
-                <div id="qrcode" class="inline-block p-1 bg-white mb-2"></div>
-                
-                <div>
-                    <p class="font-bold border-b border-black inline-block min-w-[200px] text-center">
-                        Rian Septiadi Saimima
-                    </p>
-                </div>
-                <p class="text-[10px] text-gray-500 mt-1">
-                    Digitally signed: <span class="font-mono font-bold">${encodedSign}</span>
-                </p>
-            </div>
+                    <div class="flex justify-between items-start mt-4 text-xs">
+                        <div class="w-1/2 border border-gray-400">
+                            <div class="bg-gray-300 font-semibold px-3 py-1 border-b border-gray-400">Comments or Special Instructions</div>
+                            <div class="px-3 py-2 text-gray-700 min-h-[100px]">
+                                 <p class="mb-2 whitespace-pre-line">${data.notes || '-'}</p>
+                            </div>
+                        </div>
+                        <div class="w-5/12">
+                            <table class="text-xs w-full">
+                                <tr>
+                                    <td class="pr-3 py-1 text-right font-semibold text-gray-700">SUBTOTAL</td>
+                                    <td class="py-1 text-gray-800 border-b border-gray-200">
+                                        <div class="flex justify-between"><span>Rp</span><span>${finance(data.subtotal)}</span></div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="pr-3 py-1 text-right font-semibold text-gray-700">DISC ${data.discount_percent > 0 ? `(${data.discount_percent}%)` : ''}</td>
+                                    <td class="py-1 text-gray-800 border-b border-gray-200">
+                                        <div class="flex justify-between text-red-600"><span>Rp</span><span>- ${finance(data.discount_nominal)}</span></div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="pr-3 py-1 text-right font-semibold text-gray-700">PPN ${data.ppn_percent}%</td>
+                                    <td class="py-1 text-gray-800 border-b border-gray-200">
+                                        <div class="flex justify-between"><span>Rp</span><span>${finance(data.ppn_nominal)}</span></div>
+                                    </td>
+                                </tr>
+                                <tr class="font-bold border-t-2 border-black total-row">
+                                    <td class="pr-3 py-2 text-right text-gray-900 text-sm">TOTAL</td>
+                                    <td class="py-2 text-blue-900 bg-blue-100 px-1">
+                                        <div class="flex justify-between text-sm"><span>Rp</span><span>${finance(data.total_purchase)}</span></div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
 
-            <div class="quotation-footer text-gray-500">
-                <p>
-                    If you have any questions about this Purchase Order, please contact<br>
-                    Septri Noerjhani, 0816516825, septrinoerjhani@dinasti.id
-                </p>
-            </div>
-        `;
+                    ${signatureHtml}
+
+                    <div class="quotation-footer text-gray-500">
+                        <p>
+                            If you have any questions about this Purchase Order, please contact<br>
+                            Septri Noerjhani, 0816516825, septrinoerjhani@dinasti.id
+                        </p>
+                    </div>
+                `;
 
                 container.innerHTML = html;
                 loadLogoWithAuth(companyInfo.logo_url);
@@ -314,10 +335,16 @@
                 // --- GENERATE QR CODE ---
                 setTimeout(() => {
                     const qrElement = document.getElementById("qrcode");
-                    if (qrElement) {
+
+                    // Kita cek approval lagi di sini
+                    if (qrElement && approval && String(approval.status).toLowerCase() === 'yes') {
                         qrElement.innerHTML = "";
+
+                        // URL Verifikasi memakai approval_code dari JSON
+                        const qrText = `https://digitalsign.dinastikelektrik.id/verify?code=${approval.approval_code}`;
+
                         new QRCode(qrElement, {
-                            text: signUrl,
+                            text: qrText,
                             width: 75,
                             height: 75,
                             colorDark: "#000000",

@@ -1289,7 +1289,7 @@ window.printInvoice = async function (id) {
 
     const swalResult = await Swal.fire({
       title: "Cetak Purchase Order",
-      text: `Cetak PO Nomor: ${header.no_po}?`,
+      html: `Cetak PO Nomor: ${header.no_po}?`,
       icon: "question",
       showCancelButton: true,
       confirmButtonText: "Buka PDF",

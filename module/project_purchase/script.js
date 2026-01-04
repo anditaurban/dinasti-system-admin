@@ -461,7 +461,7 @@ async function handlePurchaseSubmit(e) {
 //   }
 // }
 
-// --- 4. HELPER FUNCTIONS & LOGIC FORM ---
+// --- 4. HELPER FUNCTIONS & LOGIC FORM (UPDATED) ---
 function handlePoChange() {
   const selectedPurchaseId = document.getElementById("purchNoPo").value;
 
@@ -482,69 +482,85 @@ function handlePoChange() {
   const poData = poList.find((p) => p.purchase_id == selectedPurchaseId);
 
   if (poData) {
-    // --- [LOGIC BARU] CEK APPROVAL STATUS ---
-    // Mengambil value dari JSON: "approval_status": "yes"
+    // --- CEK APPROVAL STATUS ---
     const statusApproval = poData.approval_status
       ? poData.approval_status.toLowerCase()
       : "no";
 
     if (statusApproval !== "yes") {
-      // Tampilkan Alert Warning
       Swal.fire({
         icon: "warning",
         title: "Belum Disetujui",
-        text: `Nomor PO ${poData.no_po} belum di-approve (Status: ${
-          poData.approval_status || "No"
-        }). Anda tidak bisa memproses pembayaran ini.`,
-      });
-
-      // Reset Dropdown kembali ke kosong
-      document.getElementById("purchNoPo").value = "";
-
-      // Bersihkan field lain
-      resetFieldPo();
-
-      return; // STOP STOP STOP: Jangan lanjut ke bawah
-    }
-    // ----------------------------------------
-
-    const sisaTagihan = parseFloat(poData.total_tagihan);
-
-    // 3. Cek Status Lunas / Sisa 0
-    // Note: Kadang status 'Partial Paid' tapi sisa tagihan sudah 0 (tergantung logic backend), jadi cek nominal sisa paling aman
-    if (poData.status === "Paid" || sisaTagihan <= 0) {
-      Swal.fire({
-        icon: "warning",
-        title: "Tagihan Lunas",
-        text: `Nomor PO ${poData.no_po} sudah lunas atau sisa tagihan Rp 0.`,
+        text: `Nomor PO ${poData.no_po} belum di-approve.`,
       });
       document.getElementById("purchNoPo").value = "";
       resetFieldPo();
       return;
     }
 
-    // 4. Jika Lolos Validasi (Approved "Yes" & Belum Lunas)
+    // --- VARIABEL KEUANGAN ---
+    const sisaTagihan = parseFloat(poData.total_tagihan) || 0;
+    const totalPo = parseFloat(poData.total_po) || 0;
+    const apiPercent = parseFloat(poData.nominal_percent) || 0;
+
+    // 3. Cek Status Lunas / Sisa 0
+    if (poData.status === "Paid" || sisaTagihan <= 0) {
+      Swal.fire({
+        icon: "warning",
+        title: "Tagihan Lunas",
+        text: `Nomor PO ${poData.no_po} sudah lunas.`,
+      });
+      document.getElementById("purchNoPo").value = "";
+      resetFieldPo();
+      return;
+    }
+
+    // 4. Setup Input Dasar
     elVendorId.value = poData.vendor_id || 0;
-    elNoPoFile.value = poData.no_po_file || ""; // Pastikan JSON list/no_po return field ini jika butuh
+    elNoPoFile.value = poData.no_po_file || "";
 
-    // Set Default Pelunasan (100%)
-    elPercent.value = "100";
-    elNominal.value = finance(sisaTagihan);
+    // --- LOGIC BARU: PRIORITASKAN NOMINAL PERCENT DARI API ---
+    // Logic: Jika ada nominal_percent dari API (misal 30%), gunakan itu.
+    // Jika tidak ada (0/null), fallback ke 100% (pelunasan sisa).
 
-    // Simpan Base Data untuk Kalkulasi Persen
+    if (apiPercent > 0) {
+      // CASE A: Menggunakan data Termin/Percent dari API (Contoh: 30%)
+      elPercent.value = apiPercent; // Isi kolom persen (30.00)
+      elNominal.value = finance(sisaTagihan); // Isi nominal rupiah sesuai sisa tagihan saat ini
+
+      // PENTING: Set Base Calculation untuk Event Listener
+      // Jika persen berasal dari Total Project (misal termin 1 = 30% dari Total),
+      // maka base calculation-nya adalah total_po.
+      elNominal.dataset.totalBase = totalPo;
+    } else {
+      // CASE B: Tidak ada data percent (Logic Lama / Default Pelunasan)
+      elPercent.value = "100";
+      elNominal.value = finance(sisaTagihan);
+
+      // Base calculation adalah sisa tagihan itu sendiri
+      elNominal.dataset.totalBase = sisaTagihan;
+    }
+
+    // Kunci Max Value agar tidak input berlebih
     elNominal.dataset.maxVal = sisaTagihan;
-    elNominal.dataset.totalBase = sisaTagihan;
 
+    // --- INFO TEXT ---
     const vendorName = poData.vendor || "Vendor Tidak Diketahui";
-
-    // Info Text Tambahan (Optional: Tampilkan Approved By)
     const approvedBy = poData.approved_by
       ? `(Appr. by ${poData.approved_by})`
       : "";
 
+    // Tampilkan info tambahan jika menggunakan mode persen API
+    const infoPercent =
+      apiPercent > 0
+        ? `<span class="text-blue-600 font-bold ml-1">[Termin ${apiPercent}%]</span>`
+        : "";
+
     elInfo.innerHTML = `
-        Vendor: <b>${vendorName}</b> <span class="text-green-600 text-xs font-bold">✓ APPROVED ${approvedBy}</span><br> 
-        Sisa Tagihan: Rp ${finance(sisaTagihan)}
+        Vendor: <b>${vendorName}</b> <span class="text-green-600 text-xs font-bold">✓ APPROVED ${approvedBy}</span> ${infoPercent}<br> 
+        Total PO: Rp ${finance(totalPo)} | Sisa Tagihan: Rp ${finance(
+      sisaTagihan
+    )}
     `;
   }
 }
