@@ -9,19 +9,17 @@ customerListManual = [];
 var projectDetailData = null; // Penting untuk fitur Convert to Sales
 
 (async function initManual() {
-  // --- PERBAIKAN: Cek dulu apakah elemen ada sebelum diisi ---
   const titleEl = document.getElementById("formTitleManual");
   if (titleEl) titleEl.textContent = subpagemodule;
 
   const breadcrumbEl = document.getElementById("breadcrumbCurrent");
   if (breadcrumbEl) breadcrumbEl.textContent = subpagemodule;
-  // -----------------------------------------------------------
 
-  // Load Dropdowns
+  // Load Dropdowns (Hapus loadCustomerList dari sini)
   try {
     await Promise.all([
       loadSalesType("add_type_id"),
-      loadCustomerList("add_client"),
+      // loadCustomerList("add_client"), // <-- HAPUS ATAU KOMENTAR BARIS INI
       loadProjectManagers("add_project_manager"),
     ]);
   } catch (e) {
@@ -37,7 +35,6 @@ var projectDetailData = null; // Penting untuk fitur Convert to Sales
     ).innerHTML = `<tr><td colspan="3" class="text-center py-4 text-gray-500">Belum ada item.</td></tr>`;
     document.getElementById("saveNewProjectBtn").onclick = () =>
       saveProject("create");
-    // Tombol convert tetap hidden di mode create
   } else {
     const projectId = window.detail_id;
     const projectDesc = window.detail_desc || "Update";
@@ -49,6 +46,72 @@ var projectDetailData = null; // Penting untuk fitur Convert to Sales
     await loadProjectDataForUpdate(projectId);
   }
 })();
+
+function filterClientSuggestions(inputElement) {
+  const inputVal = inputElement.value.toLowerCase();
+  const suggestionBox = document.getElementById("clientSuggestionList"); // Sesuai ID di HTML baru
+  const hiddenIdInput = document.getElementById("add_client");
+
+  if (!suggestionBox) return;
+
+  clearTimeout(clientDebounceTimer);
+
+  // Jika input kosong
+  if (inputVal.length < 1) {
+    suggestionBox.innerHTML = "";
+    suggestionBox.classList.add("hidden");
+    hiddenIdInput.value = ""; // Reset ID jika nama dihapus
+    return;
+  }
+
+  clientDebounceTimer = setTimeout(async () => {
+    suggestionBox.innerHTML = `<li class="px-3 py-2 text-gray-500 italic">Mencari...</li>`;
+    suggestionBox.classList.remove("hidden");
+
+    try {
+      // API Search Client
+      const res = await fetch(
+        `${baseUrl}/table/client/${owner_id}/1?search=${encodeURIComponent(
+          inputVal
+        )}`,
+        { headers: { Authorization: `Bearer ${API_TOKEN}` } }
+      );
+      const result = await res.json();
+      suggestionBox.innerHTML = "";
+
+      if (result.tableData && result.tableData.length > 0) {
+        result.tableData.forEach((item) => {
+          const clientName = item.nama || "N/A";
+          const clientAlias = item.alias ? `(${item.alias})` : "";
+
+          const li = document.createElement("li");
+          li.innerHTML = `
+            <div class="font-medium">${clientName}</div>
+            <div class="text-xs text-gray-500">${clientAlias}</div>
+          `;
+          li.className =
+            "px-3 py-2 hover:bg-gray-100 cursor-pointer border-b last:border-b-0";
+
+          // SAAT KLIK ITEM:
+          li.addEventListener("click", () => {
+            inputElement.value = clientName; // Isi Text Input
+            hiddenIdInput.value = item.pelanggan_id || ""; // Isi Hidden ID
+            suggestionBox.classList.add("hidden"); // Tutup Suggestion
+
+            // Opsional: Jika ada logika PIC, tambahkan di sini.
+            // Untuk modul Project Manual default, biasanya PIC belum mandatory di tahap ini.
+          });
+          suggestionBox.appendChild(li);
+        });
+      } else {
+        suggestionBox.innerHTML = `<li class="px-3 py-2 text-gray-500 italic">Tidak ditemukan</li>`;
+      }
+    } catch (err) {
+      console.error("Gagal fetch client:", err);
+      suggestionBox.innerHTML = `<li class="px-3 py-2 text-red-500 italic">Gagal memuat data</li>`;
+    }
+  }, 300); // Debounce 300ms
+}
 
 async function loadProjectDataForUpdate(Id) {
   Swal.fire({ title: "Memuat Data...", didOpen: () => Swal.showLoading() });
@@ -78,18 +141,10 @@ async function loadProjectDataForUpdate(Id) {
     // Isi Form Standard
     document.getElementById("add_project_name").value = data.project_name || "";
 
-    // Logic Client
-    if (customerListManual.length > 0) {
-      const matching = customerListManual.find(
-        (c) => c.nama_client === data.customer
-      );
-      document.getElementById("add_client").value = matching
-        ? matching.client_id
-        : data.pelanggan_id || "";
-    } else {
-      document.getElementById("add_client").value = data.pelanggan_id || "";
-    }
-
+    document.getElementById("add_client_name").value =
+      data.customer || data.client_name || "";
+    // Isi Hidden Input dengan ID Pelanggan
+    document.getElementById("add_client").value = data.pelanggan_id || "";
     document.getElementById("add_tanggal").value = data.start_date || "";
     document.getElementById("add_finish_date").value = data.finish_date || "";
     document.getElementById("add_project_manager").value =
@@ -863,26 +918,7 @@ async function loadSalesType(elementId) {
   }
 }
 
-async function loadCustomerList(elementId) {
-  const sel = document.getElementById(elementId);
-  if (!sel) return;
-  try {
-    const res = await fetch(`${baseUrl}/client/sales/`, {
-      headers: { Authorization: `Bearer ${API_TOKEN}` },
-    });
-    const json = await res.json();
-    customerListManual = json.data || [];
-    sel.innerHTML = '<option value="">-- Pilih Client --</option>';
-    customerListManual.forEach((i) => {
-      const opt = document.createElement("option");
-      opt.value = i.client_id;
-      opt.textContent = `${i.nama_client}`;
-      sel.appendChild(opt);
-    });
-  } catch (e) {
-    console.error(e);
-  }
-}
+
 
 async function loadProjectManagers(elementId) {
   const sel = document.getElementById(elementId);

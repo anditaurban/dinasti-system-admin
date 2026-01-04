@@ -23,10 +23,20 @@
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
       <div><label class="block text-xs text-gray-500 mb-1">Project Name</label><input type="text" id="add_project_name"
           class="w-full border rounded px-3 py-2" placeholder="Nama Project"></div>
-      <div><label class="block text-xs text-gray-500 mb-1">Client</label><select id="add_client"
-          class="w-full border px-3 py-2 rounded">
-          <option value="">-- Pilih Client --</option>
-        </select></div>
+      <div class="mb-1">
+        <label class="text-xs text-gray-500 font-bold">Client</label>
+        <div class="relative">
+          <input type="text" id="add_client_name"
+            class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition"
+            placeholder="Ketik nama client..." oninput="filterClientSuggestions(this)" autocomplete="off">
+
+          <input type="hidden" id="add_client">
+
+          <ul id="clientSuggestionList"
+            class="absolute z-50 w-full bg-white border rounded mt-1 text-sm shadow-lg hidden max-h-48 overflow-y-auto">
+          </ul>
+        </div>
+      </div>
       <div><label class="block text-xs text-gray-500 mb-1">Start Date</label><input type="date" id="add_tanggal"
           class="w-full border px-3 py-2 rounded"></div>
       <div><label class="block text-xs text-gray-500 mb-1">Finish Date</label><input type="date" id="add_finish_date"
