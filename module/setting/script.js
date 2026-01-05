@@ -489,30 +489,58 @@ async function loadUpdateLog() {
 
 async function loadProfile(user_id) {
   try {
-    // kasih indikator loading dulu di field input
+    // 1. Indikator Loading di form
     document.getElementById("profile_name").value = "Loading...";
     document.getElementById("profile_email").value = "Loading...";
     document.getElementById("profile_phone").value = "Loading...";
-    document.getElementById("profile_level").value = "Loading...";
-    document.getElementById("profile_role").value = "Loading...";
+    // Dropdown dibiarkan menampilkan text "Loading..." dari HTML/fungsi loadDropdown
 
-    // delay 5 detik sebelum fetch
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+    // 2. Load Dropdown Level & Role TERLEBIH DAHULU (Concurrent)
+    // Kita tunggu dropdown selesai loading baru fetch data user agar bisa men-select value yang benar
+    await Promise.all([
+      loadDropdown(
+        "profile_role",
+        `${baseUrl}/list/role/${owner_id}`,
+        "role_id",
+        "role"
+      ),
+      loadDropdown(
+        "profile_level",
+        `${baseUrl}/list/level/${owner_id}`,
+        "level_id",
+        "level"
+      ),
+    ]);
 
+    // 3. Fetch Detail User
     const res = await fetch(`${baseUrl}/detail/user/${user_id}`, {
       headers: { Authorization: `Bearer ${API_TOKEN}` },
     });
     const data = await res.json();
 
+    // 4. Isi Form
     if (data.detail) {
       document.getElementById("profile_name").value = data.detail.name || "";
       document.getElementById("profile_email").value = data.detail.email || "";
       document.getElementById("profile_phone").value = data.detail.phone || "";
-      document.getElementById("profile_level").value = data.detail.level || "";
-      document.getElementById("profile_role").value = data.detail.role || "";
+
+      // Set Dropdown Value
+      // Prioritaskan menggunakan ID (misal level_id) jika API detail user menyediakannya
+      // Jika tidak, fallback ke nama (level), namun dropdown biasanya mengharapkan value ID
+      const roleSelect = document.getElementById("profile_role");
+      const levelSelect = document.getElementById("profile_level");
+
+      // Coba set value berdasarkan ID (asumsi API detail user mengembalikan role_id/level_id)
+      // Jika API hanya mengembalikan nama (string), pastikan value di <option> match atau sesuaikan logika ini
+      if (data.detail.role_id) roleSelect.value = data.detail.role_id;
+      else roleSelect.value = data.detail.role; // Fallback
+
+      if (data.detail.level_id) levelSelect.value = data.detail.level_id;
+      else levelSelect.value = data.detail.level; // Fallback
     }
   } catch (err) {
     console.error("Gagal load profil:", err);
+    Swal.fire("Error", "Gagal memuat data profil", "error");
   }
 }
 
@@ -520,6 +548,8 @@ async function updateProfile() {
   const name = document.getElementById("profile_name").value;
   const email = document.getElementById("profile_email").value;
   const phone = document.getElementById("profile_phone").value;
+
+  // Ambil value dari Select (ini akan mengambil ID, misal: 1, 2)
   const level = document.getElementById("profile_level").value;
   const role = document.getElementById("profile_role").value;
 
@@ -534,8 +564,8 @@ async function updateProfile() {
         owner_id: owner_id,
         nama: name,
         email: email,
-        level: level,
-        role: role,
+        level: level, // Mengirim ID Level
+        role: role, // Mengirim ID Role
         phone: phone,
       }),
     });
@@ -544,7 +574,7 @@ async function updateProfile() {
 
     if (res.ok && data.data && data.data.success) {
       Swal.fire("Sukses", "Profil berhasil diperbarui", "success");
-      loadProfile(user_id);
+      loadProfile(user_id); // Reload data untuk memastikan
     } else {
       Swal.fire(
         "Gagal",
@@ -1184,4 +1214,44 @@ async function loadNotes() {
 
 async function loadUnits() {
   loadTableData("unit", 1);
+}
+
+async function loadDropdown(selectId, apiUrl, valueField, labelField) {
+  const select = document.getElementById(selectId);
+  // Reset opsi
+  select.innerHTML = `<option value="">Loading...</option>`;
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    const result = await response.json();
+    const listData = result.listData;
+
+    // Reset dan tambahkan default option
+    select.innerHTML = `<option value="">-- Pilih --</option>`;
+
+    if (Array.isArray(listData)) {
+      listData.forEach((item) => {
+        const option = document.createElement("option");
+        option.value = item[valueField]; // Menggunakan ID (misal: role_id)
+        option.textContent = item[labelField]; // Menggunakan Nama (misal: role)
+        select.appendChild(option);
+      });
+    } else {
+      console.error(
+        `Format listData tidak sesuai untuk ${selectId}:`,
+        listData
+      );
+      select.innerHTML = `<option value="">Gagal memuat data</option>`;
+    }
+  } catch (error) {
+    console.error(`Gagal memuat data untuk ${selectId}:`, error);
+    select.innerHTML = `<option value="">Error koneksi</option>`;
+  }
 }

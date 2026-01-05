@@ -1,6 +1,7 @@
 pagemodule = "Vendor";
 colSpanCount = 9;
 setDataType("vendor");
+renderHeader();
 fetchAndUpdateData();
 
 function validateFormData(formData, requiredFields = []) {

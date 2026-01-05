@@ -1,4 +1,4 @@
-<div class="bg-white p-6 rounded-lg shadow">
+<div class="bg-white p-6 rounded-lg shadow relative">
   <div class="flex flex-wrap items-start justify-between mb-4 gap-4">
     <div>
       <h1 id="pageTitle" class="text-2xl font-bold mb-1"></h1>
@@ -11,10 +11,6 @@
       <h1 class="text-xl font-bold text-gray-800"><span id="projectNameDisplay">Loading...</span></h1>
     </div>
     <div class="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto">
-      <!-- <button type="button" onclick="printInvoice(currentUpdateCostId)"
-        class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded text-sm flex items-center gap-2">
-        📄 Download PDF
-      </button> -->
       <button onclick="loadModuleContent('project')"
         class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium text-sm px-4 py-2 rounded transition flex items-center gap-2">
         ⬅️ Back
@@ -201,5 +197,55 @@
       </table>
     </div>
     <div id="paginationContainer" class="p-4 border-t bg-gray-50 flex justify-end"></div>
+  </div>
+
+  <!-- ======================================================= -->
+  <!-- MODAL PREVIEW (Overlay) - Added at Bottom -->
+  <!-- ======================================================= -->
+  <div id="previewModal" class="hidden fixed inset-0 z-[70] overflow-y-auto" aria-labelledby="modal-title" role="dialog"
+    aria-modal="true">
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm" onclick="closePreview()">
+    </div>
+
+    <div class="flex items-center justify-center min-h-screen p-4 text-center sm:p-0">
+      <!-- Modal Content -->
+      <div
+        class="relative bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-4xl w-full flex flex-col max-h-[90vh]">
+
+        <!-- Modal Header -->
+        <div class="bg-white px-4 py-3 border-b flex justify-between items-center sticky top-0 z-10">
+          <h3 class="text-lg leading-6 font-bold text-gray-900 flex items-center gap-2">
+            <span id="modalTitle">Preview File</span>
+          </h3>
+          <div class="flex items-center gap-2">
+            <a id="btnDownload" href="#" target="_blank"
+              class="text-gray-500 hover:text-blue-600 px-3 py-1 rounded hover:bg-blue-50 text-sm transition border">
+              ⬇️ Download
+            </a>
+            <button onclick="closePreview()"
+              class="text-gray-400 hover:text-red-500 focus:outline-none p-2 rounded hover:bg-red-50 transition">
+              ❌
+            </button>
+          </div>
+        </div>
+
+        <!-- Modal Body (Scrollable) -->
+        <div class="p-0 bg-gray-100 flex-1 overflow-auto modal-scroll flex items-center justify-center min-h-[400px]">
+          <!-- Container untuk Image -->
+          <img id="previewImage" src="" class="hidden max-w-full h-auto max-h-[80vh] object-contain shadow-lg"
+            alt="Preview">
+
+          <!-- Container untuk PDF (Iframe) -->
+          <iframe id="previewFrame" src="" class="hidden w-full h-[80vh]" frameborder="0"></iframe>
+
+          <!-- Loading / Error State -->
+          <div id="previewLoading" class="hidden flex flex-col items-center text-gray-400">
+            <span class="text-2xl animate-spin">⌛</span>
+            <span class="mt-2 text-sm">Memuat Preview...</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

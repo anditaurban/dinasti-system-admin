@@ -1,6 +1,6 @@
 // --- SETUP HEADER ---
 pagemodule = "Project";
-subpagemodule = "Purchase";
+subpagemodule = "Payable";
 renderHeader();
 
 // Global Variables

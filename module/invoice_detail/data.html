@@ -145,9 +145,11 @@
           <div id="fileSection" class="p-3 space-y-2">
             <div class="text-gray-500 italic">-</div>
           </div>
+          <!-- ... di dalam bagian File Pendukung ... -->
           <div class="border-t p-3 flex flex-col gap-2">
             <input type="file" id="files" name="files" multiple class="border rounded px-2 py-1 text-sm">
-            <button type="button" onclick="editProjectWithFile()"
+            <!-- GANTI onclick="editProjectWithFile()" MENJADI onclick="uploadInvoiceFile()" -->
+            <button type="button" onclick="uploadInvoiceFile()"
               class="w-full py-1 px-2 border rounded bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs">
               ✏️ Upload File
             </button>
@@ -190,6 +192,43 @@
         </div>
 
       </aside>
+    </div>
+    <!-- MODAL PREVIEW (Overlay) -->
+    <div id="previewModal" class="hidden fixed inset-0 z-[100] overflow-y-auto" aria-labelledby="modal-title"
+      role="dialog" aria-modal="true">
+      <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm" onclick="closePreview()">
+      </div>
+      <div class="flex items-center justify-center min-h-screen p-4 text-center sm:p-0">
+        <div
+          class="relative bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-4xl w-full flex flex-col max-h-[90vh]">
+          <!-- Header -->
+          <div class="bg-white px-4 py-3 border-b flex justify-between items-center sticky top-0 z-10">
+            <h3 class="text-lg leading-6 font-bold text-gray-900 truncate pr-4">
+              <span id="modalTitle">Preview File</span>
+            </h3>
+            <div class="flex items-center gap-2">
+              <a id="btnDownload" href="#" target="_blank"
+                class="text-gray-500 hover:text-blue-600 px-3 py-1 rounded hover:bg-blue-50 text-sm transition border">
+                ⬇️ Download
+              </a>
+              <button onclick="closePreview()"
+                class="text-gray-400 hover:text-red-500 focus:outline-none p-2 rounded hover:bg-red-50 transition">
+                ❌
+              </button>
+            </div>
+          </div>
+          <!-- Body -->
+          <div class="p-0 bg-gray-100 flex-1 overflow-auto flex items-center justify-center min-h-[400px]">
+            <img id="previewImage" src="" class="hidden max-w-full h-auto max-h-[80vh] object-contain shadow-lg"
+              alt="Preview">
+            <iframe id="previewFrame" src="" class="hidden w-full h-[80vh]" frameborder="0"></iframe>
+            <div id="previewLoading" class="hidden flex flex-col items-center text-gray-400">
+              <span class="text-2xl animate-spin">⌛</span>
+              <span class="mt-2 text-sm">Memuat Preview...</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 </div>

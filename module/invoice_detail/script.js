@@ -427,6 +427,7 @@ async function loadDetailSales(Id, Detail) {
     window.dataLoaded = true;
 
     // ✅ Tutup loading
+    await fetchInvoiceFiles(Id);
     Swal.close();
   } catch (err) {
     console.error("Gagal load detail:", err);
@@ -1562,3 +1563,368 @@ async function handleUpdateDP(formValues) {
     });
   }
 }
+
+// ================================================================
+// MODULE: INVOICE FILE MANAGEMENT
+// ================================================================
+
+var currentInvoiceData = null; // Inisialisasi variabel global
+
+// 1. Fetch List File
+async function fetchInvoiceFiles(invoiceId) {
+  const container = document.getElementById("fileSection");
+
+  // Tampilkan loading state
+  container.innerHTML = `
+        <div class="flex items-center justify-center p-4 text-gray-400 text-xs">
+            <span class="animate-spin mr-2">⌛</span> Memuat file...
+        </div>
+    `;
+
+  try {
+    // Cache buster agar list selalu fresh
+    const res = await fetch(
+      `${baseUrl}/list/invoice_file/${invoiceId}?_t=${new Date().getTime()}`,
+      {
+        headers: { Authorization: `Bearer ${API_TOKEN}` },
+      }
+    );
+    const json = await res.json();
+
+    const files = json.listData || json.data || [];
+
+    if (files.length === 0) {
+      container.innerHTML = `<div class="text-gray-400 italic text-center p-2 text-xs">- Tidak ada file pendukung -</div>`;
+      return;
+    }
+
+    container.innerHTML = "";
+
+    files.forEach((f) => {
+      const fullUrl = f.file;
+      const fileName = fullUrl.split("/").pop() || "Dokumen";
+      const fileId = f.id;
+
+      const ext = fileName.split(".").pop().toLowerCase();
+      const isImage = ["jpg", "jpeg", "png", "gif", "webp"].includes(ext);
+      const isPdf = ext === "pdf";
+
+      let icon = "📄";
+      if (isImage) icon = "🖼️";
+      if (isPdf) icon = "📕";
+
+      const div = document.createElement("div");
+      div.className =
+        "flex items-center justify-between border p-2 rounded bg-gray-50 hover:bg-gray-100 transition mb-2 group";
+
+      const typeParam = isImage ? "image" : isPdf ? "pdf" : "other";
+
+      div.innerHTML = `
+                <div class="flex items-center gap-2 overflow-hidden cursor-pointer" onclick="previewInvoiceFile('${fileName}', '${typeParam}', '${fullUrl}')">
+                    <span class="text-lg">${icon}</span>
+                    <div class="flex flex-col overflow-hidden">
+                        <span class="text-sm font-medium text-blue-600 truncate max-w-[180px] hover:underline" title="${fileName}">
+                            ${fileName}
+                        </span>
+                    </div>
+                </div>
+                <button onclick="deleteInvoiceFile('${fileId}')" 
+                    class="text-gray-300 hover:text-red-500 p-1 rounded transition opacity-0 group-hover:opacity-100" 
+                    title="Hapus File">
+                    🗑️
+                </button>
+            `;
+      container.appendChild(div);
+    });
+  } catch (err) {
+    console.error("Gagal load invoice file:", err);
+    container.innerHTML = `<div class="text-red-400 text-xs italic text-center p-2">Gagal memuat file.</div>`;
+  }
+}
+
+// 2. Fungsi Upload (Single File: Image & PDF)
+async function uploadInvoiceFile() {
+  const fileInput = document.getElementById("files");
+  const file = fileInput.files[0]; // Ambil file pertama saja
+
+  // Validasi Dasar
+  if (!window.detail_id) {
+    return Swal.fire(
+      "Error",
+      "ID Invoice tidak ditemukan. Silakan refresh halaman.",
+      "error"
+    );
+  }
+  if (!file) {
+    return Swal.fire("Warning", "Pilih file terlebih dahulu.", "warning");
+  }
+
+  // --- VALIDASI TIPE FILE (Gambar + PDF) ---
+  const allowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/jpg",
+    "application/pdf",
+  ];
+  if (!allowedTypes.includes(file.type)) {
+    return Swal.fire(
+      "Error",
+      "Format file tidak didukung. Harap upload Gambar (JPG/PNG) atau PDF.",
+      "error"
+    );
+  }
+
+  // Ambil Data Global (Pastikan Integer)
+  const ownerId = typeof owner_id !== "undefined" ? parseInt(owner_id) : 0;
+  const userId = typeof user_id !== "undefined" ? parseInt(user_id) : 0;
+  const projectId = currentInvoiceData?.project_id
+    ? parseInt(currentInvoiceData.project_id)
+    : 0;
+  const pesananId = currentInvoiceData?.pesanan_id
+    ? parseInt(currentInvoiceData.pesanan_id)
+    : 0;
+
+  const formData = new FormData();
+  formData.append("invoice_id", window.detail_id); // ID Utama
+  formData.append("file", file); // Key 'file' untuk single upload
+
+  // Data pelengkap wajib untuk menghindari 500 error di backend
+  formData.append("owner_id", ownerId);
+  formData.append("user_id", userId);
+  formData.append("project_id", projectId);
+
+  // Tambahkan pesanan_id (Sales Order ID) karena ini modul Sales
+  if (pesananId > 0) {
+    formData.append("pesanan_id", pesananId);
+  }
+
+  Swal.fire({ title: "Mengupload...", didOpen: () => Swal.showLoading() });
+
+  try {
+    const res = await fetch(`${baseUrl}/add/invoice_file`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+      body: formData,
+    });
+
+    // Handle jika response bukan JSON (misal HTML error 500)
+    const contentType = res.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      throw new Error("Server Error (500). Gagal memproses data.");
+    }
+
+    const json = await res.json();
+
+    if (res.ok) {
+      Swal.fire({
+        icon: "success",
+        title: "Berhasil",
+        text: "File berhasil diunggah.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
+      // Reset input & Refresh list
+      fileInput.value = "";
+      fetchInvoiceFiles(window.detail_id);
+    } else {
+      throw new Error(json.message || "Gagal upload file.");
+    }
+  } catch (err) {
+    console.error(err);
+    Swal.fire("Gagal", err.message, "error");
+  }
+}
+
+// 3. Fungsi Delete
+async function deleteInvoiceFile(fileId) {
+  const result = await Swal.fire({
+    title: "Hapus File?",
+    text: "File akan dihapus permanen.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Ya, Hapus",
+    confirmButtonColor: "#d33",
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+    const res = await fetch(`${baseUrl}/delete/invoice_file/${fileId}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (res.ok) {
+      await Swal.fire({
+        icon: "success",
+        title: "Terhapus",
+        text: "File berhasil dihapus.",
+        timer: 1000,
+        showConfirmButton: false,
+      });
+      // Refresh list langsung
+      fetchInvoiceFiles(window.detail_id);
+    } else {
+      throw new Error("Gagal menghapus file.");
+    }
+  } catch (err) {
+    Swal.fire("Error", err.message, "error");
+  }
+}
+
+// 4. Fungsi Preview (Dengan Auth Token untuk Gambar & Force Download Logic)
+async function previewInvoiceFile(title, type, url) {
+  const modal = document.getElementById("previewModal");
+  if (!modal) {
+    return window.open(url, "_blank");
+  }
+
+  const modalTitle = document.getElementById("modalTitle");
+  const img = document.getElementById("previewImage");
+  const iframe = document.getElementById("previewFrame");
+  const btnDownload = document.getElementById("btnDownload");
+  const loading = document.getElementById("previewLoading");
+
+  // Reset State UI
+  img.classList.add("hidden");
+  iframe.classList.add("hidden");
+  loading.classList.remove("hidden");
+
+  // Reset Loading Content (Default Spinner)
+  loading.innerHTML = `
+        <span class="text-2xl animate-spin">⌛</span>
+        <span class="mt-2 text-sm">Memuat Preview...</span>
+    `;
+
+  img.src = "";
+  iframe.src = "";
+
+  modalTitle.innerText = title;
+
+  // --- SETUP DOWNLOAD BUTTON AGAR LANGSUNG DOWNLOAD (Bukan New Tab) ---
+  btnDownload.removeAttribute("href"); // Hapus href agar tidak link biasa
+  btnDownload.style.cursor = "pointer";
+  btnDownload.innerHTML = "⬇️ Download"; // Reset text
+
+  // Handler Default untuk Download (Fetch Blob -> Auto Download)
+  // Digunakan untuk PDF dan file lainnya (selain image yang sudah diload)
+  btnDownload.onclick = async (e) => {
+    e.preventDefault();
+    const originalText = btnDownload.innerHTML;
+    btnDownload.innerHTML = "⏳ ...";
+    btnDownload.style.pointerEvents = "none";
+
+    try {
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${API_TOKEN}` },
+      });
+      if (!res.ok) throw new Error("Gagal download");
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+
+      // Buat anchor sementara untuk trigger download
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = title;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
+    } catch (error) {
+      console.error(error);
+      Swal.fire("Error", "Gagal mengunduh file.", "error");
+    } finally {
+      btnDownload.innerHTML = originalText;
+      btnDownload.style.pointerEvents = "auto";
+    }
+  };
+
+  modal.classList.remove("hidden");
+
+  if (type === "image") {
+    // --- LOGIC GAMBAR (Preview + Download Optimized) ---
+    try {
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${API_TOKEN}` },
+      });
+      if (!res.ok) throw new Error("Gagal load gambar");
+
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+
+      img.src = objectUrl;
+      img.onload = () => {
+        loading.classList.add("hidden");
+        img.classList.remove("hidden");
+      };
+
+      // Override tombol download pakai Blob yang sudah ada (biar gak fetch 2x)
+      btnDownload.onclick = (e) => {
+        e.preventDefault();
+        const a = document.createElement("a");
+        a.href = objectUrl;
+        a.download = title;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      };
+    } catch (e) {
+      console.error(e);
+      loading.innerHTML =
+        '<span class="text-red-500 text-sm">Gagal memuat gambar (Akses Ditolak/Error Network)</span>';
+    }
+  } else if (type === "pdf") {
+    // --- LOGIC PDF (No Preview, Message Only) ---
+    loading.innerHTML = `
+            <div class="flex flex-col items-center justify-center p-8 text-center animate-fade-in">
+                <div class="text-6xl mb-4 text-red-500 drop-shadow-md">📄</div>
+                <h3 class="text-lg font-bold text-gray-700 mb-2">Pratinjau Tidak Tersedia</h3>
+                <p class="text-sm text-gray-500 mb-4 max-w-xs leading-relaxed">
+                    File PDF tidak dapat ditampilkan langsung di sini. <br>
+                    Silakan unduh file untuk melihat isinya.
+                </p>
+                <div class="text-xs text-blue-500 font-semibold bg-blue-50 px-3 py-1 rounded-full animate-pulse border border-blue-100">
+                    ⬇️ Gunakan tombol Download di atas
+                </div>
+            </div>
+        `;
+    // Tombol download sudah di-handle oleh default handler di atas
+  } else {
+    // --- LOGIC FILE LAIN ---
+    loading.innerHTML = `
+            <div class="flex flex-col items-center justify-center p-8 text-center">
+                <div class="text-6xl mb-4 text-blue-500">📁</div>
+                <h3 class="text-lg font-bold text-gray-700 mb-2">Pratinjau Tidak Tersedia</h3>
+                <p class="text-sm text-gray-500 mb-4 max-w-xs">
+                    Format file ini tidak mendukung pratinjau.<br>
+                    Silakan unduh file untuk melihat isinya.
+                </p>
+            </div>
+        `;
+  }
+}
+
+// Helper: Close Preview
+function closePreview() {
+  const modal = document.getElementById("previewModal");
+  if (modal) {
+    modal.classList.add("hidden");
+    setTimeout(() => {
+      if (document.getElementById("previewImage"))
+        document.getElementById("previewImage").src = "";
+      if (document.getElementById("previewFrame"))
+        document.getElementById("previewFrame").src = "";
+    }, 300);
+  }
+}
+
+// Keyboard Listener untuk tutup modal
+document.addEventListener("keydown", function (event) {
+  if (event.key === "Escape") {
+    closePreview();
+  }
+});

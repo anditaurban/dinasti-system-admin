@@ -1,6 +1,7 @@
 pagemodule = "Client";
 colSpanCount = 9;
 setDataType("client");
+renderHeader();
 fetchAndUpdateData();
 
 function validateFormData(formData, requiredFields = []) {

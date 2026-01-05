@@ -1,6 +1,7 @@
 pagemodule = "User";
 colSpanCount = 9;
 setDataType("user");
+renderHeader();
 fetchAndUpdateData();
 
 function validateFormData(formData, requiredFields = []) {
@@ -39,11 +40,11 @@ async function fillFormData(data) {
     });
   }
 
-  const roleValue = data.role_id || '';
-  const levelValue = data.level_id || '';
+  const roleValue = data.role_id || "";
+  const levelValue = data.level_id || "";
 
-  await waitForOption('formRole', roleValue);
-  await waitForOption('formLevel', levelValue);
+  await waitForOption("formRole", roleValue);
+  await waitForOption("formLevel", levelValue);
 
   document.getElementById("formName").value = data.name || "";
   document.getElementById("formPhone").value = String(data.phone || "");
@@ -88,8 +89,18 @@ async function loadDropdown(selectId, apiUrl, valueField, labelField) {
 }
 
 function loadDropdownCall() {
-  loadDropdown('formRole', `${baseUrl}/list/role/${owner_id}`, 'role_id', 'role');
-  loadDropdown('formLevel', `${baseUrl}/list/level/${owner_id}`, 'level_id', 'level');
+  loadDropdown(
+    "formRole",
+    `${baseUrl}/list/role/${owner_id}`,
+    "role_id",
+    "role"
+  );
+  loadDropdown(
+    "formLevel",
+    `${baseUrl}/list/level/${owner_id}`,
+    "level_id",
+    "level"
+  );
 }
 
 window.rowTemplate = function (item, index, perPage = 10) {

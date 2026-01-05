@@ -1,6 +1,7 @@
 pagemodule = "Employee";
 colSpanCount = 6;
 setDataType("employee");
+renderHeader();
 fetchAndUpdateData();
 
 function validateFormData(formData, requiredFields = []) {
@@ -24,7 +25,9 @@ async function fillFormData(data) {
 
       const check = () => {
         const select = document.getElementById(selectId);
-        const exists = Array.from(select.options).some(opt => opt.value === expectedValue?.toString());
+        const exists = Array.from(select.options).some(
+          (opt) => opt.value === expectedValue?.toString()
+        );
         if (exists || waited >= timeout) {
           resolve();
         } else {
@@ -36,14 +39,14 @@ async function fillFormData(data) {
       check();
     });
   }
-  const roleValue = data.role_id || '';
-  const levelValue = data.level_id || '';
+  const roleValue = data.role_id || "";
+  const levelValue = data.level_id || "";
 
-  await waitForOption('formRole', roleValue);
-  await waitForOption('formLevel', levelValue);
+  await waitForOption("formRole", roleValue);
+  await waitForOption("formLevel", levelValue);
 
-  const formRole = document.getElementById('formRole');
-  const formLevel = document.getElementById('formLevel');
+  const formRole = document.getElementById("formRole");
+  const formLevel = document.getElementById("formLevel");
 
   // Hidden owner_id
   document.querySelector("input[name='owner_id']").value = data.owner_id || "1";
@@ -93,8 +96,18 @@ async function loadDropdown(selectId, apiUrl, valueField, labelField) {
 }
 
 function loadDropdownCall() {
-  loadDropdown('formRole', `${baseUrl}/list/role/${owner_id}`, 'role_id', 'role');
-  loadDropdown('formLevel', `${baseUrl}/list/level/${owner_id}`, 'level_id', 'level');
+  loadDropdown(
+    "formRole",
+    `${baseUrl}/list/role/${owner_id}`,
+    "role_id",
+    "role"
+  );
+  loadDropdown(
+    "formLevel",
+    `${baseUrl}/list/level/${owner_id}`,
+    "level_id",
+    "level"
+  );
 }
 
 window.rowTemplate = function (item, index, perPage = 10) {

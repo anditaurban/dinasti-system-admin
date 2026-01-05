@@ -31,28 +31,101 @@ document.getElementById("logout")?.addEventListener("click", function () {
 // 🔹 HEADER & BREADCRUMB
 // =============================
 function renderHeader() {
-  const title = subpagemodule ? subpagemodule : pagemodule;
-  document.getElementById("pageTitle").textContent = title.toUpperCase();
-
   const breadcrumb = document.getElementById("breadcrumb");
-  let html = `
-    <span>Home</span>
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  const pageTitle = document.getElementById("pageTitle");
+
+  // 1. AMBIL NAMA MODULE & BERSIHKAN
+  // Kita pastikan ambil variable global, ubah ke huruf kecil, dan hapus spasi di ujung
+  let rawModule = typeof pagemodule !== "undefined" ? pagemodule : "dashboard";
+  let currentModule = rawModule.toLowerCase().trim();
+
+  // DEBUG (Cek console jika masih error)
+  console.log(
+    "DEBUG BREADCRUMB: Module dideteksi sebagai -> [" + currentModule + "]"
+  );
+
+  // 2. DAFTAR PEMETAAN (PARENT MAPPING)
+  // Kunci (kiri) harus sama persis dengan hasil console log di atas
+  const menuMap = {
+    // --- SALES ---
+    quotation: "Sales",
+    invoice: "Sales",
+    receipt: "Sales",
+
+    // --- FINANCE (Sesuai Screenshot Anda) ---
+    // Versi pakai SPASI (Sesuai Console Log Anda)
+    "internal expenses": "Finance",
+    "cash flow": "Finance",
+    "project finance dashboard": "Finance",
+    "account payable": "Finance",
+    "account receivable": "Finance",
+
+    // Versi pakai UNDERSCORE (Jaga-jaga)
+    internal_expenses: "Finance",
+    report_finance: "Finance",
+    account_payable: "Finance",
+    account_receiveable: "Finance",
+    expenses: "Finance",
+
+    // --- ADMIN ---
+    user: "Admin",
+    users: "Admin",
+    client: "Admin",
+    clients: "Admin",
+    employee: "Admin",
+    employees: "Admin",
+    vendor: "Admin",
+    vendors: "Admin",
+    setting: "Admin",
+    settings: "Admin",
+  };
+
+  // Cek Parent
+  const parentName = menuMap[currentModule];
+
+  // Template Icon Panah
+  const arrowIcon = `
+    <svg class="w-4 h-4 mx-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
     </svg>
-    <span>${pagemodule}</span>
   `;
 
-  if (subpagemodule) {
-    html += `
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-      </svg>
-      <span>${subpagemodule}</span>
-    `;
+  // Helper format teks (Huruf besar di awal kata)
+  const formatName = (str) => {
+    if (!str) return "";
+    return str.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  };
+
+  let html = "";
+
+  // 3. LOGIKA RENDER UTAMA
+  if (parentName) {
+    // JIKA PUNYA PARENT (Contoh: Finance > Internal Expenses)
+    html += `<span class="text-gray-500 hover:text-gray-700 cursor-default">${parentName}</span>`;
+    html += arrowIcon;
+    html += `<span class=" text-gray-500">${formatName(currentModule)}</span>`;
+  } else {
+    // JIKA TIDAK PUNYA PARENT (Contoh: Dashboard)
+    html += `<span class="text-gray-500">${formatName(currentModule)}</span>`;
   }
 
-  breadcrumb.innerHTML = html;
+  // 4. SUB-PAGE (Jika ada level 3)
+  if (typeof subpagemodule !== "undefined" && subpagemodule) {
+    html += arrowIcon;
+    html += `<span class="text-gray-500">${formatName(subpagemodule)}</span>`;
+  }
+
+  // UPDATE DOM
+  if (breadcrumb) breadcrumb.innerHTML = html;
+
+  if (pageTitle) {
+    // Judul halaman diambil dari subpage (jika ada) atau module utama
+    const titleText =
+      typeof subpagemodule !== "undefined" && subpagemodule
+        ? subpagemodule
+        : rawModule;
+    pageTitle.textContent = titleText.replace(/_/g, " ").toUpperCase();
+  }
 }
 
 // =============================
