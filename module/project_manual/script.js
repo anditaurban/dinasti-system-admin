@@ -596,6 +596,12 @@ async function tambahItem(selectedSubCategoryId = "") {
   }
   // ---------------------
 
+  // 1. Cek apakah Tipe = Service (2) atau Turnkey (3)
+  const isComplex = typeId == 2 || typeId == 3;
+
+  // 2. Jika ya, kita siapkan class "hidden" untuk menyembunyikan elemen keuangan parent
+  const hideClass = isComplex ? "hidden" : "";
+
   const tr = document.createElement("tr");
   tr.classList.add("itemRow");
 
@@ -618,12 +624,12 @@ async function tambahItem(selectedSubCategoryId = "") {
         <label class="text-xs text-gray-500 font-bold">Deskripsi</label>
         <textarea class="w-full border rounded px-2 py-1 itemDesc focus:ring-2 focus:ring-blue-500 outline-none transition" rows="2" placeholder="Deskripsi"></textarea>
       </div>
-      <div class="grid grid-cols-3 gap-2 my-2">
+      <div class="grid grid-cols-3 gap-2 my-2 ${hideClass}">
         <div><label class="text-xs text-gray-500">HPP (Modal)</label><input type="text" class="w-full border rounded px-2 py-1 itemHpp finance" value="0" oninput="recalculateHarga(this, 'hpp')"></div>
         <div><label class="text-xs text-gray-500">Markup (Rp)</label><input type="text" class="w-full border rounded px-2 py-1 itemMarkupNominal finance" value="0" oninput="recalculateHarga(this, 'nominal')"></div>
         <div><label class="text-xs text-gray-500">Markup (%)</label><input type="number" class="w-full border rounded px-2 py-1 itemMarkupPersen" value="0" oninput="recalculateHarga(this, 'persen')"></div>
       </div>
-      <div class="grid grid-cols-4 gap-2">
+      <div class="grid grid-cols-4 gap-2 ${hideClass}">
         <div><label class="text-xs text-gray-500">Qty</label><input type="number" class="w-full border rounded px-2 py-1 itemQty" value="1" oninput="recalculateTotal()"></div>
         <div>
            <label class="text-xs text-gray-500">Unit</label>
@@ -634,7 +640,7 @@ async function tambahItem(selectedSubCategoryId = "") {
         </div>
         <div class="col-span-2"><label class="text-xs text-gray-500">Harga (Jual)</label><input type="text" class="w-full border rounded px-2 py-1 itemHarga bg-gray-100 font-bold text-gray-700" readonly></div>
       </div>
-      <div class="mt-2 items-center">
+      <div class="mt-2 items-center ${hideClass}">
         <div class="border rounded px-3 py-1 text-right bg-gray-100 text-gray-500 font-bold itemTotal">0</div>
       </div>
     </td>
@@ -917,8 +923,6 @@ async function loadSalesType(elementId) {
     console.error(e);
   }
 }
-
-
 
 async function loadProjectManagers(elementId) {
   const sel = document.getElementById(elementId);
