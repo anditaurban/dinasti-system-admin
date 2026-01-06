@@ -621,6 +621,12 @@ async function tambahItem() {
   const typeId = document.getElementById("type_id").value;
   const tbody = document.getElementById("tabelItem");
 
+  // 1. Cek apakah Tipe = Service (2) atau Turnkey (3)
+  const isComplex = typeId == 2 || typeId == 3;
+
+  // 2. Jika ya, kita siapkan class "hidden" untuk menyembunyikan elemen keuangan parent
+  const hideClass = isComplex ? "hidden" : "";
+
   const tr = document.createElement("tr");
   tr.classList.add("itemRow");
   const index = document.querySelectorAll("#tabelItem tr.itemRow").length + 1;
@@ -642,7 +648,7 @@ async function tambahItem() {
         <textarea class="w-full border rounded px-2 itemDesc" rows="3" placeholder="Deskripsi"></textarea>
       </div>
 
-      <div class="grid grid-cols-3 gap-2 p-2 border rounded bg-gray-50 my-2">
+      <div class="grid grid-cols-3 gap-2 p-2 border rounded bg-gray-50 my-2 ${hideClass}">
         <div>
           <label class="block text-xs text-gray-500">HPP (Modal)</label>
           <input type="text" class="w-full border rounded px-2 itemHpp text-right finance" value="0" oninput="recalculateHarga(this, 'hpp')">
@@ -657,7 +663,7 @@ async function tambahItem() {
         </div>
       </div>
 
-      <div class="grid grid-cols-4 gap-2">
+      <div class="grid grid-cols-4 gap-2 ${hideClass}">
         <div>
           <label class="block text-xs text-gray-500">Qty</label>
           <input type="number" class="w-full border rounded px-2 itemQty text-right" value="0" oninput="recalculateTotal()">
@@ -673,7 +679,7 @@ async function tambahItem() {
               autocomplete="off"
             >
             <ul class="absolute z-10 w-full bg-white border rounded mt-1 text-sm shadow hidden max-h-48 overflow-y-auto">
-              </ul>
+            </ul>
           </div>
         </div>
         <div class="col-span-2">
@@ -682,7 +688,7 @@ async function tambahItem() {
         </div>
       </div>
       
-      <div class="mt-2">
+      <div class="mt-2 ${hideClass}">
         <label class="block text-xs text-gray-500">Sub Total</label>
         <div class="border rounded px-2 py-1 text-right bg-gray-50 itemTotal">0</div>
       </div>
@@ -699,8 +705,8 @@ async function tambahItem() {
         </button>
 
         ${
-          // ✅ UPDATE LOGIKA DI SINI: Muncul jika ID 2 (Service) atau ID 3 (Turnkey)
-          typeId == 2 || typeId == 3
+          // Tombol Tambah Sub Item hanya muncul jika Turnkey/Service
+          isComplex
             ? `
           <button onclick="tambahSubItem(this)" 
             class="btnTambahSubItem inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" 
