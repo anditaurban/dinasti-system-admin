@@ -217,32 +217,74 @@ function parseRupiah(rupiah) {
   return isNegative ? -angka : angka;
 }
 
-// GANTI EVENT LISTENER LAMA DENGAN INI
-// ...DENGAN BLOK YANG SUDAH DIPERBARUI INI:
+// Listener Global untuk Input (Format Rupiah & Hapus 0 di depan)
 document.addEventListener("input", function (e) {
-  const id = e.target.id;
-  const isRelevant = ["discount"].includes(id); // Tetap simpan ini
+  const element = e.target;
 
-  // Logika baru untuk format .finance
-  if (e.target.classList.contains("finance")) {
-    const value = e.target.value;
+  // Cek apakah elemen punya class 'finance'
+  if (element.classList.contains("finance")) {
+    let value = element.value;
 
-    // Simpan status negatif
+    // 1. Simpan tanda minus jika ada
     const isNegative = value.trim().startsWith("-");
 
-    // Hapus semua karakter non-digit
-    const angka = value.replace(/[^\d]/g, "");
+    // 2. Ambil angkanya saja
+    let rawValue = value.replace(/[^\d]/g, "");
 
-    // Asumsi Anda punya fungsi finance() untuk format "20000" -> "20.000"
-    let formatted = finance(angka);
+    // 3. FITUR BARU: Hapus nol di depan (Leading Zero)
+    // Jika user ngetik "05", "022", dll -> ubah jadi "5", "22"
+    if (rawValue.length > 1 && rawValue.startsWith("0")) {
+      rawValue = rawValue.substring(1);
+    }
 
-    // Tambahkan kembali tanda minus jika ada
-    e.target.value = isNegative ? "-" + formatted : formatted;
+    // 4. Logika Kosong vs Isi
+    if (rawValue === "") {
+      // Izinkan kosong total saat user menghapus (jangan paksa jadi "0" atau "Rp 0")
+      element.value = "";
+    } else {
+      // Format jadi rupiah
+      let formatted = finance(rawValue);
+      element.value = isNegative ? "-" + formatted : formatted;
+    }
   }
 
-  // Tetap panggil calculateTotals jika relevan
-  if (isRelevant) {
+  // Panggil fungsi hitung total jika relevan (misal diskon)
+  if (["discount"].includes(element.id)) {
     calculateTotals();
+  }
+});
+
+// --- FITUR UX: AUTO CLEAR 0 ---
+
+// 1. Saat kolom diklik (Focus) -> Kalau isinya "0", hapus biar kosong
+document.addEventListener("focusin", function (e) {
+  if (e.target.classList.contains("finance")) {
+    // Cek apakah isinya "0" atau "Rp 0" (tergantung format finance kamu)
+    if (e.target.value === "0" || e.target.value === "Rp 0") {
+      e.target.value = "";
+    }
+  }
+});
+
+// 2. Saat kolom ditinggalkan (Blur) -> Kalau kosong, balikin jadi "0"
+document.addEventListener("focusout", function (e) {
+  if (e.target.classList.contains("finance")) {
+    if (e.target.value.trim() === "") {
+      e.target.value = "0";
+
+      // PENTING: Panggil ulang fungsi hitung agar total update
+      // Kita coba panggil recalculateHarga secara manual
+      // Cek apakah ini HPP, Nominal, atau Persen untuk memanggil fungsi yang tepat
+      if (
+        e.target.classList.contains("itemHpp") ||
+        e.target.classList.contains("itemMarkupNominal") ||
+        e.target.classList.contains("subItemHpp") ||
+        e.target.classList.contains("subItemMarkupNominal")
+      ) {
+        // Trik: Trigger event 'input' agar recalculateHarga jalan otomatis
+        e.target.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    }
   }
 });
 
@@ -984,7 +1026,7 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("pic_name").value = data.pic_name || "";
 
     // --- LOAD ITEMS & SUBS ---
-   const subcategoryRes = await fetch(
+    const subcategoryRes = await fetch(
       `${baseUrl}/list/sub_category/${owner_id}`,
       { headers: { Authorization: `Bearer ${API_TOKEN}` } }
     );
@@ -995,18 +1037,18 @@ async function loadDetailSales(Id, Detail) {
     if (data.items?.length) {
       // ❌ HAPUS BAGIAN Promise.all LAMA
       // GANTI DENGAN LOOP "FOR...OF" BIASA AGAR BERURUTAN (SEQUENTIAL)
-      
+
       for (const item of data.items) {
         // 1. Tunggu baris terbuat dulu
         await tambahItem();
 
         // 2. Ambil baris yang BARUSAN dibuat
         let row = tbody.lastElementChild;
-        
+
         // Cek struktur: karena tambahItem nambah 2 tr (itemRow & subWrapper),
         // kita perlu naik ke itemRow kalau yang keambil subWrapper
         if (!row.classList.contains("itemRow")) {
-             row = row.previousElementSibling;
+          row = row.previousElementSibling;
         }
 
         // 3. Mulai isi data ke baris tersebut
@@ -1018,42 +1060,57 @@ async function loadDetailSales(Id, Detail) {
         row.querySelector(".itemDesc").value = item.description || "";
         row.querySelector(".itemQty").value = item.qty || 1;
         row.querySelector(".itemUnit").value = item.unit || "";
-        
+
         // Format angka (Finance)
-        row.querySelector(".itemTotal").innerText = finance(item.total || (item.qty * item.unit_price));
+        row.querySelector(".itemTotal").innerText = finance(
+          item.total || item.qty * item.unit_price
+        );
         row.querySelector(".itemHarga").value = finance(item.unit_price || 0);
         row.querySelector(".itemHpp").value = finance(item.hpp || 0);
-        row.querySelector(".itemMarkupNominal").value = finance(item.markup_nominal || 0);
+        row.querySelector(".itemMarkupNominal").value = finance(
+          item.markup_nominal || 0
+        );
         row.querySelector(".itemMarkupPersen").value = item.markup_percent || 0;
 
         // 4. Handle Sub Items (Materials) jika ada
         if (item.materials?.length) {
           const btnSub = row.querySelector(".btnTambahSubItem");
           // Pastikan tombol ada (karena tipe Sales material tidak punya tombol ini)
-          if(btnSub) {
-              for (const material of item.materials) {
-                tambahSubItem(btnSub);
-                
-                // Ambil wrapper (tr setelah row utama)
-                const wrapper = row.nextElementSibling?.querySelector("table");
-                // Ambil subRow terakhir yang baru aja dibuat
-                const subTr = wrapper.querySelector("tr.subItemRow:last-of-type");
-                
-                if (subTr) {
-                  subTr.querySelector(".subItemMaterial").value = material.name || "";
-                  subTr.querySelector(".subItemSpec").value = material.specification || "";
-                  subTr.querySelector(".subItemQty").value = material.qty || 0;
-                  subTr.querySelector(".subItemUnit").value = material.unit || "";
-                  subTr.querySelector(".subItemHarga").value = finance(material.unit_price || 0);
-                  subTr.querySelector(".subItemHpp").value = finance(material.hpp || 0);
-                  subTr.querySelector(".subItemMarkupNominal").value = finance(material.markup_nominal || 0);
-                  subTr.querySelector(".subItemMarkupPersen").value = material.markup_percent || 0;
-                  subTr.querySelector(".subItemTotal").innerText = finance(material.total || (material.qty * material.unit_price));
-                }
+          if (btnSub) {
+            for (const material of item.materials) {
+              tambahSubItem(btnSub);
+
+              // Ambil wrapper (tr setelah row utama)
+              const wrapper = row.nextElementSibling?.querySelector("table");
+              // Ambil subRow terakhir yang baru aja dibuat
+              const subTr = wrapper.querySelector("tr.subItemRow:last-of-type");
+
+              if (subTr) {
+                subTr.querySelector(".subItemMaterial").value =
+                  material.name || "";
+                subTr.querySelector(".subItemSpec").value =
+                  material.specification || "";
+                subTr.querySelector(".subItemQty").value = material.qty || 0;
+                subTr.querySelector(".subItemUnit").value = material.unit || "";
+                subTr.querySelector(".subItemHarga").value = finance(
+                  material.unit_price || 0
+                );
+                subTr.querySelector(".subItemHpp").value = finance(
+                  material.hpp || 0
+                );
+                subTr.querySelector(".subItemMarkupNominal").value = finance(
+                  material.markup_nominal || 0
+                );
+                subTr.querySelector(".subItemMarkupPersen").value =
+                  material.markup_percent || 0;
+                subTr.querySelector(".subItemTotal").innerText = finance(
+                  material.total || material.qty * material.unit_price
+                );
               }
+            }
           }
         }
-      } 
+      }
       // Loop selesai satu per satu
     }
 
@@ -1176,20 +1233,25 @@ function recalculateHarga(element, inputType) {
   const hppEl = row.querySelector(`${prefix}Hpp`);
   const nominalEl = row.querySelector(`${prefix}MarkupNominal`);
   const persenEl = row.querySelector(`${prefix}MarkupPersen`);
-  const hargaEl = row.querySelector(`${prefix}Harga`); // Ini target output kita
+  const hargaEl = row.querySelector(`${prefix}Harga`);
 
+  // ParseRupiah akan mengembalikan 0 jika value kosong ("")
   let hpp = parseRupiah(hppEl.value) || 0;
   let nominal = parseRupiah(nominalEl.value) || 0;
   let persen = parseFloat(persenEl.value) || 0;
 
   if (inputType === "hpp" || inputType === "nominal") {
     // Jika HPP atau Nominal diubah, hitung Persen
-    nominal = parseRupiah(nominalEl.value) || 0; // parseRupiah baru kita sudah benar
+    // Update ulang variabel nominal dari elemen (untuk jaga-jaga)
+    nominal = parseRupiah(nominalEl.value) || 0;
+
     if (hpp !== 0) {
       persen = (nominal / hpp) * 100;
-      // UBAH MENJADI INI:
-      persenEl.value = Math.round(persen); // Dibulatkan tanpa koma // Tampilkan 2 angka desimal
+      // Gunakan toFixed(2) jika ingin presisi desimal, atau Math.round untuk bulat
+      // Kita pakai Math.round sesuai request sebelumnya
+      persenEl.value = Math.round(persen);
     } else {
+      // Jika HPP 0, persen jangan Infinity, set 0 saja
       persenEl.value = 0;
     }
   } else if (inputType === "persen") {
@@ -1197,23 +1259,21 @@ function recalculateHarga(element, inputType) {
     persen = parseFloat(persenEl.value) || 0;
     nominal = hpp * (persen / 100);
 
-    // --- REVISI DI SINI ---
-    // Format output nominal agar bisa menampilkan minus
-    let nominalStr = String(Math.abs(Math.round(nominal))); // Bulatkan & ambil angkanya saja
+    // Format output nominal
+    let nominalStr = String(Math.abs(Math.round(nominal)));
     nominalEl.value =
       nominal < 0 ? "-" + finance(nominalStr) : finance(nominalStr);
   }
 
-  // Hitung Harga Jual akhir
+  // Hitung Harga Jual akhir (HPP + Nominal)
   const hargaJual = hpp + nominal;
 
-  // --- REVISI DI SINI ---
-  // Format hargaJual juga, jaga tanda minus
-  let hargaJualStr = String(Math.abs(Math.round(hargaJual))); // Bulatkan & ambil angkanya saja
+  // Format hargaJual
+  let hargaJualStr = String(Math.abs(Math.round(hargaJual)));
   hargaEl.value =
     hargaJual < 0 ? "-" + finance(hargaJualStr) : finance(hargaJualStr);
 
-  // Panggil recalculateTotal() untuk update Sub Total baris dan Total keseluruhan
+  // Update total baris
   recalculateTotal();
 }
 

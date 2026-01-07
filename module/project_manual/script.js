@@ -821,11 +821,36 @@ function recalculateTotal() {
 
 function setupRupiahFormattingForElement(element) {
   if (!element) return;
+
   element.addEventListener("input", function (e) {
-    const value = e.target.value.replace(/[^\d]/g, "");
-    e.target.value = finance(value);
+    let value = e.target.value;
+
+    // 1. Simpan tanda minus (jika ada)
+    const isNegative = value.trim().startsWith("-");
+
+    // 2. Ambil angkanya saja
+    let rawValue = value.replace(/[^\d]/g, "");
+
+    // 3. FIX: Hapus nol di depan (Leading Zero)
+    // Jika user ngetik "05" -> jadi "5", "022" -> jadi "22"
+    if (rawValue.length > 1 && rawValue.startsWith("0")) {
+      rawValue = rawValue.substring(1);
+    }
+
+    // 4. Logika Kosong vs Isi
+    if (rawValue === "") {
+      // Izinkan kosong total saat dihapus
+      e.target.value = "";
+    } else {
+      // Format Rupiah
+      let formatted = finance(rawValue);
+      e.target.value = isNegative ? "-" + formatted : formatted;
+    }
+
+    // 5. Trigger Recalculate (Sesuai logic Project Manual)
     const row = e.target.closest("tr");
     if (!row) return;
+
     if (
       e.target.classList.contains("itemHpp") ||
       e.target.classList.contains("subItemHpp")
@@ -839,6 +864,31 @@ function setupRupiahFormattingForElement(element) {
     }
   });
 }
+
+// --- FITUR UX: AUTO CLEAR 0 & AUTO REFILL 0 ---
+
+// 1. Saat kolom diklik (Focus) -> Kalau isinya "0", hapus biar bersih
+document.addEventListener("focusin", function (e) {
+  if (e.target.classList.contains("finance")) {
+    // Cek apakah isinya "0" atau "Rp 0"
+    if (e.target.value === "0" || e.target.value === "Rp 0") {
+      e.target.value = "";
+    }
+  }
+});
+
+// 2. Saat kolom ditinggalkan (Blur) -> Kalau kosong, balikin jadi "0"
+document.addEventListener("focusout", function (e) {
+  if (e.target.classList.contains("finance")) {
+    if (e.target.value.trim() === "") {
+      e.target.value = "0";
+
+      // PENTING: Panggil ulang fungsi hitung agar total update
+      // Kita trigger event 'input' secara manual agar logic recalculate jalan
+      e.target.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  }
+});
 
 function filterUnitSuggestions(inputElement) {
   const inputVal = inputElement.value.toLowerCase();
