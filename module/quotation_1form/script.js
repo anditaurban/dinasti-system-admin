@@ -984,81 +984,77 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("pic_name").value = data.pic_name || "";
 
     // --- LOAD ITEMS & SUBS ---
-    const subcategoryRes = await fetch(
+   const subcategoryRes = await fetch(
       `${baseUrl}/list/sub_category/${owner_id}`,
       { headers: { Authorization: `Bearer ${API_TOKEN}` } }
     );
-    const subcatResponse = await subcategoryRes.json();
+    // const subcatResponse = await subcategoryRes.json(); // Baris ini sebenernya ga kepake di bawah, bisa dihapus/biarkan
     const tbody = document.getElementById("tabelItem");
     tbody.innerHTML = "";
 
     if (data.items?.length) {
-      const renderPromises = [];
+      // ❌ HAPUS BAGIAN Promise.all LAMA
+      // GANTI DENGAN LOOP "FOR...OF" BIASA AGAR BERURUTAN (SEQUENTIAL)
+      
       for (const item of data.items) {
-        renderPromises.push(
-          (async () => {
-            await tambahItem();
-            let row = tbody.lastElementChild;
-            if (!row.querySelector(".itemSubcategory")) {
-              row = row.previousElementSibling;
-            }
+        // 1. Tunggu baris terbuat dulu
+        await tambahItem();
 
-            const subcatSelect = row.querySelector(".itemSubcategory");
-            await loadSubcategories(subcatSelect, item.sub_category_id);
+        // 2. Ambil baris yang BARUSAN dibuat
+        let row = tbody.lastElementChild;
+        
+        // Cek struktur: karena tambahItem nambah 2 tr (itemRow & subWrapper),
+        // kita perlu naik ke itemRow kalau yang keambil subWrapper
+        if (!row.classList.contains("itemRow")) {
+             row = row.previousElementSibling;
+        }
 
-            row.querySelector(".itemProduct").value = item.product || "";
-            row.querySelector(".itemDesc").value = item.description || "";
-            row.querySelector(".itemQty").value = item.qty || 1;
-            row.querySelector(".itemUnit").value = item.unit || "";
-            row.querySelector(".itemTotal").innerText = finance(
-              item.total || item.qty * item.unit_price
-            );
-            row.querySelector(".itemHarga").value = finance(
-              item.unit_price || 0
-            );
-            row.querySelector(".itemHpp").value = finance(item.hpp || 0);
-            row.querySelector(".itemMarkupNominal").value = finance(
-              item.markup_nominal || 0
-            );
-            row.querySelector(".itemMarkupPersen").value =
-              item.markup_percent || 0;
+        // 3. Mulai isi data ke baris tersebut
+        const subcatSelect = row.querySelector(".itemSubcategory");
+        // Kita load ulang list subcategory agar opsi muncul & select yang sesuai
+        await loadSubcategories(subcatSelect, item.sub_category_id);
 
-            if (item.materials?.length) {
+        row.querySelector(".itemProduct").value = item.product || "";
+        row.querySelector(".itemDesc").value = item.description || "";
+        row.querySelector(".itemQty").value = item.qty || 1;
+        row.querySelector(".itemUnit").value = item.unit || "";
+        
+        // Format angka (Finance)
+        row.querySelector(".itemTotal").innerText = finance(item.total || (item.qty * item.unit_price));
+        row.querySelector(".itemHarga").value = finance(item.unit_price || 0);
+        row.querySelector(".itemHpp").value = finance(item.hpp || 0);
+        row.querySelector(".itemMarkupNominal").value = finance(item.markup_nominal || 0);
+        row.querySelector(".itemMarkupPersen").value = item.markup_percent || 0;
+
+        // 4. Handle Sub Items (Materials) jika ada
+        if (item.materials?.length) {
+          const btnSub = row.querySelector(".btnTambahSubItem");
+          // Pastikan tombol ada (karena tipe Sales material tidak punya tombol ini)
+          if(btnSub) {
               for (const material of item.materials) {
-                tambahSubItem(row.querySelector(".btnTambahSubItem"));
+                tambahSubItem(btnSub);
+                
+                // Ambil wrapper (tr setelah row utama)
                 const wrapper = row.nextElementSibling?.querySelector("table");
-                const subTr = wrapper.querySelector(
-                  "tr.subItemRow:last-of-type"
-                );
+                // Ambil subRow terakhir yang baru aja dibuat
+                const subTr = wrapper.querySelector("tr.subItemRow:last-of-type");
+                
                 if (subTr) {
-                  subTr.querySelector(".subItemMaterial").value =
-                    material.name || "";
-                  subTr.querySelector(".subItemSpec").value =
-                    material.specification || "";
+                  subTr.querySelector(".subItemMaterial").value = material.name || "";
+                  subTr.querySelector(".subItemSpec").value = material.specification || "";
                   subTr.querySelector(".subItemQty").value = material.qty || 0;
-                  subTr.querySelector(".subItemUnit").value =
-                    material.unit || "";
-                  subTr.querySelector(".subItemHarga").value = finance(
-                    material.unit_price || 0
-                  );
-                  subTr.querySelector(".subItemHpp").value = finance(
-                    material.hpp || 0
-                  );
-                  subTr.querySelector(".subItemMarkupNominal").value = finance(
-                    material.markup_nominal || 0
-                  );
-                  subTr.querySelector(".subItemMarkupPersen").value =
-                    material.markup_percent || 0;
-                  subTr.querySelector(".subItemTotal").innerText = finance(
-                    material.total || material.qty * material.unit_price
-                  );
+                  subTr.querySelector(".subItemUnit").value = material.unit || "";
+                  subTr.querySelector(".subItemHarga").value = finance(material.unit_price || 0);
+                  subTr.querySelector(".subItemHpp").value = finance(material.hpp || 0);
+                  subTr.querySelector(".subItemMarkupNominal").value = finance(material.markup_nominal || 0);
+                  subTr.querySelector(".subItemMarkupPersen").value = material.markup_percent || 0;
+                  subTr.querySelector(".subItemTotal").innerText = finance(material.total || (material.qty * material.unit_price));
                 }
               }
-            }
-          })()
-        );
-      }
-      await Promise.all(renderPromises);
+          }
+        }
+      } 
+      // Loop selesai satu per satu
     }
 
     const ppnValue = parseInt(data.ppn) || 0;
