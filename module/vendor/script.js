@@ -142,17 +142,17 @@ formHtml = `
   <!-- Hidden owner_id -->
   <input type="hidden" name="owner_id" value="1">
 
-  <label for="formNama" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Nama Perusahaan</label>
+  <label for="formNama" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Nama Perusahaan <span class="text-red-500">*</span></label>
   <input id="formNama" name="nama" type="text" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" required>
 
-  <label for="formAlias" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Alias</label>
+  <label for="formAlias" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Alias <span class="text-red-500">*</span></label>
   <input id="formAlias" name="alias" type="text" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" required>
 
-  <label for="formPhone" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Phone</label>
+  <label for="formPhone" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Phone <span class="text-red-500">*</span></label>
   <input id="formPhone" name="phone" type="text" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" required>
@@ -160,29 +160,29 @@ formHtml = `
   <label for="formWhatsapp" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">WhatsApp</label>
   <input id="formWhatsapp" name="whatsapp" type="text" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
-    focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+    focus:outline-none focus:ring-2 focus:ring-blue-500" >
 
   <label for="formEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Email</label>
   <input id="formEmail" name="email" type="email" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
-    focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+    focus:outline-none focus:ring-2 focus:ring-blue-500" >
 
   <label for="formNpwp" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">No. NPWP</label>
   <input id="formNpwp" name="no_npwp" type="text" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
-    focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+    focus:outline-none focus:ring-2 focus:ring-blue-500" >
 
   <label for="formWebsite" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Website</label>
   <input id="formWebsite" name="website" type="url" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
-    focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+    focus:outline-none focus:ring-2 focus:ring-blue-500" >
     
-  <label for="formCity" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Kota</label>
+  <label for="formCity" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Kota <span class="text-red-500">*</span></label>
   <input id="formCity" name="city_name" type="text" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
-    focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+    focus:outline-none focus:ring-2 focus:ring-blue-500" >
 
-  <label for="formAlamat" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Alamat</label>
+  <label for="formAlamat" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Alamat <span class="text-red-500">*</span></label>
   <textarea id="formAlamat" name="alamat" rows="3" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" required></textarea>

@@ -21,10 +21,11 @@
 
   <div id="addProjectForm" class="space-y-4">
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-      <div><label class="block text-xs text-gray-500 mb-1">Project Name</label><input type="text" id="add_project_name"
+      <div><label class="block text-xs text-gray-500 mb-1">Project Name <span
+            class="text-red-500">*</span></label><input type="text" id="add_project_name"
           class="w-full border rounded px-3 py-2" placeholder="Nama Project"></div>
       <div class="mb-1">
-        <label class="text-xs text-gray-500 font-bold">Client</label>
+        <label class="text-xs text-gray-500 font-bold">Client <span class="text-red-500">*</span></label>
         <div class="relative">
           <input type="text" id="add_client_name"
             class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition"
@@ -37,15 +38,17 @@
           </ul>
         </div>
       </div>
-      <div><label class="block text-xs text-gray-500 mb-1">Start Date</label><input type="date" id="add_tanggal"
-          class="w-full border px-3 py-2 rounded"></div>
-      <div><label class="block text-xs text-gray-500 mb-1">Finish Date</label><input type="date" id="add_finish_date"
-          class="w-full border px-3 py-2 rounded"></div>
-      <div><label class="block text-xs text-gray-500 mb-1">Tipe Project</label><select id="add_type_id"
-          class="w-full border px-3 py-2 rounded" onchange="toggleTambahItemBtn()">
+      <div><label class="block text-xs text-gray-500 mb-1">Start Date <span class="text-red-500">*</span></label><input
+          type="date" id="add_tanggal" class="w-full border px-3 py-2 rounded"></div>
+      <div><label class="block text-xs text-gray-500 mb-1">Finish Date <span class="text-red-500">*</span></label><input
+          type="date" id="add_finish_date" class="w-full border px-3 py-2 rounded"></div>
+      <div><label class="block text-xs text-gray-500 mb-1">Tipe Project <span
+            class="text-red-500">*</span></label><select id="add_type_id" class="w-full border px-3 py-2 rounded"
+          onchange="toggleTambahItemBtn()">
           <option value="">Pilih Tipe</option>
         </select></div>
-      <div><label class="block text-xs text-gray-500 mb-1">Project Manager</label><select id="add_project_manager"
+      <div><label class="block text-xs text-gray-500 mb-1">Project Manager <span
+            class="text-red-500">*</span></label><select id="add_project_manager"
           class="w-full border px-3 py-2 rounded">
           <option value="">-- Pilih PM --</option>
         </select></div>

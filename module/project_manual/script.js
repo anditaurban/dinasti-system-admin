@@ -613,26 +613,26 @@ async function tambahItem(selectedSubCategoryId = "") {
     <td class="border px-3 py-2 w-[5%] align-top text-center font-semibold">${index}</td>
     <td class="border px-5 py-2 w-[55%] align-top">
       <div class="mb-1">
-        <label class="text-xs text-gray-500 font-bold">Type</label>
+        <label class="text-xs text-gray-500 font-bold">Type <span class="text-red-500">*</span></label>
         <select class="w-full border rounded px-2 py-1 itemSubcategory focus:ring-2 focus:ring-blue-500 outline-none transition"></select>
       </div>
       <div class="mb-1">
-        <label class="text-xs text-gray-500 font-bold">Product</label>
+        <label class="text-xs text-gray-500 font-bold">Product <span class="text-red-500">*</span></label>
         <input type="text" class="w-full border rounded px-2 py-1 itemProduct focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Nama Produk">
       </div>
       <div class="mb-1">
-        <label class="text-xs text-gray-500 font-bold">Deskripsi</label>
+        <label class="text-xs text-gray-500 font-bold">Deskripsi <span class="text-red-500">*</span></label>
         <textarea class="w-full border rounded px-2 py-1 itemDesc focus:ring-2 focus:ring-blue-500 outline-none transition" rows="2" placeholder="Deskripsi"></textarea>
       </div>
       <div class="grid grid-cols-3 gap-2 my-2 ${hideClass}">
-        <div><label class="text-xs text-gray-500">HPP (Modal)</label><input type="text" class="w-full border rounded px-2 py-1 itemHpp finance" value="0" oninput="recalculateHarga(this, 'hpp')"></div>
-        <div><label class="text-xs text-gray-500">Markup (Rp)</label><input type="text" class="w-full border rounded px-2 py-1 itemMarkupNominal finance" value="0" oninput="recalculateHarga(this, 'nominal')"></div>
-        <div><label class="text-xs text-gray-500">Markup (%)</label><input type="number" class="w-full border rounded px-2 py-1 itemMarkupPersen" value="0" oninput="recalculateHarga(this, 'persen')"></div>
+        <div><label class="text-xs text-gray-500">HPP (Modal) <span class="text-red-500">*</span></label><input type="text" class="w-full border rounded px-2 py-1 itemHpp finance" value="0" oninput="recalculateHarga(this, 'hpp')"></div>
+        <div><label class="text-xs text-gray-500">Markup (Rp) <span class="text-red-500">*</span></label><input type="text" class="w-full border rounded px-2 py-1 itemMarkupNominal finance" value="0" oninput="recalculateHarga(this, 'nominal')"></div>
+        <div><label class="text-xs text-gray-500">Markup (%) <span class="text-red-500">*</span></label><input type="number" class="w-full border rounded px-2 py-1 itemMarkupPersen" value="0" oninput="recalculateHarga(this, 'persen')"></div>
       </div>
       <div class="grid grid-cols-4 gap-2 ${hideClass}">
-        <div><label class="text-xs text-gray-500">Qty</label><input type="number" class="w-full border rounded px-2 py-1 itemQty" value="1" oninput="recalculateTotal()"></div>
+        <div><label class="text-xs text-gray-500">Qty <span class="text-red-500">*</span></label><input type="number" class="w-full border rounded px-2 py-1 itemQty" value="1" oninput="recalculateTotal()"></div>
         <div>
-           <label class="text-xs text-gray-500">Unit</label>
+           <label class="text-xs text-gray-500">Unit <span class="text-red-500">*</span></label>
            <div class="relative">
              <input type="text" class="w-full border rounded px-2 py-1 itemUnit" placeholder="set" oninput="filterUnitSuggestions(this)" autocomplete="off">
              <ul class="absolute z-10 w-full bg-white border shadow hidden max-h-48 overflow-y-auto rounded-md"></ul>
@@ -702,7 +702,7 @@ function tambahSubItem(btn) {
     <td class="w-[5%]"></td>
     <td class="border px-3 py-2">
        <div class="mb-1">
-         <label class="text-xs text-gray-500">Material Name</label>
+         <label class="text-xs text-gray-500">Material Name <span class="text-red-500">*</span></label>
          <input type="text" class="w-full border rounded subItemMaterial" placeholder="Material">
        </div>
        
@@ -713,33 +713,33 @@ function tambahSubItem(btn) {
 
        <div class="grid grid-cols-3 gap-2 my-2">
           <div>
-            <label class="text-xs text-gray-500">HPP</label>
+            <label class="text-xs text-gray-500">HPP <span class="text-red-500">*</span></label>
             <input type="text" class="w-full border rounded subItemHpp finance" value="0" oninput="recalculateHarga(this, 'hpp')">
           </div>
           <div>
-            <label class="text-xs text-gray-500">Markup (Rp)</label>
+            <label class="text-xs text-gray-500">Markup (Rp) <span class="text-red-500">*</span></label>
             <input type="text" class="w-full border rounded subItemMarkupNominal finance" value="0" oninput="recalculateHarga(this, 'nominal')">
           </div>
           <div>
-            <label class="text-xs text-gray-500">Markup (%)</label>
+            <label class="text-xs text-gray-500">Markup (%) <span class="text-red-500">*</span></label>
             <input type="number" class="w-full border rounded subItemMarkupPersen" value="0" oninput="recalculateHarga(this, 'persen')">
           </div>
        </div>
 
        <div class="grid grid-cols-4 gap-2">
           <div>
-            <label class="text-xs text-gray-500">Qty</label>
+            <label class="text-xs text-gray-500">Qty <span class="text-red-500">*</span></label>
             <input type="number" class="w-full border rounded subItemQty" value="1" oninput="recalculateTotal()">
           </div>
           <div>
-            <label class="text-xs text-gray-500">Unit</label>
+            <label class="text-xs text-gray-500">Unit <span class="text-red-500">*</span></label>
             <div class="relative">
               <input type="text" class="w-full border rounded subItemUnit" placeholder="pcs" oninput="filterUnitSuggestions(this)" autocomplete="off">
               <ul class="absolute z-10 w-full bg-white border shadow hidden max-h-48 overflow-y-auto"></ul>
             </div>
           </div>
           <div class="col-span-2">
-            <label class="text-xs text-gray-500">Harga Jual</label>
+            <label class="text-xs text-gray-500">Harga Jual </label>
             <input type="text" class="w-full border rounded subItemHarga bg-gray-100" readonly>
           </div>
        </div>

@@ -362,13 +362,13 @@ async function openUpdateStatus(pesananId, statusId) {
       html: `
         <div class="text-left space-y-3">
           <div>
-            <label class="block text-sm text-gray-600 mb-1">Pilih Status</label>
+            <label class="block text-sm text-gray-600 mb-1">Pilih Status <span class="text-red-500">*</span></label>
             <select id="statusSelect" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
               ${options}
             </select>
           </div>
           <div>
-            <label class="block text-sm text-gray-600 mb-1">Komentar</label>
+            <label class="block text-sm text-gray-600 mb-1">Komentar <span class="text-red-500">*</span></label>
             <textarea id="revisionInput" rows="3" placeholder="Masukkan komentar"
               class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"></textarea>
           </div>
@@ -528,7 +528,7 @@ async function openInvoiceModal(pesananId) {
         <input type="hidden" id="inv_number" />
 
         <div>
-          <label class="block text-sm font-medium mb-1">PO Number</label>
+          <label class="block text-sm font-medium mb-1">PO Number <span class="text-red-500">*</span></label>
           <input type="text" id="po_number"
             class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500" 
             required />
@@ -536,7 +536,7 @@ async function openInvoiceModal(pesananId) {
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium mb-1">Invoice Date</label>
+              <label class="block text-sm font-medium mb-1">Invoice Date <span class="text-red-500">*</span></label>
               <input type="date" id="invoice_date"
                 class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500" 
                 required />
@@ -546,12 +546,12 @@ async function openInvoiceModal(pesananId) {
               <label class="block text-sm font-medium mb-1">Due Date</label>
               <input type="date" id="due_date"
                 class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500" 
-                required />
+                />
             </div>
         </div>
 
         <div>
-          <label class="block text-sm font-medium mb-1">Purchase Order Date</label>
+          <label class="block text-sm font-medium mb-1">Purchase Order Date <span class="text-red-500">*</span></label>
           <input type="date" id="po_date"
             class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500" 
             required />
@@ -582,7 +582,7 @@ async function openInvoiceModal(pesananId) {
         document.getElementById("inv_number").value.trim() || "";
 
       // Validasi (tambahkan due_date jika wajib diisi)
-      if (!po_number || !invoice_date || !po_date || !due_date) {
+      if (!po_number || !invoice_date || !po_date) {
         Swal.showValidationMessage(
           "PO Number, Invoice Date, Due Date, dan PO Date wajib diisi!"
         );

@@ -23,13 +23,13 @@ formHtml = `
   <input type="hidden" name="owner_id" value="${owner_id}">
   <input type="hidden" name="pelanggan_id" value="${currentClientId}">
 
-  <label for="formNama" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Nama Kontak</label>
+  <label for="formNama" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Nama Kontak <span class="text-red-500">*</span></label>
   <input id="formNama" name="name" type="text" class="form-control w-full px-3 py-2 border rounded-md" required>
 
   <label for="formEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Email</label>
   <input id="formEmail" name="email" type="email" class="form-control w-full px-3 py-2 border rounded-md" required>
 
-  <label for="formPhone" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Phone</label>
+  <label for="formPhone" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Phone <span class="text-red-500">*</span></label>
   <input id="formPhone" name="phone" type="text" class="form-control w-full px-3 py-2 border rounded-md" required>
 </form>
 `;

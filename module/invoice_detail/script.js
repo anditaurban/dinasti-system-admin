@@ -547,7 +547,7 @@ async function tambahUangMuka(pesananId, contractAmountRaw) {
   <div class="space-y-3 text-left text-gray-800">
     <div class="grid grid-cols-2 gap-3">
         <div>
-            <label class="block text-sm mb-1">Tanggal DP</label>
+            <label class="block text-sm mb-1">Tanggal DP <span class="text-red-500">*</span></label>
             <input type="date" id="dp_date"
               class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring" />
         </div>
@@ -564,7 +564,7 @@ async function tambahUangMuka(pesananId, contractAmountRaw) {
         </div>
 
         <div class="col-span-4">
-            <label class="block text-sm mb-1">Persen (%)</label>
+            <label class="block text-sm mb-1">Persen (%) <span class="text-red-500">*</span></label>
             <div class="relative">
                 <input type="number" id="percentage" step="0.1"
                     class="w-full border border-gray-300 rounded px-3 py-2 text-right focus:outline-none focus:ring"
@@ -574,7 +574,7 @@ async function tambahUangMuka(pesananId, contractAmountRaw) {
         </div>
 
         <div class="col-span-8">
-            <label class="block text-sm mb-1">Nominal Dasar (Exclude PPN)</label>
+            <label class="block text-sm mb-1">Nominal Dasar (Exclude PPN) <span class="text-red-500">*</span></label>
             <input type="text" id="amount" onkeyup="formatCurrencyInput(this)"
                 class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring"
                 placeholder="Contoh: 1.000.000" />
@@ -605,7 +605,7 @@ async function tambahUangMuka(pesananId, contractAmountRaw) {
     </div>
 
     <div>
-      <label class="block text-sm mb-1">Deskripsi Invoice</label>
+      <label class="block text-sm mb-1">Deskripsi Invoice <span class="text-red-500">*</span></label>
       <textarea id="description" rows="2"
         class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring"
         placeholder="Contoh: Uang muka 50%"></textarea>
@@ -945,7 +945,7 @@ async function openSalesReceiptModal(
         <input type="hidden" id="branch_id" value="1">
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Transaksi</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Transaksi <span class="text-red-500">*</span></label>
           <input type="date" id="tanggal"
             class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500" required>
         </div>
@@ -964,21 +964,21 @@ async function openSalesReceiptModal(
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Nominal Bayar</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nominal Bayar <span class="text-red-500">*</span></label>
           <input type="text" id="sr_nominal"
             class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500"
             placeholder="Masukkan nominal" onkeyup="formatCurrencyInput(this)">
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Deksripsi Invoice</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Deksripsi Invoice <span class="text-red-500">*</span></label>
           <textarea id="keterangan" rows="2"
             class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500"
             placeholder="Masukkan Deksripsi"></textarea>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Akun</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Akun <span class="text-red-500">*</span></label>
           <select id="akun_select"
             class="w-full border rounded px-3 py-2 bg-white focus:ring focus:ring-blue-200 focus:border-blue-500"
             required>
@@ -1136,7 +1136,7 @@ async function openEditInvoiceModal() {
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-sm text-gray-600 mb-1">Nomor Invoice</label>
-            <input type="text" id="edit_no_inv" class="w-full border rounded px-3 py-2" 
+            <input type="text" id="edit_no_inv" class="w-full border rounded px-3 py-2" readonly 
               value="${data.inv_number || ""}">
           </div>
           <div>
@@ -1162,7 +1162,7 @@ async function openEditInvoiceModal() {
         <div>
            <label class="block text-sm text-gray-600 mb-1">Jatuh Tempo (Due Date)</label>
            <input type="date" id="edit_due_date" class="w-full border rounded px-3 py-2" 
-              value="${data.due_date || ""}"> 
+              value="${data.due_date_ymd || ""}"> 
         </div>
 
         <div>
@@ -1172,10 +1172,6 @@ async function openEditInvoiceModal() {
           }</textarea>
         </div>
 
-        <div>
-          <label class="block text-sm text-gray-600 mb-1">Upload File (Invoice / PO)</label>
-          <input type="file" id="edit_file" class="w-full border rounded px-3 py-2 bg-white">
-        </div>
       </div>
     `,
     focusConfirm: false,
@@ -1189,9 +1185,8 @@ async function openEditInvoiceModal() {
         po_number: document.getElementById("edit_no_po").value,
         po_date: document.getElementById("edit_tanggal_po").value,
         // [BARU] Ambil value due_date dan internal_notes
-        due_date: document.getElementById("edit_due_date").value,
+        due_date_ymd: document.getElementById("edit_due_date").value,
         internal_notes: document.getElementById("edit_internal_notes").value,
-        files: document.getElementById("edit_file").files[0] || null,
       };
     },
   });

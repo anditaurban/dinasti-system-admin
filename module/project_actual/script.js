@@ -307,13 +307,13 @@ function addNewRow() {
         <td class="p-4 align-top">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                 <div>
-                    <label class="text-xs text-gray-400">Korelasi Pekerjaan</label>
+                    <label class="text-xs text-gray-400">Korelasi Pekerjaan <span class="text-red-500">*</span></label>
                     <select class="w-full border p-2 rounded text-sm input-pekerjaan focus:ring-blue-500 focus:border-blue-500" onchange="handleRowPekerjaanChange(this)">
                         ${itemOpts}
                     </select>
                 </div>
                 <div>
-                    <label class="text-xs text-gray-400">Korelasi Material</label>
+                    <label class="text-xs text-gray-400">Korelasi Material <span class="text-red-500">*</span></label>
                     <select class="w-full border p-2 rounded text-sm bg-gray-100 text-gray-400 input-material" disabled>
                         <option value="0">-- Material --</option>
                     </select>
@@ -321,22 +321,22 @@ function addNewRow() {
             </div>
             
             <div class="mb-3">
-            <label class="text-xs text-gray-500">Nama Produk</label>
+            <label class="text-xs text-gray-500">Nama Produk <span class="text-red-500">*</span></label>
                 <input type="text" class="w-full border p-2 rounded text-sm font-semibold input-product" placeholder="Nama Item / Produk Real (Struk)">
                
             </div>
 
             <div class="grid grid-cols-12 gap-2 bg-gray-50 p-2 rounded items-end">
                 <div class="col-span-4">
-                    <label class="text-xs text-gray-500">Harga (Rp)</label>
+                    <label class="text-xs text-gray-500">Harga (Rp) <span class="text-red-500">*</span></label>
                     <input type="text" class="w-full border p-1 rounded text-right text-sm input-price" value="0" onkeyup="formatCurrencyInput(this); calculateGrandTotal()">
                 </div>
                 <div class="col-span-2">
-                    <label class="text-xs text-gray-500">Qty</label>
+                    <label class="text-xs text-gray-500">Qty <span class="text-red-500">*</span></label>
                     <input type="number" class="w-full border p-1 rounded text-center text-sm input-qty" value="1" min="1" oninput="calculateGrandTotal()">
                 </div>
                 <div class="col-span-3">
-                    <label class="text-xs text-gray-500">Unit</label>
+                    <label class="text-xs text-gray-500">Unit <span class="text-red-500">*</span></label>
                     <div class="relative">
                         <input type="text" class="w-full border p-1 rounded text-center text-sm input-unit" placeholder="Pcs" oninput="filterUnitRow(this)">
                         <ul class="absolute bg-white border shadow hidden max-h-32 overflow-y-auto z-10 w-full suggestions-unit"></ul>

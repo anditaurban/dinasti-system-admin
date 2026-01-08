@@ -12,22 +12,31 @@
     <!-- Search + Filter -->
     <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 text-sm">
 
-      <!-- Search -->
       <div class="grid grid-cols-2 gap-3 mb-4 text-sm">
-        <!-- Project Name -->
         <div class="col-span-2">
-          <label class="block text-xs text-gray-500 mb-1">Project Name</label>
+          <label class="block text-xs text-gray-500 mb-1">
+            Project Name <span class="text-red-500">*</span>
+          </label>
           <input type="text" name="project_name" id="project_name" class="w-full border rounded px-3 py-2 text-sm"
             placeholder="Nama Project">
         </div>
 
-        <!-- Tanggal -->
         <div>
-          <label class="block text-xs text-gray-500 mb-1">Tanggal</label>
+          <label class="block text-xs text-gray-500 mb-1">
+            Pilih Tipe <span class="text-red-500">*</span>
+          </label>
+          <select id="type_id" name="type_id" onchange="toggleTambahItemBtn()" class="w-full border px-3 py-2 rounded">
+            <option value="">Pilih Tipe</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">
+            Tanggal <span class="text-red-500">*</span>
+          </label>
           <input type="date" id="tanggal" name="tanggal" class="w-full border px-3 py-2 rounded text-sm" />
         </div>
 
-        <!-- No Quotation -->
         <div>
           <label class="block text-xs text-gray-500 mb-1">No Quotation</label>
           <div class="flex gap-2">
@@ -38,16 +47,16 @@
           </div>
         </div>
 
-        <!-- Status -->
         <div>
           <label class="block text-xs text-gray-500 mb-1">Status</label>
           <input type="text" id="status" name="document_status"
             class="w-full border px-3 py-2 rounded bg-gray-100 text-sm" readonly />
         </div>
 
-        <!-- Client -->
         <div>
-          <label for="client" class="block text-xs text-gray-500 mb-1">Client</label>
+          <label for="client" class="block text-xs text-gray-500 mb-1">
+            Client <span class="text-red-500">*</span>
+          </label>
           <div class="relative">
             <input type="text" id="client" name="client" class="w-full border rounded px-3 py-2 text-sm"
               placeholder="Ketik nama client..." oninput="filterClientSuggestions(this)" autocomplete="off">
@@ -58,8 +67,10 @@
           <input type="hidden" id="client_id" />
         </div>
 
-        <div class="col-span-2">
-          <label class="block text-xs text-gray-500 mb-1">PIC Name</label>
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">
+            PIC Name <span class="text-red-500">*</span>
+          </label>
           <select id="pic_name" name="pic_name" class="w-full border rounded px-3 py-2 text-sm bg-gray-100" disabled>
             <option value="">-- Pilih Client Terlebih Dahulu --</option>
           </select>
@@ -70,11 +81,7 @@
 
       <!-- Actions -->
       <div class="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto">
-        <div>
-          <select id="type_id" name="type_id" onchange="toggleTambahItemBtn()" class="w-full border px-3 py-2 rounded">
-            <option value="">Pilih Tipe</option>
-          </select>
-        </div>
+
 
         <button id="simpanBtn" onclick="submitInvoice()"
           class="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded text-sm">
@@ -178,28 +185,30 @@
 
       <!-- Ringkasan (DIPINDAH KE BAWAH, bentuk HORIZONTAL di desktop) -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-gray-50 p-6 rounded-2xl shadow-md text-sm">
-        <!-- Catatan -->
         <div class="space-y-2">
-          <label for="catatan" class="block font-semibold text-gray-700 text-base">📝 Catatan</label>
+          <label for="catatan" class="block font-semibold text-gray-700 text-base">
+            📝 Catatan <span class="text-red-500">*</span>
+          </label>
           <select id="catatan"
             class="w-full border border-gray-300 rounded-lg px-3 py-3 h-14 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
             <option value="">Memuat catatan...</option>
           </select>
         </div>
 
-        <!-- Syarat & Ketentuan -->
         <div class="space-y-2">
-          <label for="syarat_ketentuan" class="block font-semibold text-gray-700 text-base">📌 Syarat &
-            Ketentuan</label>
+          <label for="syarat_ketentuan" class="block font-semibold text-gray-700 text-base">
+            📌 Syarat & Ketentuan <span class="text-red-500">*</span>
+          </label>
           <select id="syarat_ketentuan"
             class="w-full border border-gray-300 rounded-lg px-3 py-3 h-14 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
             <option value="">Memuat S&K...</option>
           </select>
         </div>
 
-        <!-- Term of Payment -->
         <div class="space-y-2">
-          <label for="term_pembayaran" class="block font-semibold text-gray-700 text-base">💰 Term of Payment</label>
+          <label for="term_pembayaran" class="block font-semibold text-gray-700 text-base">
+            💰 Term of Payment <span class="text-red-500">*</span>
+          </label>
           <select id="term_pembayaran"
             class="w-full border border-gray-300 rounded-lg px-3 py-3 h-14 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
             <option value="">Memuat ToP...</option>

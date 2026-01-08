@@ -678,40 +678,56 @@ async function tambahItem() {
 
     <td class="border px-5 py-2 w-[55%] align-top">
       <div class="mb-1">
-        <label class="block text-xs text-gray-500">Type</label>
+        <label class="block text-xs text-gray-500">
+            Type <span class="text-red-500">*</span>
+        </label>
         <select class="w-full border rounded px-2 itemSubcategory"></select>
       </div>
       <div class="mb-1">
-        <label class="block text-xs text-gray-500">Product</label>
+        <label class="block text-xs text-gray-500">
+            Product <span class="text-red-500">*</span>
+        </label>
         <input type="text" class="w-full border rounded px-2 itemProduct" placeholder="Product">
       </div>
       <div class="mb-1">
-        <label class="block text-xs text-gray-500">Deskripsi</label>
+        <label class="block text-xs text-gray-500">
+            Deskripsi <span class="text-red-500">*</span>
+        </label>
         <textarea class="w-full border rounded px-2 itemDesc" rows="3" placeholder="Deskripsi"></textarea>
       </div>
 
       <div class="grid grid-cols-3 gap-2 p-2 border rounded bg-gray-50 my-2 ${hideClass}">
         <div>
-          <label class="block text-xs text-gray-500">HPP (Modal)</label>
+          <label class="block text-xs text-gray-500">
+            HPP (Modal) <span class="text-red-500">*</span>
+          </label>
           <input type="text" class="w-full border rounded px-2 itemHpp text-right finance" value="0" oninput="recalculateHarga(this, 'hpp')">
         </div>
         <div>
-          <label class="block text-xs text-gray-500">Markup (Nominal)</label>
+          <label class="block text-xs text-gray-500">
+            Markup (Nominal) <span class="text-red-500">*</span>
+          </label>
           <input type="text" class="w-full border rounded px-2 itemMarkupNominal text-right finance" value="0" oninput="recalculateHarga(this, 'nominal')">
         </div>
         <div>
-          <label class="block text-xs text-gray-500">Markup (%)</label>
+          <label class="block text-xs text-gray-500">
+            Markup (%) <span class="text-red-500">*</span>
+          </label>
           <input type="number" class="w-full border rounded px-2 itemMarkupPersen text-right" value="0" oninput="recalculateHarga(this, 'persen')">
         </div>
       </div>
 
       <div class="grid grid-cols-4 gap-2 ${hideClass}">
         <div>
-          <label class="block text-xs text-gray-500">Qty</label>
+          <label class="block text-xs text-gray-500">
+            Qty <span class="text-red-500">*</span>
+          </label>
           <input type="number" class="w-full border rounded px-2 itemQty text-right" value="0" oninput="recalculateTotal()">
         </div>
         <div>
-          <label class="block text-xs text-gray-500">Unit</label>
+          <label class="block text-xs text-gray-500">
+            Unit <span class="text-red-500">*</span>
+          </label>
           <div class="relative">
             <input 
               type="text" 
@@ -790,7 +806,9 @@ function tambahSubItem(btn) {
     <td class="border px-3 py-2 align-top">
       <div class="space-y-2">
         <div>
-          <label class="block text-xs text-gray-500">Material</label>
+          <label class="block text-xs text-gray-500">
+            Material <span class="text-red-500">*</span>
+          </label>
           <input type="text" class="w-full border rounded px-2 subItemMaterial" placeholder="Material">
         </div>
 
@@ -801,26 +819,36 @@ function tambahSubItem(btn) {
 
         <div class="grid grid-cols-3 gap-2 p-2 border rounded bg-white my-2">
           <div>
-            <label class="block text-xs text-gray-500">HPP (Modal)</label>
+            <label class="block text-xs text-gray-500">
+                HPP (Modal) <span class="text-red-500">*</span>
+            </label>
             <input type="text" class="w-full border rounded px-2 subItemHpp text-right finance" value="0" oninput="recalculateHarga(this, 'hpp')">
           </div>
           <div>
-            <label class="block text-xs text-gray-500">Markup (Nominal)</label>
+            <label class="block text-xs text-gray-500">
+                Markup (Nominal) <span class="text-red-500">*</span>
+            </label>
             <input type="text" class="w-full border rounded px-2 subItemMarkupNominal text-right finance" value="0" oninput="recalculateHarga(this, 'nominal')">
           </div>
           <div>
-            <label class="block text-xs text-gray-500">Markup (%)</label>
+            <label class="block text-xs text-gray-500">
+                Markup (%) <span class="text-red-500">*</span>
+            </label>
             <input type="number" class="w-full border rounded px-2 subItemMarkupPersen text-right" value="0" oninput="recalculateHarga(this, 'persen')">
           </div>
         </div>
 
         <div class="grid grid-cols-4 gap-2">
           <div>
-            <label class="block text-xs text-gray-500">Qty</label>
+            <label class="block text-xs text-gray-500">
+                Qty <span class="text-red-500">*</span>
+            </label>
             <input type="number" class="w-full border rounded px-2 text-right subItemQty" value="0" oninput="recalculateTotal()">
           </div>
          <div>
-          <label class="block text-xs text-gray-500">Unit</label>
+          <label class="block text-xs text-gray-500">
+            Unit <span class="text-red-500">*</span>
+          </label>
           <div class="relative">
             <input 
               type="text" 
@@ -831,7 +859,7 @@ function tambahSubItem(btn) {
             >
             <ul class="absolute z-10 w-full bg-white border rounded mt-1 text-sm shadow hidden max-h-48 overflow-y-auto">
               </ul>
-          </div>
+            </div>
         </div>
           <div class="col-span-2">
             <label class="block text-xs text-gray-500">Harga (Jual)</label>
@@ -1300,14 +1328,154 @@ function loadPretextFromLocal() {
   }
 }
 
+function validateForm() {
+  let isValid = true;
+  let errorMessages = [];
+
+  // Helper: Fungsi untuk cek field kosong & kasih warna merah
+  const checkField = (id, label) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    // Reset style dulu
+    el.classList.remove("border-red-500", "ring-1", "ring-red-500");
+
+    // Cek value
+    if (el.value.trim() === "" || el.value === "0") {
+      el.classList.add("border-red-500", "ring-1", "ring-red-500"); // Kasih merah
+      isValid = false;
+      if (!errorMessages.includes(label)) errorMessages.push(label);
+    }
+  };
+
+  // Helper: Fungsi khusus input Rupiah (class finance)
+  const checkFinance = (el, label) => {
+    el.classList.remove("border-red-500", "ring-1", "ring-red-500");
+    const val = parseRupiah(el.value);
+
+    // Validasi: Harus angka & lebih dari 0 (kecuali markup boleh 0 jika strategi pricing membolehkan, tapi request Anda wajib diisi)
+    // Disini saya set HPP wajib > 0. Markup saya biarkan lolos jika 0 (mungkin jual harga modal), tapi jika wajib diisi ganti logicnya.
+    if (val <= 0 && label.includes("HPP")) {
+      el.classList.add("border-red-500", "ring-1", "ring-red-500");
+      isValid = false;
+      // Push pesan error generic untuk item
+      if (!errorMessages.includes("Detail Item (Harga/Qty belum sesuai)"))
+        errorMessages.push("Detail Item (Harga/Qty belum sesuai)");
+    }
+  };
+
+  // --- 1. VALIDASI HEADER ---
+  checkField("project_name", "Nama Project");
+  checkField("type_id", "Tipe Sales");
+  checkField("tanggal", "Tanggal");
+  checkField("client_id", "Client"); // Cek ID-nya, bukan teks inputnya
+  checkField("pic_name", "Nama PIC");
+
+  // --- 2. VALIDASI FOOTER ---
+  checkField("catatan", "Catatan");
+  checkField("syarat_ketentuan", "Syarat & Ketentuan");
+  checkField("term_pembayaran", "Term of Payment");
+
+  // --- 3. VALIDASI ITEMS ---
+  const rows = document.querySelectorAll("#tabelItem tr.itemRow");
+
+  if (rows.length === 0) {
+    isValid = false;
+    errorMessages.push("Daftar Item tidak boleh kosong");
+  } else {
+    rows.forEach((row, index) => {
+      // Input Text Biasa
+      const inputs = [
+        { sel: ".itemSubcategory", name: "Tipe Produk" },
+        { sel: ".itemProduct", name: "Nama Produk" },
+        { sel: ".itemDesc", name: "Deskripsi" },
+        { sel: ".itemQty", name: "Qty" },
+        { sel: ".itemUnit", name: "Satuan" },
+      ];
+
+      inputs.forEach((field) => {
+        const el = row.querySelector(field.sel);
+        if (el) {
+          el.classList.remove("border-red-500", "ring-1", "ring-red-500");
+          if (el.value.trim() === "" || el.value == "0") {
+            el.classList.add("border-red-500", "ring-1", "ring-red-500");
+            isValid = false;
+          }
+        }
+      });
+
+      // Input Keuangan (HPP)
+      const hppEl = row.querySelector(".itemHpp");
+      if (hppEl) checkFinance(hppEl, "HPP");
+
+      // Cek Sub Item (Material) jika ada
+      const subWrapper = row.nextElementSibling;
+      if (subWrapper && subWrapper.classList.contains("subItemWrapper")) {
+        const subRows = subWrapper.querySelectorAll(".subItemRow");
+        subRows.forEach((sub) => {
+          const matEl = sub.querySelector(".subItemMaterial");
+          const subHpp = sub.querySelector(".subItemHpp");
+          const subQty = sub.querySelector(".subItemQty");
+          const subUnit = sub.querySelector(".subItemUnit");
+
+          // Validasi nama material
+          if (matEl) {
+            matEl.classList.remove("border-red-500", "ring-1", "ring-red-500");
+            if (matEl.value.trim() === "") {
+              matEl.classList.add("border-red-500", "ring-1", "ring-red-500");
+              isValid = false;
+            }
+          }
+          // Validasi HPP Sub
+          if (subHpp) checkFinance(subHpp, "HPP Material");
+
+          // Validasi Qty Sub
+          if (subQty && (subQty.value == "0" || subQty.value == "")) {
+            subQty.classList.add("border-red-500", "ring-1", "ring-red-500");
+            isValid = false;
+          }
+          // Validasi Unit Sub
+          if (subUnit && subUnit.value.trim() == "") {
+            subUnit.classList.add("border-red-500", "ring-1", "ring-red-500");
+            isValid = false;
+          }
+        });
+      }
+    });
+  }
+
+  // Jika Error, Tampilkan Alert
+  if (!isValid) {
+    let msgList =
+      errorMessages.length > 0
+        ? `<ul class="text-left text-sm mt-2 list-disc pl-4">${errorMessages
+            .map((m) => `<li>${m}</li>`)
+            .join("")}</ul>`
+        : "Mohon lengkapi semua field bertanda bintang (*)";
+
+    Swal.fire({
+      title: "Data Belum Lengkap",
+      html: `Silakan periksa kembali form anda:<br>${msgList}`,
+      icon: "warning",
+    });
+  }
+
+  return isValid;
+}
+
 // GANTI DENGAN FUNGSI INI (TYPO SUDAH DIPERBAIKI)
 async function saveInvoice(mode = "create", id = null) {
   try {
-    // 🛑 1. REM TANGAN AKTIF
-    isSubmitting = true;
-    clearTimeout(autosaveTimer); // Matikan timer autosave yang sedang antri
+    // 🛑 0. VALIDASI INPUT DULU (BARU DITAMBAHKAN)
+    if (!validateForm()) {
+      return; // Stop proses jika validasi gagal
+    }
 
-    calculateTotals(); // Hitung total final
+    // 🛑 1. REM TANGAN AKTIF (Lanjutan kode lama Anda...)
+    isSubmitting = true;
+    clearTimeout(autosaveTimer);
+
+    calculateTotals();
 
     let revisionUpdate = "no";
 
