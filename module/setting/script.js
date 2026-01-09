@@ -913,7 +913,13 @@ function handleEditNote(id, pretext) {
   showNotesTopModal("edit", "notes", id, pretext);
 }
 async function handleDeleteNote(id) {
-  await handleDeleteGeneric("notes", id, `${baseUrl}/delete/notes/${id}`);
+  // Menggunakan endpoint /delete/notes/{id}
+  await handleDeleteGeneric(
+    "notes",
+    id,
+    `${baseUrl}/delete/notes/${id}`,
+    "Catatan"
+  );
 }
 
 // --- T&C ---
@@ -924,7 +930,13 @@ function handleEditTnc(id, pretext) {
   showNotesTopModal("edit", "tnc", id, pretext);
 }
 async function handleDeleteTnc(id) {
-  await handleDeleteGeneric("tnc", id, `${baseUrl}/delete/terms/${id}`, "T&C");
+  // Menggunakan endpoint /delete/terms/{id}
+  await handleDeleteGeneric(
+    "tnc",
+    id,
+    `${baseUrl}/delete/terms/${id}`,
+    "Syarat & Ketentuan"
+  );
 }
 
 // --- ToP ---
@@ -935,6 +947,7 @@ function handleEditTop(id, pretext) {
   showNotesTopModal("edit", "top", id, pretext);
 }
 async function handleDeleteTop(id) {
+  // Menggunakan endpoint /delete/term_of_payment/{id}
   await handleDeleteGeneric(
     "top",
     id,
@@ -942,7 +955,6 @@ async function handleDeleteTop(id) {
     "Term of Payment"
   );
 }
-
 /**
  * Modal generik untuk Tambah / Edit Catatan, ToP, dan T&C
  */
@@ -954,6 +966,9 @@ async function showNotesTopModal(mode, dataType, id = null, pretext = "") {
   };
   const title = titles[dataType][mode];
 
+  // Dekode pretext jika ada karakter HTML entity (jaga-jaga)
+  const safePretext = pretext ? String(pretext) : "";
+
   const { value: formValues } = await Swal.fire({
     title: title,
     html: `
@@ -961,7 +976,7 @@ async function showNotesTopModal(mode, dataType, id = null, pretext = "") {
                 <div>
                     <label for="swal_pretext" class="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
                     <textarea id="swal_pretext" rows="5" placeholder="Tulis deskripsi di sini..." 
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">${pretext}</textarea>
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">${safePretext}</textarea>
                 </div>
             </div>
         `,
@@ -995,6 +1010,7 @@ async function saveNotesTopData(mode, dataType, id, data) {
   };
   const endpointType = endpointMap[dataType];
 
+  // Logic endpoint
   const endpoint = isAdd
     ? `${baseUrl}/add/${endpointType}`
     : `${baseUrl}/update/${endpointType}/${id}`;
@@ -1006,6 +1022,7 @@ async function saveNotesTopData(mode, dataType, id, data) {
     pretext: data.pretext,
   };
 
+  // Tambahkan field khusus sesuai tipe data (agar backend mengenali jenisnya)
   if (isAdd) {
     if (dataType === "notes") {
       payload.note = "Catatan";
@@ -1030,15 +1047,23 @@ async function saveNotesTopData(mode, dataType, id, data) {
     });
 
     const result = await res.json();
-    const responseData = result.data || result;
 
-    if (res.ok && (responseData.success || result.response === "200")) {
+    // Cek response yang fleksibel (bisa di root atau di dalam data)
+    const isSuccess =
+      res.ok &&
+      (result.success === true ||
+        result.response === "200" ||
+        (result.data && result.data.success));
+
+    if (isSuccess) {
       Swal.fire("Sukses!", "Data berhasil disimpan.", "success");
       loadTableData(dataType, tableStates[dataType].currentPage);
     } else {
       Swal.fire(
         "Gagal!",
-        responseData.message || "Gagal menyimpan data.",
+        result.message ||
+          (result.data && result.data.message) ||
+          "Gagal menyimpan data.",
         "error"
       );
     }
@@ -1048,10 +1073,9 @@ async function saveNotesTopData(mode, dataType, id, data) {
 }
 
 /**
- * Fungsi Hapus Generik (untuk Notes, ToP, T&C)
- */
-/**
- * Fungsi Hapus Generik (untuk Notes, ToP, T&C, DAN Unit)
+ * 🔥 FUNGSI HAPUS GENERIK (FIXED) 🔥
+ * - Method dikembalikan ke PUT.
+ * - Logika deteksi "Sukses" diperluas agar reload tabel terpanggil.
  */
 async function handleDeleteGeneric(dataType, id, endpoint, title = "Data") {
   const confirm = await Swal.fire({
@@ -1061,37 +1085,72 @@ async function handleDeleteGeneric(dataType, id, endpoint, title = "Data") {
     showCancelButton: true,
     confirmButtonColor: "#d33",
     confirmButtonText: "Ya, hapus",
+    cancelButtonText: "Batal",
   });
 
   if (confirm.isConfirmed) {
+    // Tampilkan loading sebentar agar user tau proses sedang berjalan
+    Swal.fire({
+      title: "Menghapus...",
+      didOpen: () => Swal.showLoading(),
+    });
+
     try {
       const res = await fetch(endpoint, {
-        method: "PUT", // Sesuai kode Anda sebelumnya
-        headers: { Authorization: `Bearer ${API_TOKEN}` },
+        method: "PUT", // ✅ KEMBALI KE PUT SESUAI REQUEST
+        headers: {
+          Authorization: `Bearer ${API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
       });
-      const result = await res.json(); // Menggunakan nama 'result' agar lebih jelas
 
-      // --- AWAL PERUBAHAN ---
-      // Periksa apakah response OK (200-299) dan ada objek 'data.message'
-      if (res.ok && result.data && result.data.message) {
-        Swal.fire(
-          "Terhapus!",
-          result.data.message, // Ambil pesan dari API
-          "success"
-        );
-        // Muat ulang tabel yang sesuai (dataType)
-        loadTableData(dataType, tableStates[dataType].currentPage);
+      const result = await res.json();
+
+      // ✅ LOGIKA PENGECEKAN SUKSES YANG LEBIH LUAS
+      // Kita anggap sukses jika:
+      // 1. HTTP Status OK (200-299)
+      // 2. Ada indikator sukses di JSON (success: true, response: "200", atau di dalam data)
+      let isSuccess = false;
+      let successMessage = "Data berhasil dihapus";
+
+      if (res.ok) {
+        if (result.success === true || result.response === "200") {
+          isSuccess = true;
+          if (result.message) successMessage = result.message;
+        } else if (
+          result.data &&
+          (result.data.success === true || result.data.response === "200")
+        ) {
+          isSuccess = true;
+          if (result.data.message) successMessage = result.data.message;
+        }
+      }
+
+      if (isSuccess) {
+        // 1. Tutup loading & Tampilkan pesan sukses
+        await Swal.fire("Terhapus!", successMessage, "success");
+
+        // 2. 🔄 REFRESH TABEL OTOMATIS
+        // Pastikan dataType valid dan ada di tableStates
+        if (tableStates[dataType]) {
+          console.log(`Reloading table for: ${dataType}`); // Debugging di console
+          loadTableData(dataType, tableStates[dataType].currentPage);
+        } else {
+          console.error(
+            "Gagal refresh: dataType tidak ditemukan di tableStates"
+          );
+        }
       } else {
-        // Tampilkan pesan error dari API jika ada, atau pesan default
+        // Jika gagal
         const errorMessage =
-          (result.data && result.data.message) ||
           result.message ||
+          (result.data && result.data.message) ||
           "Gagal menghapus data.";
         Swal.fire("Gagal!", errorMessage, "error");
       }
-      // --- AKHIR PERUBAHAN ---
     } catch (err) {
-      Swal.fire("Error", err.message, "error");
+      console.error("Delete Error:", err);
+      Swal.fire("Error", "Terjadi kesalahan koneksi.", "error");
     }
   }
 }
