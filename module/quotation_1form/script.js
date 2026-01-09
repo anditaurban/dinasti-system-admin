@@ -691,7 +691,7 @@ async function tambahItem() {
       </div>
       <div class="mb-1">
         <label class="block text-xs text-gray-500">
-            Deskripsi <span class="text-red-500">*</span>
+            Deskripsi
         </label>
         <textarea class="w-full border rounded px-2 itemDesc" rows="3" placeholder="Deskripsi"></textarea>
       </div>
@@ -1387,7 +1387,6 @@ function validateForm() {
       const inputs = [
         { sel: ".itemSubcategory", name: "Tipe Produk" },
         { sel: ".itemProduct", name: "Nama Produk" },
-        { sel: ".itemDesc", name: "Deskripsi" },
         { sel: ".itemUnit", name: "Satuan" },
       ];
 
