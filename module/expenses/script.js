@@ -391,14 +391,15 @@ async function showExpenseModal(id = null) {
         }
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-             <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Transaksi <span class="text-red-500">*</span></label>
-             <input type="date" name="tanggal_transaksi" value="${valTglTransaksi}" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
-          </div>
-          <div>
+        <div>
              <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Pengajuan <span class="text-red-500">*</span></label>
-             <input type="date" name="tanggal_request" value="${valTglRequest}" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+             <input type="date" name="tanggal_request" value="${valTglRequest}" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
           </div>
+          <div>
+             <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Transaksi</label>
+             <input type="date" name="tanggal_transaksi" value="${valTglTransaksi}" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" >
+          </div>
+          
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

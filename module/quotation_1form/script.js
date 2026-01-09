@@ -1332,35 +1332,34 @@ function validateForm() {
   let isValid = true;
   let errorMessages = [];
 
-  // Helper: Fungsi untuk cek field kosong & kasih warna merah
+  // Helper: Fungsi untuk cek field text biasa
   const checkField = (id, label) => {
     const el = document.getElementById(id);
     if (!el) return;
 
-    // Reset style dulu
     el.classList.remove("border-red-500", "ring-1", "ring-red-500");
 
-    // Cek value
     if (el.value.trim() === "" || el.value === "0") {
-      el.classList.add("border-red-500", "ring-1", "ring-red-500"); // Kasih merah
+      el.classList.add("border-red-500", "ring-1", "ring-red-500");
       isValid = false;
       if (!errorMessages.includes(label)) errorMessages.push(label);
     }
   };
 
-  // Helper: Fungsi khusus input Rupiah (class finance)
+  // Helper: Fungsi khusus input Rupiah/Angka
   const checkFinance = (el, label) => {
     el.classList.remove("border-red-500", "ring-1", "ring-red-500");
     const val = parseRupiah(el.value);
 
-    // Validasi: Harus angka & lebih dari 0 (kecuali markup boleh 0 jika strategi pricing membolehkan, tapi request Anda wajib diisi)
-    // Disini saya set HPP wajib > 0. Markup saya biarkan lolos jika 0 (mungkin jual harga modal), tapi jika wajib diisi ganti logicnya.
-    if (val <= 0 && label.includes("HPP")) {
+    // 🔴 PERUBAHAN DI SINI:
+    // HPP (Modal) sekarang BOLEH 0. Hanya error jika negatif.
+    // Qty tetap harus > 0.
+
+    if (label === "Qty" && val <= 0) {
       el.classList.add("border-red-500", "ring-1", "ring-red-500");
       isValid = false;
-      // Push pesan error generic untuk item
-      if (!errorMessages.includes("Detail Item (Harga/Qty belum sesuai)"))
-        errorMessages.push("Detail Item (Harga/Qty belum sesuai)");
+      if (!errorMessages.includes("Qty tidak boleh 0"))
+        errorMessages.push("Qty tidak boleh 0");
     }
   };
 
@@ -1368,7 +1367,7 @@ function validateForm() {
   checkField("project_name", "Nama Project");
   checkField("type_id", "Tipe Sales");
   checkField("tanggal", "Tanggal");
-  checkField("client_id", "Client"); // Cek ID-nya, bukan teks inputnya
+  checkField("client_id", "Client");
   checkField("pic_name", "Nama PIC");
 
   // --- 2. VALIDASI FOOTER ---
@@ -1383,13 +1382,12 @@ function validateForm() {
     isValid = false;
     errorMessages.push("Daftar Item tidak boleh kosong");
   } else {
-    rows.forEach((row, index) => {
-      // Input Text Biasa
+    rows.forEach((row) => {
+      // 1. Cek Text Wajib
       const inputs = [
         { sel: ".itemSubcategory", name: "Tipe Produk" },
         { sel: ".itemProduct", name: "Nama Produk" },
         { sel: ".itemDesc", name: "Deskripsi" },
-        { sel: ".itemQty", name: "Qty" },
         { sel: ".itemUnit", name: "Satuan" },
       ];
 
@@ -1397,24 +1395,26 @@ function validateForm() {
         const el = row.querySelector(field.sel);
         if (el) {
           el.classList.remove("border-red-500", "ring-1", "ring-red-500");
-          if (el.value.trim() === "" || el.value == "0") {
+          if (el.value.trim() === "") {
+            // Hapus cek "0" untuk text biasa biar aman
             el.classList.add("border-red-500", "ring-1", "ring-red-500");
             isValid = false;
           }
         }
       });
 
-      // Input Keuangan (HPP)
-      const hppEl = row.querySelector(".itemHpp");
-      if (hppEl) checkFinance(hppEl, "HPP");
+      // 2. Cek Qty Item Utama (Wajib > 0)
+      const qtyEl = row.querySelector(".itemQty");
+      if (qtyEl) checkFinance(qtyEl, "Qty");
 
-      // Cek Sub Item (Material) jika ada
+      // Catatan: HPP Item Utama tidak lagi dicek wajib > 0
+
+      // 3. Cek Sub Item (Material) jika ada
       const subWrapper = row.nextElementSibling;
       if (subWrapper && subWrapper.classList.contains("subItemWrapper")) {
         const subRows = subWrapper.querySelectorAll(".subItemRow");
         subRows.forEach((sub) => {
           const matEl = sub.querySelector(".subItemMaterial");
-          const subHpp = sub.querySelector(".subItemHpp");
           const subQty = sub.querySelector(".subItemQty");
           const subUnit = sub.querySelector(".subItemUnit");
 
@@ -1426,14 +1426,10 @@ function validateForm() {
               isValid = false;
             }
           }
-          // Validasi HPP Sub
-          if (subHpp) checkFinance(subHpp, "HPP Material");
 
-          // Validasi Qty Sub
-          if (subQty && (subQty.value == "0" || subQty.value == "")) {
-            subQty.classList.add("border-red-500", "ring-1", "ring-red-500");
-            isValid = false;
-          }
+          // Validasi Qty Sub (Wajib > 0)
+          if (subQty) checkFinance(subQty, "Qty");
+
           // Validasi Unit Sub
           if (subUnit && subUnit.value.trim() == "") {
             subUnit.classList.add("border-red-500", "ring-1", "ring-red-500");
@@ -1446,12 +1442,15 @@ function validateForm() {
 
   // Jika Error, Tampilkan Alert
   if (!isValid) {
+    // Hilangkan duplikat error message agar rapi
+    const uniqueErrors = [...new Set(errorMessages)];
+
     let msgList =
-      errorMessages.length > 0
-        ? `<ul class="text-left text-sm mt-2 list-disc pl-4">${errorMessages
+      uniqueErrors.length > 0
+        ? `<ul class="text-left text-sm mt-2 list-disc pl-4">${uniqueErrors
             .map((m) => `<li>${m}</li>`)
             .join("")}</ul>`
-        : "Mohon lengkapi semua field bertanda bintang (*)";
+        : "Mohon lengkapi kolom yang berwarna merah.";
 
     Swal.fire({
       title: "Data Belum Lengkap",

@@ -168,32 +168,32 @@ formHtml = `
   <!-- Hidden owner_id -->
   <input type="hidden" name="owner_id" value="1">
 
-  <label for="formName" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Nama</label>
+  <label for="formName" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Nama <span class="text-red-500">*</span></label>
   <input id="formName" name="name" type="text" 
     class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" required>
 
-  <label for="formAlias" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Alias</label>
+  <label for="formAlias" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Alias <span class="text-red-500">*</span></label>
   <input id="formAlias" name="alias" type="text" 
     class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" required>
   
 
-  <label for="formEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Email</label>
+  <label for="formEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Email <span class="text-red-500">*</span></label>
   <input id="formEmail" name="email" type="email" 
     class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" required>
 
-  <label for="formPhone" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Phone</label>
+  <label for="formPhone" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Phone <span class="text-red-500">*</span></label>
   <input id="formPhone" name="phone" type="text" 
     class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" required>
 
-  <label for="formLevel" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Level</label>
+  <label for="formLevel" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Level <span class="text-red-500">*</span></label>
   <select id="formLevel" name="level_id" 
     class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
@@ -201,7 +201,7 @@ formHtml = `
     <option value="">-- Pilih Level --</option>
   </select>
 
-  <label for="formRole" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Role</label>
+  <label for="formRole" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Role <span class="text-red-500">*</span></label>
   <select id="formRole" name="role_id" 
     class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
@@ -214,10 +214,10 @@ formHtml = `
 `;
 
 requiredFields = [
-  { field: "name", message: "Nama wajib diisi!" },
-  { field: "alias", message: "Alias wajib diisi!" },
-  { field: "email", message: "Email wajib diisi!" },
-  { field: "level_id", message: "Level wajib dipilih!" },
-  { field: "role_id", message: "Role wajib dipilih!" },
-  { field: "phone", message: "Nomor Telepon wajib diisi!" },
+  { field: "formName", message: "Nama wajib diisi!" },
+  { field: "formAlias", message: "Alias wajib diisi!" },
+  { field: "formEmail", message: "Email wajib diisi!" },
+  { field: "formPhone", message: "Nomor Telepon wajib diisi!" },
+  { field: "formLevel", message: "Level wajib dipilih!" },
+  { field: "formRole", message: "Role wajib dipilih!" },
 ];
