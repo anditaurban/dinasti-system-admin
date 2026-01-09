@@ -1372,7 +1372,6 @@ function validateForm() {
 
   // --- 2. VALIDASI FOOTER ---
   checkField("catatan", "Catatan");
-  checkField("syarat_ketentuan", "Syarat & Ketentuan");
   checkField("term_pembayaran", "Term of Payment");
 
   // --- 3. VALIDASI ITEMS ---
