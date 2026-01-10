@@ -1054,18 +1054,10 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("pic_name").value = data.pic_name || "";
 
     // --- LOAD ITEMS & SUBS ---
-    const subcategoryRes = await fetch(
-      `${baseUrl}/list/sub_category/${owner_id}`,
-      { headers: { Authorization: `Bearer ${API_TOKEN}` } }
-    );
-    // const subcatResponse = await subcategoryRes.json(); // Baris ini sebenernya ga kepake di bawah, bisa dihapus/biarkan
     const tbody = document.getElementById("tabelItem");
     tbody.innerHTML = "";
 
     if (data.items?.length) {
-      // ❌ HAPUS BAGIAN Promise.all LAMA
-      // GANTI DENGAN LOOP "FOR...OF" BIASA AGAR BERURUTAN (SEQUENTIAL)
-
       for (const item of data.items) {
         // 1. Tunggu baris terbuat dulu
         await tambahItem();
@@ -1073,15 +1065,13 @@ async function loadDetailSales(Id, Detail) {
         // 2. Ambil baris yang BARUSAN dibuat
         let row = tbody.lastElementChild;
 
-        // Cek struktur: karena tambahItem nambah 2 tr (itemRow & subWrapper),
-        // kita perlu naik ke itemRow kalau yang keambil subWrapper
+        // Cek struktur: karena tambahItem nambah 2 tr (itemRow & subWrapper)
         if (!row.classList.contains("itemRow")) {
           row = row.previousElementSibling;
         }
 
         // 3. Mulai isi data ke baris tersebut
         const subcatSelect = row.querySelector(".itemSubcategory");
-        // Kita load ulang list subcategory agar opsi muncul & select yang sesuai
         await loadSubcategories(subcatSelect, item.sub_category_id);
 
         row.querySelector(".itemProduct").value = item.product || "";
@@ -1103,14 +1093,11 @@ async function loadDetailSales(Id, Detail) {
         // 4. Handle Sub Items (Materials) jika ada
         if (item.materials?.length) {
           const btnSub = row.querySelector(".btnTambahSubItem");
-          // Pastikan tombol ada (karena tipe Sales material tidak punya tombol ini)
           if (btnSub) {
             for (const material of item.materials) {
               tambahSubItem(btnSub);
 
-              // Ambil wrapper (tr setelah row utama)
               const wrapper = row.nextElementSibling?.querySelector("table");
-              // Ambil subRow terakhir yang baru aja dibuat
               const subTr = wrapper.querySelector("tr.subItemRow:last-of-type");
 
               if (subTr) {
@@ -1139,12 +1126,36 @@ async function loadDetailSales(Id, Detail) {
           }
         }
       }
-      // Loop selesai satu per satu
     }
 
-    const ppnValue = parseInt(data.ppn) || 0;
+    // --- 🔥 LOGIKA PAJAK (HAS PPN) FIXED 🔥 ---
     const cekPpn = document.getElementById("cekPpn");
-    if (cekPpn && ppnValue > 0) cekPpn.checked = true;
+    if (cekPpn) {
+      // 1. Ambil nilai nominal PPN yang tersimpan di DB
+      const savedPpnAmount = parseFloat(data.ppn) || 0;
+
+      // 2. Tentukan status awal (berdasarkan flag DB)
+      let shouldCheck = false;
+      if (data.hasOwnProperty("has_ppn") && data.has_ppn !== null) {
+        const status = String(data.has_ppn);
+        shouldCheck = status === "1" || status === "true";
+      } else {
+        // Fallback untuk data lama
+        shouldCheck = String(data.has_ppn) === "1";
+      }
+
+      // 3. SANITY CHECK: Uang adalah penentu segalanya
+      // Jika nominal 0, maka HARUS UNCHECK (meskipun flag db bilang true)
+      if (savedPpnAmount <= 0) {
+        shouldCheck = false;
+      } else {
+        // Jika ada uangnya, paksa CHECK
+        shouldCheck = true;
+      }
+
+      cekPpn.checked = shouldCheck;
+    }
+    // ------------------------------------------
 
     calculateTotals();
     window.dataLoaded = true;
@@ -1235,15 +1246,16 @@ function calculateTotals() {
   const diskon = parseRupiah(document.getElementById("discount")?.value || 0);
   const dpp = subtotal - diskon;
 
-  // --- REVISI CEKLIS PPN ---
+  // --- LOGIKA PPN DIPERBAIKI ---
   const cekPpn = document.getElementById("cekPpn");
-  let ppn = 0; // Default PPN adalah 0
+  let ppn = 0;
 
   if (cekPpn && cekPpn.checked) {
-    // Jika diceklis, baru hitung 11%
     ppn = Math.round(dpp * 0.11);
+  } else {
+    ppn = 0; // Pastikan 0 jika tidak diceklis
   }
-  // --- AKHIR REVISI ---
+  // -----------------------------
 
   const total = dpp + ppn;
 
@@ -1332,29 +1344,42 @@ function validateForm() {
   let isValid = true;
   let errorMessages = [];
 
-  // Helper: Fungsi untuk cek field text biasa
+  // Helper: Cek apakah elemen terlihat di layar (tidak hidden)
+  const isVisible = (el) => {
+    return el && el.offsetParent !== null;
+  };
+
+  // Helper: Cek Text Input Biasa
   const checkField = (id, label) => {
     const el = document.getElementById(id);
     if (!el) return;
 
+    // Reset style
     el.classList.remove("border-red-500", "ring-1", "ring-red-500");
 
-    if (el.value.trim() === "" || el.value === "0") {
+    // Skip validasi jika elemen disembunyikan
+    if (!isVisible(el)) return;
+
+    if (el.value.trim() === "") {
       el.classList.add("border-red-500", "ring-1", "ring-red-500");
       isValid = false;
       if (!errorMessages.includes(label)) errorMessages.push(label);
     }
   };
 
-  // Helper: Fungsi khusus input Rupiah/Angka
+  // Helper: Cek Input Angka (Qty)
   const checkFinance = (el, label) => {
+    if (!el) return;
+
+    // Reset style
     el.classList.remove("border-red-500", "ring-1", "ring-red-500");
+
+    // Skip validasi jika elemen disembunyikan
+    if (!isVisible(el)) return;
+
     const val = parseRupiah(el.value);
 
-    // 🔴 PERUBAHAN DI SINI:
-    // HPP (Modal) sekarang BOLEH 0. Hanya error jika negatif.
-    // Qty tetap harus > 0.
-
+    // Validasi QTY Wajib > 0 (Hanya jika terlihat)
     if (label === "Qty" && val <= 0) {
       el.classList.add("border-red-500", "ring-1", "ring-red-500");
       isValid = false;
@@ -1363,18 +1388,17 @@ function validateForm() {
     }
   };
 
-  // --- 1. VALIDASI HEADER ---
+  // --- VALIDASI HEADER & FOOTER ---
   checkField("project_name", "Nama Project");
   checkField("type_id", "Tipe Sales");
   checkField("tanggal", "Tanggal");
   checkField("client_id", "Client");
   checkField("pic_name", "Nama PIC");
-
-  // --- 2. VALIDASI FOOTER ---
   checkField("catatan", "Catatan");
+  checkField("syarat_ketentuan", "Syarat & Ketentuan");
   checkField("term_pembayaran", "Term of Payment");
 
-  // --- 3. VALIDASI ITEMS ---
+  // --- VALIDASI ITEMS ---
   const rows = document.querySelectorAll("#tabelItem tr.itemRow");
 
   if (rows.length === 0) {
@@ -1382,118 +1406,106 @@ function validateForm() {
     errorMessages.push("Daftar Item tidak boleh kosong");
   } else {
     rows.forEach((row) => {
-      // 1. Cek Text Wajib
-      const inputs = [
-        { sel: ".itemSubcategory", name: "Tipe Produk" },
-        { sel: ".itemProduct", name: "Nama Produk" },
-        { sel: ".itemUnit", name: "Satuan" },
-      ];
+      // Input Text Wajib
+      const elProduct = row.querySelector(".itemProduct");
+      const elUnit = row.querySelector(".itemUnit");
 
-      inputs.forEach((field) => {
-        const el = row.querySelector(field.sel);
-        if (el) {
+      [elProduct, elUnit].forEach((el) => {
+        if (el && isVisible(el)) {
           el.classList.remove("border-red-500", "ring-1", "ring-red-500");
           if (el.value.trim() === "") {
-            // Hapus cek "0" untuk text biasa biar aman
             el.classList.add("border-red-500", "ring-1", "ring-red-500");
             isValid = false;
           }
         }
       });
 
-      // 2. Cek Qty Item Utama (Wajib > 0)
+      // Cek Qty Item Utama (Akan diskip otomatis jika tipe Service/Turnkey)
       const qtyEl = row.querySelector(".itemQty");
       if (qtyEl) checkFinance(qtyEl, "Qty");
 
-      // Catatan: HPP Item Utama tidak lagi dicek wajib > 0
-
-      // 3. Cek Sub Item (Material) jika ada
+      // Cek Sub Item (Material)
       const subWrapper = row.nextElementSibling;
       if (subWrapper && subWrapper.classList.contains("subItemWrapper")) {
         const subRows = subWrapper.querySelectorAll(".subItemRow");
         subRows.forEach((sub) => {
-          const matEl = sub.querySelector(".subItemMaterial");
+          const subMat = sub.querySelector(".subItemMaterial");
           const subQty = sub.querySelector(".subItemQty");
           const subUnit = sub.querySelector(".subItemUnit");
 
-          // Validasi nama material
-          if (matEl) {
-            matEl.classList.remove("border-red-500", "ring-1", "ring-red-500");
-            if (matEl.value.trim() === "") {
-              matEl.classList.add("border-red-500", "ring-1", "ring-red-500");
+          // Nama Material
+          if (subMat && isVisible(subMat)) {
+            subMat.classList.remove("border-red-500", "ring-1", "ring-red-500");
+            if (subMat.value.trim() === "") {
+              subMat.classList.add("border-red-500", "ring-1", "ring-red-500");
               isValid = false;
             }
           }
-
-          // Validasi Qty Sub (Wajib > 0)
+          // Qty Sub Wajib > 0
           if (subQty) checkFinance(subQty, "Qty");
 
-          // Validasi Unit Sub
-          if (subUnit && subUnit.value.trim() == "") {
-            subUnit.classList.add("border-red-500", "ring-1", "ring-red-500");
-            isValid = false;
+          // Unit Sub Wajib Isi
+          if (subUnit && isVisible(subUnit)) {
+            subUnit.classList.remove(
+              "border-red-500",
+              "ring-1",
+              "ring-red-500"
+            );
+            if (subUnit.value.trim() === "") {
+              subUnit.classList.add("border-red-500", "ring-1", "ring-red-500");
+              isValid = false;
+            }
           }
         });
       }
     });
   }
 
-  // Jika Error, Tampilkan Alert
   if (!isValid) {
-    // Hilangkan duplikat error message agar rapi
     const uniqueErrors = [...new Set(errorMessages)];
-
     let msgList =
       uniqueErrors.length > 0
         ? `<ul class="text-left text-sm mt-2 list-disc pl-4">${uniqueErrors
             .map((m) => `<li>${m}</li>`)
             .join("")}</ul>`
-        : "Mohon lengkapi kolom yang berwarna merah.";
+        : "Mohon lengkapi kolom berwarna merah.";
 
-    Swal.fire({
-      title: "Data Belum Lengkap",
-      html: `Silakan periksa kembali form anda:<br>${msgList}`,
-      icon: "warning",
-    });
+    Swal.fire({ title: "Data Belum Lengkap", html: msgList, icon: "warning" });
   }
 
   return isValid;
 }
 
-// GANTI DENGAN FUNGSI INI (TYPO SUDAH DIPERBAIKI)
 async function saveInvoice(mode = "create", id = null) {
   try {
-    // 🛑 0. VALIDASI INPUT DULU (BARU DITAMBAHKAN)
-    if (!validateForm()) {
-      return; // Stop proses jika validasi gagal
-    }
+    // 1. Validasi
+    if (!validateForm()) return;
 
-    // 🛑 1. REM TANGAN AKTIF (Lanjutan kode lama Anda...)
+    // 2. Persiapan
     isSubmitting = true;
     clearTimeout(autosaveTimer);
-
     calculateTotals();
 
     let revisionUpdate = "no";
 
-    // --- Konfirmasi (Khusus Update) ---
+    // Konfirmasi Update
     if (mode === "update") {
       const konfirmasi = await Swal.fire({
         title: "Update Data?",
-        text: "Apakah kamu yakin ingin menyimpan perubahan?",
+        text: "Yakin ingin menyimpan perubahan?",
         icon: "question",
         showCancelButton: true,
-        confirmButtonText: "✅ Ya, simpan",
-        cancelButtonText: "❌ Batal",
+        confirmButtonText: "Ya, simpan",
+        cancelButtonText: "Batal",
       });
       if (!konfirmasi.isConfirmed) {
-        isSubmitting = false; // Lepas rem jika batal
+        isSubmitting = false;
         return;
       }
 
       const revisionConfirm = await Swal.fire({
         title: "Revision Update?",
-        text: "Apakah perubahan ini disimpan sebagai revision update?",
+        text: "Simpan sebagai revisi baru (R+1)?",
         icon: "info",
         showCancelButton: true,
         confirmButtonText: "Ya",
@@ -1502,7 +1514,7 @@ async function saveInvoice(mode = "create", id = null) {
       revisionUpdate = revisionConfirm.isConfirmed ? "yes" : "no";
     }
 
-    // --- SCRAPE DATA ITEMS (Sama seperti sebelumnya) ---
+    // Scrape Items
     const rows = document.querySelectorAll("#tabelItem tr");
     const groupedItems = {};
 
@@ -1528,7 +1540,7 @@ async function saveInvoice(mode = "create", id = null) {
         row.querySelector(".itemMarkupPersen")?.value || 0
       );
 
-      const key = `${sub_category_id}-${product}`;
+      const key = `${sub_category_id}-${product}-${i}`;
       if (!groupedItems[key]) {
         groupedItems[key] = {
           product,
@@ -1548,41 +1560,51 @@ async function saveInvoice(mode = "create", id = null) {
       if (subWrapper && subWrapper.classList.contains("subItemWrapper")) {
         const subItems = subWrapper.querySelectorAll(".subItemRow");
         subItems.forEach((sub) => {
-          groupedItems[key].materials.push({
-            subItemMaterial:
-              sub.querySelector(".subItemMaterial")?.value.trim() || "",
-            subItemSpec: sub.querySelector(".subItemSpec")?.value.trim() || "",
-            subItemQty: parseInt(sub.querySelector(".subItemQty")?.value || 0),
-            subItemUnit:
-              sub.querySelector(".subItemUnit")?.value.trim() || "pcs",
-            subItemHarga: parseRupiah(
-              sub.querySelector(".subItemHarga")?.value || 0
-            ),
-            subItemHpp: parseRupiah(
-              sub.querySelector(".subItemHpp")?.value || 0
-            ),
-            subItemMarkupNominal: parseRupiah(
-              sub.querySelector(".subItemMarkupNominal")?.value || 0
-            ),
-            subItemMarkupPercent: parseFloat(
-              sub.querySelector(".subItemMarkupPersen")?.value || 0
-            ),
-          });
+          const mName = sub.querySelector(".subItemMaterial")?.value.trim();
+          if (mName) {
+            groupedItems[key].materials.push({
+              subItemMaterial: mName,
+              subItemSpec:
+                sub.querySelector(".subItemSpec")?.value.trim() || "",
+              subItemQty: parseInt(
+                sub.querySelector(".subItemQty")?.value || 0
+              ),
+              subItemUnit:
+                sub.querySelector(".subItemUnit")?.value.trim() || "pcs",
+              subItemHarga: parseRupiah(
+                sub.querySelector(".subItemHarga")?.value || 0
+              ),
+              subItemHpp: parseRupiah(
+                sub.querySelector(".subItemHpp")?.value || 0
+              ),
+              subItemMarkupNominal: parseRupiah(
+                sub.querySelector(".subItemMarkupNominal")?.value || 0
+              ),
+              subItemMarkupPercent: parseFloat(
+                sub.querySelector(".subItemMarkupPersen")?.value || 0
+              ),
+            });
+          }
         });
       }
       if (i % 50 === 0) await new Promise((resolve) => setTimeout(resolve, 0));
     }
     const items = Object.values(groupedItems);
 
-    // --- PREPARE FORM DATA ---
+    // Prepare Data
     const owner_id = user.owner_id;
     const user_id = user.user_id;
     const nominalKontrak = parseRupiah(
       document.getElementById("contract_amount").value
     );
     const disc = parseRupiah(document.getElementById("discount")?.value || 0);
-    const ppn = parseRupiah(document.getElementById("ppn").value);
-    const total = parseRupiah(document.getElementById("total").value);
+
+    // 🛑 FIX PPN (STRICT MODE) 🛑
+    const isPpnChecked = document.getElementById("cekPpn")?.checked;
+    const ppn = isPpnChecked
+      ? parseRupiah(document.getElementById("ppn").value)
+      : 0;
+    const total = nominalKontrak - disc + ppn;
 
     const formData = new FormData();
     formData.append("owner_id", owner_id);
@@ -1609,10 +1631,12 @@ async function saveInvoice(mode = "create", id = null) {
       "order_date",
       document.getElementById("tanggal")?.value || ""
     );
+
     formData.append("contract_amount", nominalKontrak);
     formData.append("disc", disc);
-    formData.append("ppn", ppn);
+    formData.append("ppn", ppn); // PPN pasti 0 jika uncheck
     formData.append("total", total);
+
     formData.append("status_id", 1);
     formData.append("revision_number", 0);
     formData.append(
@@ -1620,7 +1644,6 @@ async function saveInvoice(mode = "create", id = null) {
       document.getElementById("revision_number").value
     );
     formData.append("revision_update", revisionUpdate);
-    formData.append("items", JSON.stringify(items));
     formData.append(
       "catatan",
       document.getElementById("catatan")?.value || "-"
@@ -1633,6 +1656,10 @@ async function saveInvoice(mode = "create", id = null) {
       "term_pembayaran",
       document.getElementById("term_pembayaran")?.value || "-"
     );
+    formData.append("items", JSON.stringify(items));
+
+    // 🛑 KIRIM FLAG PPN SEBAGAI INTEGER (1 atau 0) 🛑
+    formData.append("has_ppn", isPpnChecked ? 1 : 0);
 
     const fileInput = document.getElementById("file");
     if (fileInput && fileInput.files.length > 0) {
@@ -1641,7 +1668,6 @@ async function saveInvoice(mode = "create", id = null) {
       }
     }
 
-    // --- FETCH ---
     const url =
       mode === "create"
         ? `${baseUrl}/add/sales`
@@ -1653,32 +1679,28 @@ async function saveInvoice(mode = "create", id = null) {
       headers: { Authorization: `Bearer ${API_TOKEN}` },
       body: formData,
     });
-
     const json = await res.json();
 
     if (res.ok) {
-      // ✅ 2. HAPUS DRAFT SEGERA (SEBELUM DOM HANCUR)
-      clearTimeout(autosaveTimer); // Matikan timer lagi untuk keamanan
+      clearTimeout(autosaveTimer);
       localStorage.removeItem(AUTOSAVE_KEY);
-
       Swal.fire(
         "Sukses",
-        `Quotation berhasil ${mode === "create" ? "dibuat" : "diupdate"}`,
+        `Data berhasil ${mode === "create" ? "disimpan" : "diupdate"}`,
         "success"
       );
-
       loadModuleContent("quotation");
-      // isSubmitting tetap true sampai modul reload, mencegah autosave berjalan.
     } else {
-      isSubmitting = false; // Lepas rem jika gagal
+      isSubmitting = false;
       Swal.fire("Gagal", json.message || "Gagal menyimpan data", "error");
     }
   } catch (err) {
     console.error("Submit error:", err);
-    isSubmitting = false; // Lepas rem jika error
-    Swal.fire("Error", err.message || "Terjadi kesalahan", "error");
+    isSubmitting = false;
+    Swal.fire("Error", err.message || "Terjadi kesalahan sistem", "error");
   }
 }
+
 /**
  * 💡 FUNGSI DIPERBARUI
  * Mengisi <select> dari endpoint pretext.
@@ -1973,7 +1995,7 @@ async function restoreAutosaveData(data) {
     document.getElementById("project_name").value = data.project_name || "";
     document.getElementById("status").value = data.status || "Draft";
 
-    // 2. Dropdowns Pretext (Catatan, dll) - asumsi value disimpan sesuai text
+    // 2. Dropdowns Pretext (Catatan, dll)
     document.getElementById("catatan").value = data.catatan || "";
     document.getElementById("syarat_ketentuan").value =
       data.syarat_ketentuan || "";
@@ -2008,13 +2030,11 @@ async function restoreAutosaveData(data) {
 
         // Ambil row terakhir yg baru dibuat
         let row = tbody.lastElementChild;
-        // Cek struktur (karena tambahItem nambah 2 tr: itemRow & subWrapper)
         if (!row.classList.contains("itemRow"))
           row = row.previousElementSibling;
 
-        // Isi Subkategori (Load subcat per item)
+        // Isi Subkategori
         const subcatSelect = row.querySelector(".itemSubcategory");
-        // Kita load ulang list subcategory agar opsi muncul
         await loadSubcategories(subcatSelect, item.sub_category_id);
 
         // Isi Value Item
@@ -2034,12 +2054,10 @@ async function restoreAutosaveData(data) {
         // 6. Restore Sub Items (Materials)
         if (item.materials && item.materials.length > 0) {
           const btnAddSub = row.querySelector(".btnTambahSubItem");
-          // Pastikan tombol ada (tergantung tipe)
           if (btnAddSub) {
             for (const mat of item.materials) {
               tambahSubItem(btnAddSub);
 
-              // Ambil subRow terakhir di wrapper ini
               const wrapper = row.nextElementSibling?.querySelector("table");
               const subRow =
                 wrapper.querySelectorAll("tr.subItemRow")[
@@ -2073,16 +2091,34 @@ async function restoreAutosaveData(data) {
       }
     }
 
-    // 7. PPN Checkbox
+    // --- 🔥 LOGIKA PAJAK AUTOSAVE FIXED 🔥 ---
     const cekPpn = document.getElementById("cekPpn");
     if (cekPpn) {
-      // Logika: jika data.has_ppn disimpan true, ATAU jika nominal ppn > 0
-      if (data.has_ppn === true || (data.ppn && parseInt(data.ppn) > 0)) {
-        cekPpn.checked = true;
+      // Parse Rupiah ke Angka Murni untuk cek nominal
+      // Jika data.ppn angka, pakai langsung. Jika string format rupiah, parse dulu.
+      const savedPpnAmount =
+        typeof data.ppn === "number" ? data.ppn : parseRupiah(data.ppn || "0");
+
+      let shouldCheck = false;
+
+      // Cek flag yang tersimpan di draft
+      if ("has_ppn" in data) {
+        shouldCheck = data.has_ppn === true;
       } else {
-        cekPpn.checked = false;
+        // Fallback untuk draft lama yang belum punya key has_ppn
+        shouldCheck = savedPpnAmount > 0;
       }
+
+      // SANITY CHECK: Overrule berdasarkan nominal uang
+      if (savedPpnAmount <= 0) {
+        shouldCheck = false;
+      } else {
+        shouldCheck = true;
+      }
+
+      cekPpn.checked = shouldCheck;
     }
+    // ----------------------------------------
 
     // 8. Hitung Ulang Total & UI Update
     toggleTambahItemBtn();
