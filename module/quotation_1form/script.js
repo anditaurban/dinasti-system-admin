@@ -705,13 +705,13 @@ async function tambahItem() {
         </div>
         <div>
           <label class="block text-xs text-gray-500">
-            Markup (Nominal) <span class="text-red-500">*</span>
+            Markup (Nominal) 
           </label>
           <input type="text" class="w-full border rounded px-2 itemMarkupNominal text-right finance" value="0" oninput="recalculateHarga(this, 'nominal')">
         </div>
         <div>
           <label class="block text-xs text-gray-500">
-            Markup (%) <span class="text-red-500">*</span>
+            Markup (%) 
           </label>
           <input type="number" class="w-full border rounded px-2 itemMarkupPersen text-right" value="0" oninput="recalculateHarga(this, 'persen')">
         </div>
@@ -826,13 +826,13 @@ function tambahSubItem(btn) {
           </div>
           <div>
             <label class="block text-xs text-gray-500">
-                Markup (Nominal) <span class="text-red-500">*</span>
+                Markup (Nominal) 
             </label>
             <input type="text" class="w-full border rounded px-2 subItemMarkupNominal text-right finance" value="0" oninput="recalculateHarga(this, 'nominal')">
           </div>
           <div>
             <label class="block text-xs text-gray-500">
-                Markup (%) <span class="text-red-500">*</span>
+                Markup (%)
             </label>
             <input type="number" class="w-full border rounded px-2 subItemMarkupPersen text-right" value="0" oninput="recalculateHarga(this, 'persen')">
           </div>
@@ -1395,7 +1395,6 @@ function validateForm() {
   checkField("client_id", "Client");
   checkField("pic_name", "Nama PIC");
   checkField("catatan", "Catatan");
-  checkField("syarat_ketentuan", "Syarat & Ketentuan");
   checkField("term_pembayaran", "Term of Payment");
 
   // --- VALIDASI ITEMS ---
@@ -1505,7 +1504,7 @@ async function saveInvoice(mode = "create", id = null) {
 
       const revisionConfirm = await Swal.fire({
         title: "Revision Update?",
-        text: "Simpan sebagai revisi baru (R+1)?",
+        text: "Apakah perubahan ini disimpan sebagai revision update?",
         icon: "info",
         showCancelButton: true,
         confirmButtonText: "Ya",
