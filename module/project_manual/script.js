@@ -621,13 +621,13 @@ async function tambahItem(selectedSubCategoryId = "") {
         <input type="text" class="w-full border rounded px-2 py-1 itemProduct focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Nama Produk">
       </div>
       <div class="mb-1">
-        <label class="text-xs text-gray-500 font-bold">Deskripsi <span class="text-red-500">*</span></label>
+        <label class="text-xs text-gray-500 font-bold">Deskripsi</label>
         <textarea class="w-full border rounded px-2 py-1 itemDesc focus:ring-2 focus:ring-blue-500 outline-none transition" rows="2" placeholder="Deskripsi"></textarea>
       </div>
       <div class="grid grid-cols-3 gap-2 my-2 ${hideClass}">
         <div><label class="text-xs text-gray-500">HPP (Modal) <span class="text-red-500">*</span></label><input type="text" class="w-full border rounded px-2 py-1 itemHpp finance" value="0" oninput="recalculateHarga(this, 'hpp')"></div>
-        <div><label class="text-xs text-gray-500">Markup (Rp) <span class="text-red-500">*</span></label><input type="text" class="w-full border rounded px-2 py-1 itemMarkupNominal finance" value="0" oninput="recalculateHarga(this, 'nominal')"></div>
-        <div><label class="text-xs text-gray-500">Markup (%) <span class="text-red-500">*</span></label><input type="number" class="w-full border rounded px-2 py-1 itemMarkupPersen" value="0" oninput="recalculateHarga(this, 'persen')"></div>
+        <div><label class="text-xs text-gray-500">Markup (Rp)</label><input type="text" class="w-full border rounded px-2 py-1 itemMarkupNominal finance" value="0" oninput="recalculateHarga(this, 'nominal')"></div>
+        <div><label class="text-xs text-gray-500">Markup (%) </label><input type="number" class="w-full border rounded px-2 py-1 itemMarkupPersen" value="0" oninput="recalculateHarga(this, 'persen')"></div>
       </div>
       <div class="grid grid-cols-4 gap-2 ${hideClass}">
         <div><label class="text-xs text-gray-500">Qty <span class="text-red-500">*</span></label><input type="number" class="w-full border rounded px-2 py-1 itemQty" value="1" oninput="recalculateTotal()"></div>
@@ -717,11 +717,11 @@ function tambahSubItem(btn) {
             <input type="text" class="w-full border rounded subItemHpp finance" value="0" oninput="recalculateHarga(this, 'hpp')">
           </div>
           <div>
-            <label class="text-xs text-gray-500">Markup (Rp) <span class="text-red-500">*</span></label>
+            <label class="text-xs text-gray-500">Markup (Rp) </label>
             <input type="text" class="w-full border rounded subItemMarkupNominal finance" value="0" oninput="recalculateHarga(this, 'nominal')">
           </div>
           <div>
-            <label class="text-xs text-gray-500">Markup (%) <span class="text-red-500">*</span></label>
+            <label class="text-xs text-gray-500">Markup (%)</label>
             <input type="number" class="w-full border rounded subItemMarkupPersen" value="0" oninput="recalculateHarga(this, 'persen')">
           </div>
        </div>
