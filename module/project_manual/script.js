@@ -115,6 +115,7 @@ function filterClientSuggestions(inputElement) {
 
 async function loadProjectDataForUpdate(Id) {
   Swal.fire({ title: "Memuat Data...", didOpen: () => Swal.showLoading() });
+
   try {
     const res = await fetch(`${baseUrl}/detail/project/${Id}`, {
       headers: { Authorization: `Bearer ${API_TOKEN}` },
@@ -124,56 +125,72 @@ async function loadProjectDataForUpdate(Id) {
 
     projectDetailData = data;
 
-    // --- LOGIC LOCKING ---
-    const isLocked = data.pesanan_id ? true : false;
+    // --- MULAI PERBAIKAN RINGKAS ---
+    // 1. Ambil Nama
+    const clientName = data.customer || data.client_name || "";
+    document.getElementById("add_client_name").value = clientName;
 
-    // 1. Tombol Convert (muncul jika belum jadi sales)
+    // 2. Ambil ID. Jika API tidak kasih (alias 0), kita cari manual di sini (INLINE)
+    let finalClientId = data.pelanggan_id || data.client_id || 0;
+
+    if (finalClientId === 0 && clientName) {
+      try {
+        // Tembak API Search Client langsung di sini
+        const searchRes = await fetch(
+          `${baseUrl}/table/client/${owner_id}/1?search=${encodeURIComponent(
+            clientName
+          )}`,
+          { headers: { Authorization: `Bearer ${API_TOKEN}` } }
+        );
+        const searchJson = await searchRes.json();
+        // Jika ketemu, ambil ID yang pertama
+        if (searchJson.tableData && searchJson.tableData.length > 0) {
+          finalClientId = searchJson.tableData[0].pelanggan_id;
+        }
+      } catch (e) {
+        console.warn("Gagal auto-search ID client", e);
+      }
+    }
+
+    // 3. Set ID yang sudah ketemu ke hidden input
+    document.getElementById("add_client").value = finalClientId;
+    // --- SELESAI PERBAIKAN ---
+
+    // Isi Form Lainnya
+    document.getElementById("add_project_name").value = data.project_name || "";
+    document.getElementById("add_tanggal").value = data.start_date || "";
+    document.getElementById("add_finish_date").value = data.finish_date || "";
+    document.getElementById("add_project_manager").value =
+      data.project_manager_id || "";
+
+    // Setup Tipe Sales
+    const typeSelect = document.getElementById("add_type_id");
+    typeSelect.value = data.type_id || "";
+    typeSelect.disabled = false;
+    typeSelect.classList.remove("bg-gray-100");
+
+    // Filter & Toggle
+    filterCompatibleTypes(data.type_id);
+    toggleTambahItemBtn();
+
+    // Logic Locked
+    const isLocked = data.pesanan_id && data.pesanan_id !== 0;
     if (!isLocked) {
-      document.getElementById("convertToSalesBtn").classList.remove("hidden");
+      const convertBtn = document.getElementById("convertToSalesBtn");
+      if (convertBtn) convertBtn.classList.remove("hidden");
     } else {
       document.getElementById("saveNewProjectBtn").classList.add("hidden");
       document.getElementById("addItemBtn").classList.add("hidden");
       document.getElementById(
         "formTitleManual"
       ).innerHTML += ` <span class="text-red-500 text-sm">(Locked / Sales Order Created)</span>`;
-    }
-
-    // Isi Form Standard
-    document.getElementById("add_project_name").value = data.project_name || "";
-
-    document.getElementById("add_client_name").value =
-      data.customer || data.client_name || "";
-    // Isi Hidden Input dengan ID Pelanggan
-    document.getElementById("add_client").value = data.pelanggan_id || "";
-    document.getElementById("add_tanggal").value = data.start_date || "";
-    document.getElementById("add_finish_date").value = data.finish_date || "";
-    document.getElementById("add_project_manager").value =
-      data.project_manager_id || "";
-
-    // --- 💡 PERBAIKAN DROPDOWN TIPE DI SINI ---
-    const typeSelect = document.getElementById("add_type_id");
-    typeSelect.value = data.type_id || "";
-
-    // ✅ REQUEST: Jangan dilock (disabled), biarkan user bisa klik ganti tipe
-    typeSelect.disabled = false;
-    typeSelect.classList.remove("bg-gray-100");
-
-    // ✅ Jalankan filter untuk menghilangkan opsi yang tidak kompatibel
-    filterCompatibleTypes(data.type_id);
-
-    // Panggil toggle agar tombol Tambah Item muncul/hilang
-    toggleTambahItemBtn();
-
-    // Logic locking input LAINNYA (selain type_id)
-    if (isLocked) {
-      // Disable input lain kecuali type_id (karena request type_id jangan dilock)
       const inputs = document.querySelectorAll(
         "#addProjectForm input, #addProjectForm select:not(#add_type_id)"
       );
       inputs.forEach((el) => (el.disabled = true));
     }
 
-    // Render Table Items
+    // Render Items
     const tbody = document.getElementById("tabelItemAdd");
     tbody.innerHTML = "";
 
@@ -186,71 +203,64 @@ async function loadProjectDataForUpdate(Id) {
         itemRow.querySelector(".itemDesc").value = item.description || "";
         itemRow.querySelector(".itemQty").value = item.qty || 1;
         itemRow.querySelector(".itemUnit").value = item.unit || "pcs";
+
+        // Keuangan Parent
         itemRow.querySelector(".itemHpp").value = finance(item.hpp || 0);
         itemRow.querySelector(".itemMarkupNominal").value = finance(
           item.markup_nominal || 0
         );
         itemRow.querySelector(".itemMarkupPersen").value =
           item.markup_percent || 0;
-        recalculateHarga(itemRow.querySelector(".itemHpp"), "hpp");
+        itemRow.querySelector(".itemHarga").value = finance(
+          item.unit_price || 0
+        );
 
-        if (isLocked) {
-          // Kunci input dalam tabel jika locked
-          itemRow
-            .querySelectorAll("input, textarea, select, button")
-            .forEach((el) => (el.disabled = true));
-          const delBtn = itemRow.querySelector("button[onclick^='hapusItem']");
-          if (delBtn) delBtn.classList.add("hidden");
-          const addSubBtn = itemRow.querySelector(".btnTambahSubItem");
-          if (addSubBtn) addSubBtn.classList.add("hidden");
-        }
-
+        // Sub Items (Materials)
         if (item.materials?.length) {
-          for (const mat of item.materials) {
-            const subRow = tambahSubItem({ closest: () => itemRow });
-            if (!subRow) continue;
-
-            subRow.querySelector(".subItemMaterial").value = mat.name || "";
-            subRow.querySelector(".subItemSpec").value =
-              mat.specification || "";
-            subRow.querySelector(".subItemQty").value = mat.qty || 1;
-            subRow.querySelector(".subItemUnit").value = mat.unit || "pcs";
-            subRow.querySelector(".subItemHpp").value = finance(mat.hpp || 0);
-            subRow.querySelector(".subItemMarkupNominal").value = finance(
-              mat.markup_nominal || 0
-            );
-            subRow.querySelector(".subItemMarkupPersen").value =
-              mat.markup_percent || 0;
-            recalculateHarga(subRow.querySelector(".subItemHpp"), "hpp");
-
-            if (isLocked) {
-              subRow
-                .querySelectorAll("input, select, button, textarea")
-                .forEach((el) => (el.disabled = true));
-              const delSub = subRow.querySelector(
-                "button[onclick^='hapusItem']"
-              );
-              if (delSub) delSub.classList.add("hidden");
+          const btnAddSub = itemRow.querySelector(".btnTambahSubItem");
+          if (btnAddSub) {
+            for (const mat of item.materials) {
+              const subRow = tambahSubItem(btnAddSub);
+              if (subRow) {
+                subRow.querySelector(".subItemMaterial").value = mat.name || "";
+                subRow.querySelector(".subItemSpec").value =
+                  mat.specification || "";
+                subRow.querySelector(".subItemQty").value = mat.qty || 0;
+                subRow.querySelector(".subItemUnit").value = mat.unit || "";
+                subRow.querySelector(".subItemHpp").value = finance(
+                  mat.hpp || 0
+                );
+                subRow.querySelector(".subItemMarkupNominal").value = finance(
+                  mat.markup_nominal || 0
+                );
+                subRow.querySelector(".subItemMarkupPersen").value =
+                  mat.markup_percent || 0;
+                subRow.querySelector(".subItemHarga").value = finance(
+                  mat.unit_price || 0
+                );
+                subRow.querySelector(".subItemTotal").innerText = finance(
+                  mat.material_total || 0
+                );
+              }
             }
           }
         }
       }
     }
+
+    recalculateTotal();
     Swal.close();
   } catch (err) {
     console.error(err);
-    Swal.fire("Error", "Gagal memuat data", "error");
+    Swal.fire("Error", "Gagal memuat data project", "error");
     loadModuleContent("project");
   }
 }
-
-/**
- * 💡 FUNGSI FILTER BARU
- * Memfilter opsi Tipe Sales agar user hanya bisa berpindah antar tipe yang sejenis.
- */
 /**
  * 💡 FUNGSI FILTER UPDATE
- * Menghilangkan (HIDE) opsi yang tidak sejenis, bukan sekadar disable.
+ * Menghilangkan (HIDE) opsi yang tidak sejenis.
+ * Group A: Turnkey ONLY (3)
+ * Group B: Material (1) & Service (2) -> Simple
  */
 function filterCompatibleTypes(currentTypeId) {
   const typeSelect = document.getElementById("add_type_id");
@@ -258,8 +268,11 @@ function filterCompatibleTypes(currentTypeId) {
 
   const currentIdStr = String(currentTypeId);
 
-  // Group A: Service (2) & Turnkey (3)
-  const complexTypes = ["2", "3"];
+  // 🔴 UBAH DI SINI:
+  // Definisi Grup A: HANYA Turnkey (3)
+  // Service (2) dihapus dari sini agar masuk ke Group B (Simple)
+  const complexTypes = ["3"];
+
   const isComplex = complexTypes.includes(currentIdStr);
 
   Array.from(typeSelect.options).forEach((option) => {
@@ -272,22 +285,22 @@ function filterCompatibleTypes(currentTypeId) {
     let shouldHide = false;
 
     if (isComplex) {
-      // Jika Group A (Service/Turnkey), HILANGKAN Group B (Material dll)
+      // Jika Group A (Turnkey), HILANGKAN Group B (Material, Service)
       if (!complexTypes.includes(option.value)) {
         shouldHide = true;
       }
     } else {
-      // Jika Group B (Material), HILANGKAN Group A (Service/Turnkey)
+      // Jika Group B (Material/Service), HILANGKAN Group A (Turnkey)
       if (complexTypes.includes(option.value)) {
         shouldHide = true;
       }
     }
 
     if (shouldHide) {
-      // ✅ LOGIKA BARU: Sembunyikan total
+      // Sembunyikan total
       option.style.display = "none";
-      option.hidden = true; // Support browser modern
-      option.disabled = true; // Backup agar tidak bisa dipilih via keyboard
+      option.hidden = true;
+      option.disabled = true;
     } else {
       // Tampilkan
       option.style.display = "block";
@@ -306,70 +319,66 @@ document.addEventListener("change", function (e) {
 async function saveProject(mode = "create", id = null) {
   try {
     const confirm = await Swal.fire({
-      title: "Simpan?",
+      title: "Simpan Project?",
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Ya",
+      confirmButtonText: "Ya, Simpan",
     });
+
     if (!confirm.isConfirmed) return;
 
-    Swal.fire({ title: "Menyimpan...", didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: "Menyproses...", didOpen: () => Swal.showLoading() });
 
+    // --- 1. SCRAPING ITEMS (SESUAI KEY JSON BARU) ---
     const rows = document.querySelectorAll("#tabelItemAdd tr");
-    const groupedItems = {};
+    const items = [];
+    let currentItem = null; // Penampung sementara untuk item induk
 
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      if (!row.querySelector(".itemProduct")) continue;
+    rows.forEach((row) => {
+      // A. Jika baris Induk (Parent)
+      if (row.classList.contains("itemRow")) {
+        // Simpan item sebelumnya ke array jika ada
+        if (currentItem) {
+          items.push(currentItem);
+        }
 
-      const sub_category_id = parseInt(
-        row.querySelector(".itemSubcategory")?.value || 0
-      );
-      const product = row.querySelector(".itemProduct")?.value.trim() || "";
-      const description = row.querySelector(".itemDesc")?.value.trim() || "";
-      const qty = parseInt(row.querySelector(".itemQty")?.value || 0);
-      const unit = row.querySelector(".itemUnit")?.value.trim() || "pcs";
-      const unit_price = parseRupiah(
-        row.querySelector(".itemHarga")?.value || 0
-      );
-      const hpp = parseRupiah(row.querySelector(".itemHpp")?.value || 0);
-      const markup_nominal = parseRupiah(
-        row.querySelector(".itemMarkupNominal")?.value || 0
-      );
-      const markup_percent = parseFloat(
-        row.querySelector(".itemMarkupPersen")?.value || 0
-      );
+        // Buat object item baru
+        currentItem = {
+          product: row.querySelector(".itemProduct")?.value.trim() || "",
+          sub_category_id: parseInt(
+            row.querySelector(".itemSubcategory")?.value || 0
+          ),
+          description: row.querySelector(".itemDesc")?.value.trim() || "",
+          qty: parseInt(row.querySelector(".itemQty")?.value || 0),
 
-      const key = `${sub_category_id}-${product}`;
-      if (!groupedItems[key]) {
-        groupedItems[key] = {
-          product,
-          sub_category_id,
-          description,
-          qty,
-          unit,
-          unit_price,
-          hpp,
-          markup_nominal,
-          markup_percent,
-          materials: [],
+          // Keuangan Parent (Jika Service/Simple, ini terisi. Jika Turnkey, ini biasanya 0)
+          hpp: parseRupiah(row.querySelector(".itemHpp")?.value || 0),
+          markup_nominal: parseRupiah(
+            row.querySelector(".itemMarkupNominal")?.value || 0
+          ),
+          markup_percent: parseFloat(
+            row.querySelector(".itemMarkupPersen")?.value || 0
+          ),
+
+          unit: row.querySelector(".itemUnit")?.value.trim() || "pcs",
+
+          // Di JSON Anda parent pakai 'unit_price'
+          unit_price: parseRupiah(row.querySelector(".itemHarga")?.value || 0),
+
+          materials: [], // Siapkan array material kosong
         };
       }
-
-      const subWrapper = row.nextElementSibling;
-      if (subWrapper && subWrapper.classList.contains("subItemWrapper")) {
-        const subItems = subWrapper.querySelectorAll(".subItemRow");
-        subItems.forEach((sub) => {
-          groupedItems[key].materials.push({
+      // B. Jika baris Anak (Material/SubItem)
+      else if (row.classList.contains("subItemWrapper") && currentItem) {
+        const subRows = row.querySelectorAll(".subItemRow");
+        subRows.forEach((sub) => {
+          // Push ke array materials milik currentItem
+          // KEY DISESUAIKAN PERSIS DENGAN JSON ANDA
+          currentItem.materials.push({
             subItemMaterial:
               sub.querySelector(".subItemMaterial")?.value.trim() || "",
             subItemSpec: sub.querySelector(".subItemSpec")?.value.trim() || "",
             subItemQty: parseInt(sub.querySelector(".subItemQty")?.value || 0),
-            subItemUnit:
-              sub.querySelector(".subItemUnit")?.value.trim() || "pcs",
-            subItemHarga: parseRupiah(
-              sub.querySelector(".subItemHarga")?.value || 0
-            ),
             subItemHpp: parseRupiah(
               sub.querySelector(".subItemHpp")?.value || 0
             ),
@@ -379,39 +388,45 @@ async function saveProject(mode = "create", id = null) {
             subItemMarkupPercent: parseFloat(
               sub.querySelector(".subItemMarkupPersen")?.value || 0
             ),
+            subItemUnit:
+              sub.querySelector(".subItemUnit")?.value.trim() || "pcs",
+            // Di JSON Anda material pakai 'subItemHarga'
+            subItemHarga: parseRupiah(
+              sub.querySelector(".subItemHarga")?.value || 0
+            ),
           });
         });
       }
-    }
-    const items = Object.values(groupedItems);
+    });
 
+    // Jangan lupa push item terakhir setelah loop selesai
+    if (currentItem) {
+      items.push(currentItem);
+    }
+
+    // --- 2. KONSTRUKSI PAYLOAD UTAMA ---
     const payload = {
-      project_name:
-        document.getElementById("add_project_name")?.value || "Project Baru",
-      pelanggan_id: parseInt(document.getElementById("add_client")?.value || 0),
-      type_id: parseInt(document.getElementById("add_type_id")?.value || 0),
+      owner_id: user.owner_id, // Tetap perlu owner
       project_manager_id: parseInt(
         document.getElementById("add_project_manager")?.value || 0
       ),
+      type_id: parseInt(document.getElementById("add_type_id")?.value || 0),
+      pelanggan_id: parseInt(document.getElementById("add_client")?.value || 0),
+      project_name: document.getElementById("add_project_name")?.value || "",
       start_date: document.getElementById("add_tanggal")?.value || "",
       finish_date: document.getElementById("add_finish_date")?.value || "",
-      owner_id: user.owner_id,
-      user_id: user.user_id,
-      items: items,
+      items: items, // Array items yang sudah disusun
     };
 
-    if (mode === "update") {
-      delete payload.user_id;
+    // Debugging di Console untuk cek hasil sebelum kirim
+    console.log("Payload Final:", JSON.stringify(payload, null, 2));
 
-      // --- PERUBAHAN DISINI: Tambah Key Position ---
-      // Karena ini file Project Manual, kita set 'Direct Sales'
-      payload.position = "Direct Sales";
-    }
-
+    // --- 3. KIRIM KE SERVER ---
     const url =
       mode === "create"
         ? `${baseUrl}/add/project_manual`
         : `${baseUrl}/update/project_manual/${id}`;
+
     const method = mode === "create" ? "POST" : "PUT";
 
     const res = await fetch(url, {
@@ -425,14 +440,15 @@ async function saveProject(mode = "create", id = null) {
 
     const json = await res.json();
     if (res.ok) {
-      Swal.fire("Sukses", "Data tersimpan", "success");
+      Swal.fire("Sukses", "Data berhasil disimpan", "success");
       loadModuleContent("project");
     } else {
-      Swal.fire("Gagal", json.message, "error");
+      console.error("Server Error Response:", json);
+      Swal.fire("Gagal", json.message || "Terjadi kesalahan server", "error");
     }
   } catch (err) {
-    console.error(err);
-    Swal.fire("Error", err.message, "error");
+    console.error("Catch Error:", err);
+    Swal.fire("Error", err.message || "Terjadi kesalahan sistem", "error");
   }
 }
 
@@ -581,31 +597,27 @@ async function handleSaveConvertToSales(data) {
   }
 }
 
-// --- ITEM FUNCTIONS ---
-
 async function tambahItem(selectedSubCategoryId = "") {
   const tbody = document.getElementById("tabelItemAdd");
-
   const typeId = document.getElementById("add_type_id")?.value || "0";
 
-  // --- REVISI DI SINI ---
-  // Kita cek apakah td tersebut benar-benar mengandung teks "Belum ada item"
+  // Cek apakah td tersebut benar-benar mengandung teks "Belum ada item"
   const placeholderTd = tbody.querySelector('td[colspan="3"]');
   if (placeholderTd && placeholderTd.textContent.includes("Belum ada item")) {
     tbody.innerHTML = "";
   }
-  // ---------------------
 
-  // 1. Cek apakah Tipe = Service (2) atau Turnkey (3)
-  const isComplex = typeId == 2 || typeId == 3;
+  // 🔴 UBAH DI SINI:
+  // Hapus "typeId == 2" agar Service dianggap simple.
+  // Hanya Turnkey (3) yang dianggap Complex (Input keuangan di-hidden).
+  const isComplex = typeId == 3;
 
-  // 2. Jika ya, kita siapkan class "hidden" untuk menyembunyikan elemen keuangan parent
+  // Jika ya, kita siapkan class "hidden" untuk menyembunyikan elemen keuangan parent
   const hideClass = isComplex ? "hidden" : "";
 
   const tr = document.createElement("tr");
   tr.classList.add("itemRow");
 
-  // Hitung index berdasarkan jumlah row item yang ada
   const index =
     document.querySelectorAll("#tabelItemAdd tr.itemRow").length + 1;
 
@@ -624,11 +636,13 @@ async function tambahItem(selectedSubCategoryId = "") {
         <label class="text-xs text-gray-500 font-bold">Deskripsi</label>
         <textarea class="w-full border rounded px-2 py-1 itemDesc focus:ring-2 focus:ring-blue-500 outline-none transition" rows="2" placeholder="Deskripsi"></textarea>
       </div>
+
       <div class="grid grid-cols-3 gap-2 my-2 ${hideClass}">
         <div><label class="text-xs text-gray-500">HPP (Modal) <span class="text-red-500">*</span></label><input type="text" class="w-full border rounded px-2 py-1 itemHpp finance" value="0" oninput="recalculateHarga(this, 'hpp')"></div>
         <div><label class="text-xs text-gray-500">Markup (Rp)</label><input type="text" class="w-full border rounded px-2 py-1 itemMarkupNominal finance" value="0" oninput="recalculateHarga(this, 'nominal')"></div>
         <div><label class="text-xs text-gray-500">Markup (%) </label><input type="number" class="w-full border rounded px-2 py-1 itemMarkupPersen" value="0" oninput="recalculateHarga(this, 'persen')"></div>
       </div>
+
       <div class="grid grid-cols-4 gap-2 ${hideClass}">
         <div><label class="text-xs text-gray-500">Qty <span class="text-red-500">*</span></label><input type="number" class="w-full border rounded px-2 py-1 itemQty" value="1" oninput="recalculateTotal()"></div>
         <div>
@@ -640,6 +654,7 @@ async function tambahItem(selectedSubCategoryId = "") {
         </div>
         <div class="col-span-2"><label class="text-xs text-gray-500">Harga (Jual)</label><input type="text" class="w-full border rounded px-2 py-1 itemHarga bg-gray-100 font-bold text-gray-700" readonly></div>
       </div>
+      
       <div class="mt-2 items-center ${hideClass}">
         <div class="border rounded px-3 py-1 text-right bg-gray-100 text-gray-500 font-bold itemTotal">0</div>
       </div>
@@ -655,8 +670,9 @@ async function tambahItem(selectedSubCategoryId = "") {
         </button>
 
         ${
-          // ✅ UPDATE LOGIKA DI SINI: Muncul jika ID 2 (Service) atau ID 3 (Turnkey)
-          typeId == 2 || typeId == 3
+          // 🔴 UBAH DI SINI: Tombol Sub Item HANYA muncul jika ID 3 (Turnkey)
+          // Service (2) tombol ini tidak muncul
+          typeId == 3
             ? `
           <button type="button" onclick="tambahSubItem(this)" 
             class="btnTambahSubItem inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition shadow-sm" 

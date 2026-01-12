@@ -663,8 +663,10 @@ async function tambahItem() {
   const typeId = document.getElementById("type_id").value;
   const tbody = document.getElementById("tabelItem");
 
-  // 1. Cek apakah Tipe = Service (2) atau Turnkey (3)
-  const isComplex = typeId == 2 || typeId == 3;
+  // 🔴 PERUBAHAN DI SINI:
+  // Hapus "typeId == 2" agar Service dianggap simple.
+  // Hanya Turnkey (3) yang dianggap Complex.
+  const isComplex = typeId == 3;
 
   // 2. Jika ya, kita siapkan class "hidden" untuk menyembunyikan elemen keuangan parent
   const hideClass = isComplex ? "hidden" : "";
@@ -763,7 +765,7 @@ async function tambahItem() {
         </button>
 
         ${
-          // Tombol Tambah Sub Item hanya muncul jika Turnkey/Service
+          // Tombol Tambah Sub Item hanya muncul jika Turnkey (isComplex = true)
           isComplex
             ? `
           <button onclick="tambahSubItem(this)" 
@@ -1168,8 +1170,8 @@ async function loadDetailSales(Id, Detail) {
 
 /**
  * 💡 FUNGSI FILTER FINAL (SEGREGASI TOTAL)
- * - Grup A (Service/Turnkey): Hanya tampilkan opsi Service & Turnkey. Sembunyikan Material.
- * - Grup B (Material): Sembunyikan opsi Service & Turnkey. Tampilkan sisanya.
+ * - Grup A (Turnkey ONLY): Hanya tampilkan opsi Turnkey. Sembunyikan Material & Service.
+ * - Grup B (Material & Service): Sembunyikan Turnkey. Tampilkan sisanya.
  */
 function filterCompatibleTypes(currentTypeId) {
   const typeSelect = document.getElementById("type_id");
@@ -1177,8 +1179,11 @@ function filterCompatibleTypes(currentTypeId) {
 
   const currentIdStr = String(currentTypeId);
 
-  // Definisi Grup A: Service (2) & Turnkey (3)
-  const complexTypes = ["2", "3"];
+  // 🔴 PERUBAHAN DI SINI:
+  // Definisi Grup A: HANYA Turnkey (3)
+  // Service (2) dihapus dari sini agar masuk ke grup B (Simple)
+  const complexTypes = ["3"];
+
   const isComplex = complexTypes.includes(currentIdStr);
 
   Array.from(typeSelect.options).forEach((option) => {
@@ -1192,18 +1197,18 @@ function filterCompatibleTypes(currentTypeId) {
 
     // 2. Terapkan Logika Pemisahan
     if (isComplex) {
-      // --- SKENARIO 1: Tipe Saat Ini = Service atau Turnkey ---
-      // HANYA boleh melihat sesama Service/Turnkey.
-      // Sembunyikan Material, dll.
+      // --- SKENARIO 1: Tipe Saat Ini = Turnkey ---
+      // HANYA boleh melihat sesama Turnkey.
+      // Sembunyikan Material, Service, dll.
       if (!complexTypes.includes(option.value)) {
         option.style.display = "none";
         option.hidden = true;
         option.disabled = true;
       }
     } else {
-      // --- SKENARIO 2: Tipe Saat Ini = Material (Grup B) ---
-      // TIDAK BOLEH melihat Service/Turnkey.
-      // Sembunyikan Service (2) dan Turnkey (3).
+      // --- SKENARIO 2: Tipe Saat Ini = Material atau Service ---
+      // TIDAK BOLEH melihat Turnkey.
+      // Sembunyikan Turnkey (3).
       if (complexTypes.includes(option.value)) {
         option.style.display = "none";
         option.hidden = true;
