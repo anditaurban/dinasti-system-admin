@@ -83,6 +83,12 @@
       }).format(value);
     }
 
+    // FUNGSI BARU: Untuk mengubah Enter menjadi <br> pada bagian footer (TOP, Notes, dll)
+    function formatText(text) {
+      if (!text) return "-";
+      return text.replace(/(?:\r\n|\r|\n)/g, '<br>');
+    }
+
     async function loadLogoWithAuth(url) {
       try {
         const res = await fetch(url, {
@@ -167,92 +173,114 @@
           return acc;
         }, {});
 
-        // Logic Header: Apakah menampilkan kolom spesifikasi di header?
+        // Logic Header & Penomoran Turnkey
         const showSpec = (salestype === 2 || salestype === 3);
+        const isTurnkey = showSpec;
+
+        // --- GLOBAL COUNTER ITEM UTAMA (1, 2, 3...) ---
+        let globalItemCounter = 1;
 
         // Build Table
+        // Build Table
         const tableRows = Object.entries(groupedItems).map(([category, items]) => {
-          let globalIndex = 1;
-          return `
-            <tr class="bg-white">
-              <td colspan="7" class="p-1 font-bold bg-gray-400 text-black text-xs border border-black">
-                ${category}
-              </td>
-            </tr>
-            ${items.map(item => {
-            // 1. Variabel rowNumber SUDAH DIHAPUS agar tidak muncul angka 1, 2, dst pada material.
+
+          // HEADER KATEGORI
+          let headerHtml = `
+              <tr class="bg-white">
+                <td colspan="7" class="p-1 font-bold bg-gray-400 text-black text-xs border border-black">
+                  ${category}
+                </td>
+              </tr>
+           `;
+
+          // ITEM LOOP
+          const itemsHtml = items.map(item => {
+
+            let rowNumberDisplay;
+            if (isTurnkey) {
+              rowNumberDisplay = globalItemCounter++;
+            } else {
+              rowNumberDisplay = items.indexOf(item) + 1;
+            }
+
+            // Siapkan list material untuk perhitungan logika di bawah
+            const materialList = item.materials || [];
 
             return `
                 <tr class="bg-material">
-                  <td class="text-center text-gray-700 border border-black">${globalIndex++}</td>
+                  
+                  <td class="text-center font-bold text-gray-800 border border-black align-top">
+                    ${rowNumberDisplay}
+                  </td>
                   
                   <td colspan="2" class="p-1 text-black border border-black">
-                    ${item.product ? `<div class="text-xs text-black">
-                      ${item.product && item.product.trim() !== "" && item.product !== "-"
-                  ? item.product.split(/\r?\n|-/).filter(line => line.trim() !== "").map((line, i) => `<div class="mb-1">${i === 0 ? line.trim() : `- ${line.trim()}`}</div>`).join("")
-                  : "-"}  
-                    </div>` : ''}
-
-                    ${item.description ? `<div class="text-xs text-black">
-                      ${item.description && item.description.trim() !== "" && item.description !== "-"
-                  ? item.description.split(/\r?\n|-/).filter(line => line.trim() !== "").map((line, i) => `<div class="mb-1">${i === 0 ? line.trim() : `- ${line.trim()}`}</div>`).join("")
-                  : "-"}  
+                    <div class="text-xs text-black">
+                          ${item.product || "-"}
+                    </div>
+                    ${item.description ? `<div class="text-xs text-black mt-1">
+                      ${item.description.split(/\r?\n|-/).filter(line => line.trim() !== "").map((line, i) => `<div class="mb-1">- ${line.trim()}</div>`).join("")}
                     </div>` : ''}
                   </td>
 
-                  ${(item.materials && item.materials.length > 0)
-                ? `<td colspan="4" class="text-center border border-black"></td>`
+                  ${(materialList.length > 0)
+                ? `<td colspan="4" class="text-center border border-black"></td>` // Jika ada material, kolom angka di kanan kosong
                 : `
-                        <td class="text-center border border-black">${item.qty}</td>
-                        <td class="text-center border border-black">${item.unit}</td>
-                        <td class="border border-black">
+                        <td class="text-center border border-black align-top">${item.qty}</td>
+                        <td class="text-center border border-black align-top">${item.unit}</td>
+                        <td class="border border-black align-top">
                           <div class="flex justify-between"><span>Rp</span><span>${finance(item.unit_price)}</span></div>
                         </td>
-                        <td class="border border-black font-medium">
+                        <td class="border border-black font-medium align-top">
                           <div class="flex justify-between"><span>Rp</span><span>${finance(item.total)}</span></div>
                         </td>
                       `
               }
                 </tr>
 
-                ${(item.materials || []).map(mat => {
-                // LOGIC BARU: Cek apakah spec ada isinya?
+                ${materialList.map((mat, matIndex) => {
                 const hasSpec = mat.specification && mat.specification.trim() !== "" && mat.specification !== "-";
+                const subNumber = `${rowNumberDisplay}.${matIndex + 1}.`;
+                const formattedSpec = hasSpec ? mat.specification.replace(/(?:\r\n|\r|\n)/g, '<br>') : '';
 
-                // Jika tipe turnkey/service (showSpec=true) DAN ada isinya, pisah kolom.
-                // Jika tidak (material biasa atau turnkey tapi spec kosong), gabung kolom (colspan 2).
-                const useSplitColumn = showSpec && hasSpec;
+                // LOGIKA MERGE KOLOM KOSONG DI BAWAH NOMOR
+                // Jika ini adalah material pertama (index 0), buat TD dengan rowspan
+                // Jika bukan material pertama, jangan buat TD (karena sudah dicover oleh rowspan diatasnya)
+
+                let firstColumnHtml = '';
+                if (matIndex === 0) {
+                  firstColumnHtml = `<td rowspan="${materialList.length}" class="border border-black"></td>`;
+                }
 
                 return `
                     <tr>
-                      <td></td> 
-                      ${useSplitColumn
-                    ? // Opsi A: Tampilkan Nama & Spec Terpisah (Tanpa Nomor)
-                    `<td class="border border-black">
-                               ${mat.name}
-                             </td>
-                             <td class="border border-black">${mat.specification}</td>`
-
-                    : // Opsi B: Colspan 2 (Hanya Nama, Tanpa Nomor)
-                    `<td colspan="2" class="border border-black">
-                               ${mat.name}
-                             </td>`
-                  }
-
-                      <td class="text-center border border-black">${mat.qty}</td>
-                      <td class="text-center border border-black">${mat.unit}</td>
-                      <td class="border border-black">
-                         <div class="flex justify-between"><span>Rp</span><span>${finance(mat.unit_price)}</span></div>
+                      ${firstColumnHtml}
+                      
+                      <td colspan="2" class="border border-black align-top">
+                          <div class="text-black">
+                             ${subNumber} ${mat.name}
+                          </div>
+                          ${hasSpec ? `
+                             <div class="text-xs text-black mt-1 ml-3">
+                                ${formattedSpec}
+                             </div>
+                          ` : ''}
                       </td>
-                      <td class="border border-black font-medium">
-                         <div class="flex justify-between"><span>Rp</span><span>${finance(mat.total)}</span></div>
+
+                      <td class="text-center border border-black align-top">${mat.qty}</td>
+                      <td class="text-center border border-black align-top">${mat.unit}</td>
+                      <td class="border border-black align-top">
+                          <div class="flex justify-between"><span>Rp</span><span>${finance(mat.unit_price)}</span></div>
+                      </td>
+                      <td class="border border-black font-medium align-top">
+                          <div class="flex justify-between"><span>Rp</span><span>${finance(mat.total)}</span></div>
                       </td>
                     </tr>
                   `}).join('')
               }
               `;
-          }).join('')}
-          `;
+          }).join('');
+
+          return headerHtml + itemsHtml;
         }).join('');
 
         const revisionInfo = data.revision_status && data.revision_number ? `${data.revision_status} (${data.revision_number})` : '-';
@@ -337,12 +365,7 @@
              <thead class="bg-blue-900">
                 <tr class="text-white">
                    <th class="text-center w-8 border border-black">No.</th>
-                   
-                   ${showSpec
-            ? `<th class="text-center border border-black">DESCRIPTION</th>
-                         <th class="text-center border border-black">SPECIFICATION</th>`
-            : `<th colspan='2' class='text-center border border-black'>DESCRIPTION</th>`}
-                   
+                   <th colspan='2' class='text-center border border-black'>DESCRIPTION</th>
                    <th class="text-center w-12 border border-black">QTY</th>
                    <th class="text-center w-12 border border-black">UNIT</th>
                    <th class="text-center w-24 border border-black">UNIT PRICE</th>
@@ -358,9 +381,14 @@
              <div class="w-1/2 border">
                 <div class="bg-gray-300 font-semibold px-3 py-1">Comments or Special Instructions</div>
                 <div class="px-3 py-2 text-gray-700">
-                   <p><span class="font-semibold">Terms of Payment :</span></p><p>${data.term_pembayaran || "-"}</p>
-                   <p><span class="font-semibold">Terms and Conditions :</span></p><p>${data.syarat_ketentuan || "-"}</p>
-                   <p><span class="font-semibold">Notes :</span></p><p>${data.catatan || "-"}</p>
+                   <p><span class="font-semibold">Terms of Payment :</span></p>
+                   <p class="mb-2">${formatText(data.term_pembayaran)}</p>
+                   
+                   <p><span class="font-semibold">Terms and Conditions :</span></p>
+                   <p class="mb-2">${formatText(data.syarat_ketentuan)}</p>
+                   
+                   <p><span class="font-semibold">Notes :</span></p>
+                   <p>${formatText(data.catatan)}</p>
                 </div>
              </div>
              <div class="w-1/3">
@@ -418,7 +446,6 @@
     }
     window.onload = loadPesananData;
   </script>
-  <!-- load QRCode.js -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </body>
 
