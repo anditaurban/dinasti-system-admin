@@ -33,12 +33,12 @@ if (window.detail_id && window.detail_desc) {
     populateDropdown(
       "/list/terms/",
       "syarat_ketentuan",
-      "Pilih Syarat & Ketentuan..."
+      "Pilih Syarat & Ketentuan...",
     ),
     populateDropdown(
       "/list/term_of_payment/",
       "term_pembayaran",
-      "Pilih Term of Payment..."
+      "Pilih Term of Payment...",
     ),
     loadSalesType(),
     loadStatusOptions(),
@@ -177,7 +177,7 @@ function filterProdukDropdownCustom(inputEl) {
   dropdown.innerHTML = "";
 
   const filtered = produkList.filter((p) =>
-    p.product.toLowerCase().includes(value)
+    p.product.toLowerCase().includes(value),
   );
   if (filtered.length === 0) return dropdown.classList.add("hidden");
 
@@ -190,7 +190,7 @@ function filterProdukDropdownCustom(inputEl) {
       inputEl.closest("tr").querySelector(".itemHarga").value =
         p.sale_price.toLocaleString("id-ID");
       const opt = Array.from(select.options).find(
-        (o) => o.value == p.product_id
+        (o) => o.value == p.product_id,
       );
       if (opt) select.value = opt.value;
       dropdown.classList.add("hidden");
@@ -406,7 +406,7 @@ function filterClientSuggestions(inputElement) {
       // Panggil API Client (yang ada 'contacts'-nya)
       const res = await fetch(
         `${baseUrl}/table/client/${owner_id}/1?search=${inputVal}`,
-        { headers: { Authorization: `Bearer ${API_TOKEN}` } }
+        { headers: { Authorization: `Bearer ${API_TOKEN}` } },
       );
       const result = await res.json();
       suggestionBox.innerHTML = "";
@@ -491,7 +491,7 @@ function filterPICSuggestions(inputElement) {
         `${baseUrl}/table/contact/${clientId}/1?search=${inputVal}`,
         {
           headers: { Authorization: `Bearer ${API_TOKEN}` },
-        }
+        },
       );
       const result = await res.json();
       suggestionBox.innerHTML = ""; // Hapus "Mencari..."
@@ -922,7 +922,7 @@ function filterUnitSuggestions(inputElement) {
         `${baseUrl}/table/unit/${owner_id}/1?search=${inputVal}`,
         {
           headers: { Authorization: `Bearer ${API_TOKEN}` },
-        }
+        },
       );
       const result = await res.json();
 
@@ -994,12 +994,12 @@ async function loadDetailSales(Id, Detail) {
       populateDropdown(
         "/list/terms/",
         "syarat_ketentuan",
-        "Pilih Syarat & Ketentuan..."
+        "Pilih Syarat & Ketentuan...",
       ),
       populateDropdown(
         "/list/term_of_payment/",
         "term_pembayaran",
-        "Pilih Term of Payment..."
+        "Pilih Term of Payment...",
       ),
     ]);
 
@@ -1050,6 +1050,7 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("catatan").value = cleanCatatan;
     document.getElementById("syarat_ketentuan").value = cleanSnK;
     document.getElementById("term_pembayaran").value = cleanToP;
+    document.getElementById("internal_notes").value = data.internal_notes || "";
     document.getElementById("client_id").value = data.pelanggan_id || 0;
     document.getElementById("discount").value = finance(data.disc) || 0;
     document.getElementById("client").value = data.pelanggan_nama || "";
@@ -1083,12 +1084,12 @@ async function loadDetailSales(Id, Detail) {
 
         // Format angka (Finance)
         row.querySelector(".itemTotal").innerText = finance(
-          item.total || item.qty * item.unit_price
+          item.total || item.qty * item.unit_price,
         );
         row.querySelector(".itemHarga").value = finance(item.unit_price || 0);
         row.querySelector(".itemHpp").value = finance(item.hpp || 0);
         row.querySelector(".itemMarkupNominal").value = finance(
-          item.markup_nominal || 0
+          item.markup_nominal || 0,
         );
         row.querySelector(".itemMarkupPersen").value = item.markup_percent || 0;
 
@@ -1110,18 +1111,18 @@ async function loadDetailSales(Id, Detail) {
                 subTr.querySelector(".subItemQty").value = material.qty || 0;
                 subTr.querySelector(".subItemUnit").value = material.unit || "";
                 subTr.querySelector(".subItemHarga").value = finance(
-                  material.unit_price || 0
+                  material.unit_price || 0,
                 );
                 subTr.querySelector(".subItemHpp").value = finance(
-                  material.hpp || 0
+                  material.hpp || 0,
                 );
                 subTr.querySelector(".subItemMarkupNominal").value = finance(
-                  material.markup_nominal || 0
+                  material.markup_nominal || 0,
                 );
                 subTr.querySelector(".subItemMarkupPersen").value =
                   material.markup_percent || 0;
                 subTr.querySelector(".subItemTotal").innerText = finance(
-                  material.total || material.qty * material.unit_price
+                  material.total || material.qty * material.unit_price,
                 );
               }
             }
@@ -1330,7 +1331,7 @@ function loadPretextFromLocal() {
 
     if (!userData) {
       console.warn(
-        "Data user tidak ditemukan di localStorage dengan key tersebut."
+        "Data user tidak ditemukan di localStorage dengan key tersebut.",
       );
       return;
     }
@@ -1453,7 +1454,7 @@ function validateForm() {
             subUnit.classList.remove(
               "border-red-500",
               "ring-1",
-              "ring-red-500"
+              "ring-red-500",
             );
             if (subUnit.value.trim() === "") {
               subUnit.classList.add("border-red-500", "ring-1", "ring-red-500");
@@ -1527,21 +1528,21 @@ async function saveInvoice(mode = "create", id = null) {
       if (!row.querySelector(".itemProduct")) continue;
 
       const sub_category_id = parseInt(
-        row.querySelector(".itemSubcategory")?.value || 0
+        row.querySelector(".itemSubcategory")?.value || 0,
       );
       const product = row.querySelector(".itemProduct")?.value.trim() || "";
       const description = row.querySelector(".itemDesc")?.value.trim() || "";
       const qty = parseInt(row.querySelector(".itemQty")?.value || 0);
       const unit = row.querySelector(".itemUnit")?.value.trim() || "";
       const unit_price = parseRupiah(
-        row.querySelector(".itemHarga")?.value || 0
+        row.querySelector(".itemHarga")?.value || 0,
       );
       const hpp = parseRupiah(row.querySelector(".itemHpp")?.value || 0);
       const markup_nominal = parseRupiah(
-        row.querySelector(".itemMarkupNominal")?.value || 0
+        row.querySelector(".itemMarkupNominal")?.value || 0,
       );
       const markup_percent = parseFloat(
-        row.querySelector(".itemMarkupPersen")?.value || 0
+        row.querySelector(".itemMarkupPersen")?.value || 0,
       );
 
       const key = `${sub_category_id}-${product}-${i}`;
@@ -1571,21 +1572,21 @@ async function saveInvoice(mode = "create", id = null) {
               subItemSpec:
                 sub.querySelector(".subItemSpec")?.value.trim() || "",
               subItemQty: parseInt(
-                sub.querySelector(".subItemQty")?.value || 0
+                sub.querySelector(".subItemQty")?.value || 0,
               ),
               subItemUnit:
                 sub.querySelector(".subItemUnit")?.value.trim() || "pcs",
               subItemHarga: parseRupiah(
-                sub.querySelector(".subItemHarga")?.value || 0
+                sub.querySelector(".subItemHarga")?.value || 0,
               ),
               subItemHpp: parseRupiah(
-                sub.querySelector(".subItemHpp")?.value || 0
+                sub.querySelector(".subItemHpp")?.value || 0,
               ),
               subItemMarkupNominal: parseRupiah(
-                sub.querySelector(".subItemMarkupNominal")?.value || 0
+                sub.querySelector(".subItemMarkupNominal")?.value || 0,
               ),
               subItemMarkupPercent: parseFloat(
-                sub.querySelector(".subItemMarkupPersen")?.value || 0
+                sub.querySelector(".subItemMarkupPersen")?.value || 0,
               ),
             });
           }
@@ -1599,7 +1600,7 @@ async function saveInvoice(mode = "create", id = null) {
     const owner_id = user.owner_id;
     const user_id = user.user_id;
     const nominalKontrak = parseRupiah(
-      document.getElementById("contract_amount").value
+      document.getElementById("contract_amount").value,
     );
     const disc = parseRupiah(document.getElementById("discount")?.value || 0);
 
@@ -1615,25 +1616,25 @@ async function saveInvoice(mode = "create", id = null) {
     formData.append("user_id", user_id);
     formData.append(
       "project_name",
-      document.getElementById("project_name")?.value || "-"
+      document.getElementById("project_name")?.value || "-",
     );
     formData.append("no_qtn", document.getElementById("no_qtn")?.value || "");
     formData.append("client", document.getElementById("client")?.value || "-");
     formData.append(
       "pic_name",
-      document.getElementById("pic_name")?.value || "-"
+      document.getElementById("pic_name")?.value || "-",
     );
     formData.append(
       "pelanggan_id",
-      parseInt(document.getElementById("client_id")?.value || 0)
+      parseInt(document.getElementById("client_id")?.value || 0),
     );
     formData.append(
       "type_id",
-      parseInt(document.getElementById("type_id")?.value || 0)
+      parseInt(document.getElementById("type_id")?.value || 0),
     );
     formData.append(
       "order_date",
-      document.getElementById("tanggal")?.value || ""
+      document.getElementById("tanggal")?.value || "",
     );
 
     formData.append("contract_amount", nominalKontrak);
@@ -1645,20 +1646,24 @@ async function saveInvoice(mode = "create", id = null) {
     formData.append("revision_number", 0);
     formData.append(
       "revision_status",
-      document.getElementById("revision_number").value
+      document.getElementById("revision_number").value,
     );
     formData.append("revision_update", revisionUpdate);
     formData.append(
       "catatan",
-      document.getElementById("catatan")?.value || "-"
+      document.getElementById("catatan")?.value || "-",
     );
     formData.append(
       "syarat_ketentuan",
-      document.getElementById("syarat_ketentuan")?.value || "-"
+      document.getElementById("syarat_ketentuan")?.value || "-",
     );
     formData.append(
       "term_pembayaran",
-      document.getElementById("term_pembayaran")?.value || "-"
+      document.getElementById("term_pembayaran")?.value || "-",
+    );
+    formData.append(
+      "internal_notes",
+      document.getElementById("internal_notes")?.value || "",
     );
     formData.append("items", JSON.stringify(items));
 
@@ -1691,7 +1696,7 @@ async function saveInvoice(mode = "create", id = null) {
       Swal.fire(
         "Sukses",
         `Data berhasil ${mode === "create" ? "disimpan" : "diupdate"}`,
-        "success"
+        "success",
       );
       loadModuleContent("quotation");
     } else {
@@ -1889,7 +1894,7 @@ function scrapeFormData() {
         unit_price: parseRupiah(row.querySelector(".itemHarga")?.value || 0),
         hpp: parseRupiah(row.querySelector(".itemHpp")?.value || 0),
         markup_nominal: parseRupiah(
-          row.querySelector(".itemMarkupNominal")?.value || 0
+          row.querySelector(".itemMarkupNominal")?.value || 0,
         ),
         markup_percent: row.querySelector(".itemMarkupPersen")?.value || 0,
         total: parseRupiah(row.querySelector(".itemTotal")?.innerText || 0),
@@ -1906,15 +1911,15 @@ function scrapeFormData() {
           qty: sub.querySelector(".subItemQty")?.value || 0,
           unit: sub.querySelector(".subItemUnit")?.value || "",
           unit_price: parseRupiah(
-            sub.querySelector(".subItemHarga")?.value || 0
+            sub.querySelector(".subItemHarga")?.value || 0,
           ),
           hpp: parseRupiah(sub.querySelector(".subItemHpp")?.value || 0),
           markup_nominal: parseRupiah(
-            sub.querySelector(".subItemMarkupNominal")?.value || 0
+            sub.querySelector(".subItemMarkupNominal")?.value || 0,
           ),
           markup_percent: sub.querySelector(".subItemMarkupPersen")?.value || 0,
           total: parseRupiah(
-            sub.querySelector(".subItemTotal")?.innerText || 0
+            sub.querySelector(".subItemTotal")?.innerText || 0,
           ),
         });
       });
@@ -1934,6 +1939,7 @@ function scrapeFormData() {
     catatan: document.getElementById("catatan")?.value,
     syarat_ketentuan: document.getElementById("syarat_ketentuan")?.value,
     term_pembayaran: document.getElementById("term_pembayaran")?.value,
+    internal_notes: document.getElementById("internal_notes")?.value || "",
     disc: parseRupiah(document.getElementById("discount")?.value || 0),
     ppn: parseRupiah(document.getElementById("ppn")?.value || 0), // Simpan nilai nominal PPN
     items: items,
@@ -2005,6 +2011,7 @@ async function restoreAutosaveData(data) {
       data.syarat_ketentuan || "";
     document.getElementById("term_pembayaran").value =
       data.term_pembayaran || "";
+    document.getElementById("internal_notes").value = data.internal_notes || "";
 
     // 3. Client & PIC
     if (data.pelanggan_id) {
@@ -2050,7 +2057,7 @@ async function restoreAutosaveData(data) {
         row.querySelector(".itemHarga").value = finance(item.unit_price || 0);
         row.querySelector(".itemHpp").value = finance(item.hpp || 0);
         row.querySelector(".itemMarkupNominal").value = finance(
-          item.markup_nominal || 0
+          item.markup_nominal || 0,
         );
         row.querySelector(".itemMarkupPersen").value = item.markup_percent || 0;
         row.querySelector(".itemTotal").innerText = finance(item.total || 0);
@@ -2075,18 +2082,18 @@ async function restoreAutosaveData(data) {
                 subRow.querySelector(".subItemQty").value = mat.qty || 0;
                 subRow.querySelector(".subItemUnit").value = mat.unit || "";
                 subRow.querySelector(".subItemHarga").value = finance(
-                  mat.unit_price || 0
+                  mat.unit_price || 0,
                 );
                 subRow.querySelector(".subItemHpp").value = finance(
-                  mat.hpp || 0
+                  mat.hpp || 0,
                 );
                 subRow.querySelector(".subItemMarkupNominal").value = finance(
-                  mat.markup_nominal || 0
+                  mat.markup_nominal || 0,
                 );
                 subRow.querySelector(".subItemMarkupPersen").value =
                   mat.markup_percent || 0;
                 subRow.querySelector(".subItemTotal").innerText = finance(
-                  mat.total || 0
+                  mat.total || 0,
                 );
               }
             }
