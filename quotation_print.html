@@ -83,7 +83,7 @@
       }).format(value);
     }
 
-    // FUNGSI BARU: Untuk mengubah Enter menjadi <br> pada bagian footer (TOP, Notes, dll)
+    // Handle Enter menjadi baris baru
     function formatText(text) {
       if (!text) return "-";
       return text.replace(/(?:\r\n|\r|\n)/g, '<br>');
@@ -173,18 +173,18 @@
           return acc;
         }, {});
 
-        // Logic Header & Penomoran Turnkey
         const showSpec = (salestype === 2 || salestype === 3);
         const isTurnkey = showSpec;
 
-        // --- GLOBAL COUNTER ITEM UTAMA (1, 2, 3...) ---
-        let globalItemCounter = 1;
-
-        // Build Table
         // Build Table
         const tableRows = Object.entries(groupedItems).map(([category, items]) => {
 
-          // HEADER KATEGORI
+          // PERUBAHAN DISINI:
+          // Variabel counter kita taruh di DALAM loop kategori.
+          // Sehingga setiap kategori baru, dia akan reset jadi 1 lagi.
+          let categoryItemCounter = 1;
+
+          // Header Kategori
           let headerHtml = `
               <tr class="bg-white">
                 <td colspan="7" class="p-1 font-bold bg-gray-400 text-black text-xs border border-black">
@@ -193,18 +193,11 @@
               </tr>
            `;
 
-          // ITEM LOOP
+          // Item Loop
           const itemsHtml = items.map(item => {
 
-            let rowNumberDisplay;
-            if (isTurnkey) {
-              rowNumberDisplay = globalItemCounter++;
-            } else {
-              rowNumberDisplay = items.indexOf(item) + 1;
-            }
-
-            // Siapkan list material untuk perhitungan logika di bawah
-            const materialList = item.materials || [];
+            // Mengambil angka counter lokal (per kategori)
+            let rowNumberDisplay = categoryItemCounter++;
 
             return `
                 <tr class="bg-material">
@@ -214,7 +207,7 @@
                   </td>
                   
                   <td colspan="2" class="p-1 text-black border border-black">
-                    <div class="text-xs text-black">
+                    <div class="text-xs text-black font-semibold">
                           ${item.product || "-"}
                     </div>
                     ${item.description ? `<div class="text-xs text-black mt-1">
@@ -222,8 +215,8 @@
                     </div>` : ''}
                   </td>
 
-                  ${(materialList.length > 0)
-                ? `<td colspan="4" class="text-center border border-black"></td>` // Jika ada material, kolom angka di kanan kosong
+                  ${(item.materials && item.materials.length > 0)
+                ? `<td colspan="4" class="text-center border border-black"></td>`
                 : `
                         <td class="text-center border border-black align-top">${item.qty}</td>
                         <td class="text-center border border-black align-top">${item.unit}</td>
@@ -237,33 +230,29 @@
               }
                 </tr>
 
-                ${materialList.map((mat, matIndex) => {
+                ${(item.materials || []).map((mat, matIndex) => {
                 const hasSpec = mat.specification && mat.specification.trim() !== "" && mat.specification !== "-";
-                const subNumber = `${rowNumberDisplay}.${matIndex + 1}.`;
+
+                // MENGEMBALIKAN PENOMORAN SUB ITEM (Contoh: 1.1, 1.2, dst)
+                // Menggunakan rowNumberDisplay yang sudah ter-reset per kategori
+                const subNumber = `${rowNumberDisplay}.${matIndex + 1}`;
+
                 const formattedSpec = hasSpec ? mat.specification.replace(/(?:\r\n|\r|\n)/g, '<br>') : '';
-
-                // LOGIKA MERGE KOLOM KOSONG DI BAWAH NOMOR
-                // Jika ini adalah material pertama (index 0), buat TD dengan rowspan
-                // Jika bukan material pertama, jangan buat TD (karena sudah dicover oleh rowspan diatasnya)
-
-                let firstColumnHtml = '';
-                if (matIndex === 0) {
-                  firstColumnHtml = `<td rowspan="${materialList.length}" class="border border-black"></td>`;
-                }
 
                 return `
                     <tr>
-                      ${firstColumnHtml}
+                      <td class="text-center text-gray-600 border border-black align-top text-[10px]">
+                      </td> 
                       
                       <td colspan="2" class="border border-black align-top">
-                          <div class="text-black">
+                         <div class="text-black">
                              ${subNumber} ${mat.name}
-                          </div>
-                          ${hasSpec ? `
+                         </div>
+                         ${hasSpec ? `
                              <div class="text-xs text-black mt-1 ml-3">
                                 ${formattedSpec}
                              </div>
-                          ` : ''}
+                         ` : ''}
                       </td>
 
                       <td class="text-center border border-black align-top">${mat.qty}</td>
