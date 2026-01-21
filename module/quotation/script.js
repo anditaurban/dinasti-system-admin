@@ -56,7 +56,18 @@ window.rowTemplate = function (item, index, perPage = 10) {
 
     <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
       <span class="font-medium sm:hidden">Description</span>
-      ${item.project_name}
+      ${item.project_name}<td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
+  <span class="font-medium sm:hidden">Description</span>
+  ${item.project_name}
+  ${
+    item.internal_notes &&
+    item.internal_notes.trim() !== "" &&
+    item.internal_notes.trim() !== "-"
+      ? `<div class="text-gray-500 text-xs">${item.internal_notes}</div>`
+      : ``
+  }
+</td>
+
       <div class="text-gray-500 text-xs">${item.internal_notes || ""}</div>
     </td>
 
