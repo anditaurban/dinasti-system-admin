@@ -28,8 +28,8 @@ window.rowTemplate = function (item, index, perPage = 10) {
         <div class="flex justify-between">
           <span class="font-medium">Sales#</span>
           <span class="font-medium text-right">${item.no_qtn} ${`R${
-    item.revision_number || 0
-  }`}</span>
+            item.revision_number || 0
+          }`}</span>
         </div>
         <div class="flex justify-between mt-1">
           <span></span>
@@ -47,8 +47,8 @@ window.rowTemplate = function (item, index, perPage = 10) {
 
       <div class="hidden sm:block">
         <div class="font-medium">${item.no_qtn}  ${`R${
-    item.revision_number || 0
-  }`}</div>
+          item.revision_number || 0
+        }`}</div>
         <div class="text-gray-500 text-xs">${item.project_type}</div>
         <div class="text-gray-500 text-xs">PIC : ${item.user_nama}</div>
       </div>
@@ -57,10 +57,10 @@ window.rowTemplate = function (item, index, perPage = 10) {
     <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
       <span class="font-medium sm:hidden">Description</span>
       ${item.project_name}
+      <div class="text-gray-500 text-xs">${item.internal_notes || ""}</div>
     </td>
 
     <td class="px-6 py-4 text-sm text-gray-700 border-b text-right sm:border-0 flex justify-between sm:table-cell">
-      <span class="font-medium sm:hidden">Amount</span>
       <div class="flex flex-col items-end w-full">
         <span>${finance(item.contract_amount)}</span>
         <span class="text-xs text-gray-500">inc. Tax ${finance(item.ppn)}</span>
@@ -77,7 +77,7 @@ window.rowTemplate = function (item, index, perPage = 10) {
       
       <div class="flex flex-col items-end sm:items-center w-full">
         <span class="${getStatusClass(
-          item.status
+          item.status,
         )} px-2 py-1 rounded-full text-xs font-medium statusLabel">
             ${item.status}
         </span>
@@ -87,8 +87,8 @@ window.rowTemplate = function (item, index, perPage = 10) {
           <button onclick="event.stopPropagation(); loadModuleContent('quotation_1form', '${
             item.pesanan_id
           }', '${
-    item.no_qtn
-  }');" class="block w-full text-left px-4 py-2 hover:bg-gray-100"> 
+            item.no_qtn
+          }');" class="block w-full text-left px-4 py-2 hover:bg-gray-100"> 
             👁️ View Detail 
           </button>
 
@@ -248,7 +248,7 @@ async function applyFilter() {
     .join(" ");
 
   const url = `${baseUrl}/table/${currentDataType}/${owner_id}/1?search=${encodeURIComponent(
-    searchQuery
+    searchQuery,
   )}`;
   try {
     const res = await fetch(url, {
@@ -286,7 +286,7 @@ async function loadStatusFilters() {
             <span>${status.status_sales}</span>
             <span id="status-${status.status_id}" class="font-bold">0</span>
           </button>
-        `
+        `,
           )
           .join("") +
         `
@@ -352,7 +352,7 @@ async function openUpdateStatus(pesananId, statusId) {
         (s) =>
           `<option value="${s.status_id}" ${
             String(s.status_id) === String(statusId) ? "selected" : ""
-          }>${s.status_sales}</option>`
+          }>${s.status_sales}</option>`,
       )
       .join("");
 
@@ -403,7 +403,7 @@ async function openUpdateStatus(pesananId, statusId) {
           Authorization: `Bearer ${API_TOKEN}`,
         },
         body: JSON.stringify(formValues),
-      }
+      },
     );
 
     const result = await updateRes.json();
@@ -411,7 +411,7 @@ async function openUpdateStatus(pesananId, statusId) {
       Swal.fire(
         "✅ Sukses",
         result.message || "Status berhasil diupdate",
-        "success"
+        "success",
       );
 
       // kalau mau reload semua
@@ -421,7 +421,7 @@ async function openUpdateStatus(pesananId, statusId) {
 
       // kalau mau update status di row langsung:
       const rowStatus = document.querySelector(
-        `#row-${pesananId} .statusLabel`
+        `#row-${pesananId} .statusLabel`,
       );
       if (rowStatus) rowStatus.textContent = result.data.status;
     } else {
@@ -485,7 +485,7 @@ async function openSalesApproval(pesananId, currentStatus = "Pending") {
           Authorization: `Bearer ${API_TOKEN}`,
         },
         body: JSON.stringify(bodyData),
-      }
+      },
     );
 
     const result = await updateRes.json();
@@ -494,12 +494,12 @@ async function openSalesApproval(pesananId, currentStatus = "Pending") {
       Swal.fire(
         "✅ Sukses",
         result.message || "Approval berhasil diperbarui",
-        "success"
+        "success",
       );
 
       // 🔹 Update tampilan langsung di tabel
       const rowStatus = document.querySelector(
-        `#row-${pesananId} .approvalLabel`
+        `#row-${pesananId} .approvalLabel`,
       );
       if (rowStatus) {
         rowStatus.textContent =
@@ -584,7 +584,7 @@ async function openInvoiceModal(pesananId) {
       // Validasi (tambahkan due_date jika wajib diisi)
       if (!po_number || !invoice_date || !po_date) {
         Swal.showValidationMessage(
-          "PO Number, Invoice Date, Due Date, dan PO Date wajib diisi!"
+          "PO Number, Invoice Date, Due Date, dan PO Date wajib diisi!",
         );
         return false;
       }
@@ -720,7 +720,7 @@ function downloadQOTemplate() {
     Swal.fire(
       "Error",
       "Gagal membuat template. Pastikan library XLSX sudah dimuat.",
-      "error"
+      "error",
     );
   }
 }
@@ -789,7 +789,7 @@ async function handleImportQO(file) {
     Swal.fire(
       "Import Selesai",
       `✅ Berhasil import ${sukses} data, ❌ gagal ${gagal}.`,
-      "success"
+      "success",
     );
     loadModuleContent("quotation"); // Refresh list
   } catch (err) {
