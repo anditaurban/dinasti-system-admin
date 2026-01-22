@@ -64,7 +64,7 @@ async function fetchYearList() {
 
       // Urutkan tahun (handle jika format string atau number)
       const sortedList = result.listData.sort(
-        (a, b) => Number(b.year) - Number(a.year)
+        (a, b) => Number(b.year) - Number(a.year),
       );
 
       sortedList.forEach((item) => {
@@ -80,7 +80,7 @@ async function fetchYearList() {
       });
     } else {
       console.warn(
-        "API 200 tapi listData kosong atau tidak ada format listData"
+        "API 200 tapi listData kosong atau tidak ada format listData",
       );
       // Jika kosong, jangan biarkan kosong melompong, panggil fungsi fallback
       ensureDefaultOption(yearSelect);
@@ -144,20 +144,32 @@ function updateUI(data) {
   // 1. Cards Update
   document.getElementById("po-value").innerText = totals.total_po_achievement;
 
-  // Current Sales
+  // --- Current Sales ---
   document.getElementById("sales-value").innerText = formatCurrency(
-    totals.total_current_sales
+    totals.total_current_sales,
   );
+  // UPDATE: Menambahkan Tax Current Sales
+  // Pastikan data JSON memiliki key 'ppn_current_sales'
+  const taxSales = totals.ppn_current_sales ? totals.ppn_current_sales : 0;
+  document.getElementById("sales-tax").innerText =
+    "Tax " + formatCurrency(taxSales);
+
   document.getElementById("sales-year").innerText = totals.sales_year;
   document.getElementById("sales-percent").innerText =
     totals.total_current_sales_percent + "%";
   document.getElementById("sales-progress").style.width =
     Math.min(totals.total_current_sales_percent, 100) + "%";
 
-  // Remaining Sales
+  // --- Remaining Sales ---
   document.getElementById("remain-value").innerText = formatCurrency(
-    totals.remaining_sales
+    totals.remaining_sales,
   );
+  // UPDATE: Menambahkan Tax Remaining Sales
+  // Pastikan data JSON memiliki key 'ppn_remaining_sales'
+  const taxRemain = totals.ppn_remaining_sales ? totals.ppn_remaining_sales : 0;
+  document.getElementById("remain-tax").innerText =
+    "Tax " + formatCurrency(taxRemain);
+
   document.getElementById("remain-year").innerText = totals.sales_year;
   document.getElementById("remain-percent").innerText =
     totals.remaining_sales_percent + "%";
@@ -168,6 +180,7 @@ function updateUI(data) {
   const growthEl = document.getElementById("growth-value");
   growthEl.innerText =
     (totals.growth_rate_avg > 0 ? "+" : "") + totals.growth_rate_avg + "%";
+
   // Color logic for growth
   if (totals.growth_rate_avg < 0) {
     growthEl.className =
@@ -181,19 +194,28 @@ function updateUI(data) {
   // Chart Titles/Years
   document.getElementById("chart-year-label").innerText = totals.sales_year;
   document.getElementById("growth-chart-year").innerText = totals.sales_year;
-  document.getElementById("growth-chart-desc").innerText =
-    data.revenue_growth_line_chart.insight;
+
+  // Pengecekan aman jika data chart growth kosong/null
+  if (data.revenue_growth_line_chart) {
+    document.getElementById("growth-chart-desc").innerText =
+      data.revenue_growth_line_chart.insight;
+  }
 
   // Pie Chart Shares Text
-  document.getElementById("customer-top-share").innerText =
-    data.profit_share_top_customers_pie_chart.series[0].data[0] + "%";
-  document.getElementById("customer-other-share").innerText =
-    data.profit_share_top_customers_pie_chart.series[0].data[1] + "%";
+  // Pastikan melakukan pengecekan array index agar tidak error jika data kosong
+  if (data.profit_share_top_customers_pie_chart?.series?.[0]?.data) {
+    document.getElementById("customer-top-share").innerText =
+      data.profit_share_top_customers_pie_chart.series[0].data[0] + "%";
+    document.getElementById("customer-other-share").innerText =
+      data.profit_share_top_customers_pie_chart.series[0].data[1] + "%";
+  }
 
-  document.getElementById("product-top-share").innerText =
-    data.profit_share_top_categories_pie_chart.series[0].data[0] + "%";
-  document.getElementById("product-other-share").innerText =
-    data.profit_share_top_categories_pie_chart.series[0].data[1] + "%";
+  if (data.profit_share_top_categories_pie_chart?.series?.[0]?.data) {
+    document.getElementById("product-top-share").innerText =
+      data.profit_share_top_categories_pie_chart.series[0].data[0] + "%";
+    document.getElementById("product-other-share").innerText =
+      data.profit_share_top_categories_pie_chart.series[0].data[1] + "%";
+  }
 }
 
 function renderTable(tableData) {
@@ -265,7 +287,7 @@ function renderAllCharts(data) {
         },
       ],
     },
-    { cutout: "70%", plugins: { legend: { display: false } } }
+    { cutout: "70%", plugins: { legend: { display: false } } },
   );
 
   // Update Quotation Legend HTML manually
@@ -282,7 +304,7 @@ function renderAllCharts(data) {
             </span>
             <span>${s.count} (${s.percentage}%)</span>
         </div>
-    `
+    `,
     )
     .join("");
 
@@ -330,7 +352,7 @@ function renderAllCharts(data) {
           grid: { display: false },
         },
       },
-    }
+    },
   );
 
   // 3. Growth Line Chart
@@ -363,7 +385,7 @@ function renderAllCharts(data) {
         y: { grid: { borderDash: [4, 4] } },
         x: { grid: { display: false } },
       },
-    }
+    },
   );
 
   // 4. Top Customers Bar (Horizontal)
@@ -387,7 +409,7 @@ function renderAllCharts(data) {
       indexAxis: "y", // Horizontal Bar
       plugins: { legend: { display: false } },
       scales: { x: { display: false }, y: { grid: { display: false } } },
-    }
+    },
   );
 
   // 5. Customer Profit Share (Pie)
@@ -405,7 +427,7 @@ function renderAllCharts(data) {
         },
       ],
     },
-    { cutout: "60%", plugins: { legend: { display: false } } }
+    { cutout: "60%", plugins: { legend: { display: false } } },
   );
 
   // 6. Top Products Category Bar (Horizontal)
@@ -429,7 +451,7 @@ function renderAllCharts(data) {
       indexAxis: "y",
       plugins: { legend: { display: false } },
       scales: { x: { display: false }, y: { grid: { display: false } } },
-    }
+    },
   );
 
   // 7. Product Profit Share (Pie)
@@ -447,7 +469,7 @@ function renderAllCharts(data) {
         },
       ],
     },
-    { cutout: "60%", plugins: { legend: { display: false } } }
+    { cutout: "60%", plugins: { legend: { display: false } } },
   );
 
   // 8. Revenue PO Achievement by Category (Stacked Bar)
@@ -497,7 +519,7 @@ function renderAllCharts(data) {
         y: { stacked: true, grid: { borderDash: [2, 2] } },
         x: { stacked: true, grid: { display: false } },
       },
-    }
+    },
   );
 }
 

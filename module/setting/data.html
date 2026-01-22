@@ -38,6 +38,10 @@
             onclick="switchSection(this, 'unit')">
             Satuan (Unit)
           </button>
+          <button class="setting-btn w-full text-left px-3 py-2 rounded hover:bg-gray-100"
+            onclick="switchSection(this, 'sales-target')">
+            Sales Target
+          </button>
 
           <p class="text-xs font-semibold text-gray-500 uppercase mt-4">Akun</p>
           <button class="setting-btn w-full text-left px-3 py-2 rounded hover:bg-gray-100"
@@ -194,6 +198,40 @@
             <div class="block md:hidden text-sm text-center mb-12">
               <label for="unitPageSelect" class="mr-2">Go to Page:</label>
               <select id="unitPageSelect" class="px-2 py-1 border rounded"></select>
+            </div>
+          </div>
+        </div>
+
+        <div id="section-sales-target" class="setting-section hidden">
+          <div class="flex justify-between items-center mb-4">
+            <h1 class="text-xl font-bold">Sales Target</h1>
+            <button onclick="handleAddSalesTarget()"
+              class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors text-sm">
+              <i class="fas fa-plus"></i> Tambah Target
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table id="salesTargetTable" class="min-w-full text-sm border">
+              <thead id="salesTargetTableHeader" class="hidden md:table-header-group bg-gray-100 text-gray-600">
+                <tr>
+                  <th class="px-4 py-2 border w-32">TAHUN</th>
+                  <th class="px-4 py-2 border">TARGET NOMINAL (IDR)</th>
+                  <th class="px-4 py-2 border w-32">ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody id="salesTargetTableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="mt-4 flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+            <p id="salesTargetInfoText" class="hidden md:block text-gray-600 text-sm"></p>
+            <div id="salesTargetPagination"
+              class="hidden md:flex w-full justify-end items-center flex-wrap gap-2 text-sm">
+            </div>
+            <div class="block md:hidden text-sm text-center mb-12">
+              <label for="salesTargetPageSelect" class="mr-2">Go to Page:</label>
+              <select id="salesTargetPageSelect" class="px-2 py-1 border rounded"></select>
             </div>
           </div>
         </div>

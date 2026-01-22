@@ -12,6 +12,7 @@ tableStates = {
   top: { currentPage: 1, perPage: 10 },
   tnc: { currentPage: 1, perPage: 10 },
   unit: { currentPage: 1, perPage: 10 },
+  sales_target: { currentPage: 1, perPage: 10 },
 };
 
 /**
@@ -95,6 +96,38 @@ window.unitRowTemplate = function (item, dataType) {
     </tr>`;
 };
 
+window.salesTargetRowTemplate = function (item, dataType) {
+  // Format mata uang IDR
+  const formattedNominal = new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(item.target_nominal);
+
+  return `
+    <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50">
+        <td class="px-6 py-4 text-sm border-b sm:border-0 flex justify-between sm:table-cell">
+            <span class="font-medium sm:hidden">Tahun</span>
+            <span class="font-semibold text-gray-700">${item.year}</span>
+        </td>
+        <td class="px-6 py-4 text-sm border-b sm:border-0 flex justify-between sm:table-cell">
+            <span class="font-medium sm:hidden">Target</span>
+            ${formattedNominal}
+        </td>
+        <td class="px-6 py-4 text-sm text-gray-700 sm:border-0 flex justify-between sm:table-cell" style="width: 150px;">
+            <span class="font-medium sm:hidden">Actions</span>
+            <div class="flex gap-2 justify-end w-full sm:w-auto">
+                <button onclick="handleEditSalesTarget(${item.target_id}, ${item.year}, ${item.target_nominal})" class="text-blue-500 hover:text-blue-700 p-1">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+                <button onclick="handleDeleteSalesTarget(${item.target_id})" class="text-red-500 hover:text-red-700 p-1">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </div>
+        </td>
+    </tr>`;
+};
+
 // =====================================================================
 // == SCRIPT AWAL (SEKARANG AMAN) ==
 // =====================================================================
@@ -105,6 +138,7 @@ getCompanyDetail();
 loadTermOfPayment();
 loadTermCondition();
 loadNotes();
+loadSalesTarget();
 loadUnits();
 loadUpdateLog();
 
@@ -147,7 +181,7 @@ async function loadAccounts() {
         `${baseUrl}/table/finance_account_payment/${owner_id}/1`,
         {
           headers: { Authorization: `Bearer ${API_TOKEN}` },
-        }
+        },
       );
       const data = await res.json();
 
@@ -170,10 +204,10 @@ async function loadAccounts() {
               </div>
               <div class="flex gap-x-3">
                 <button onclick="handleEditAccounts(${acc.akun_id}, '${
-            acc.account_id
-          }', '${acc.owner_account}', '${acc.number_account}', '${acc.tag}', '${
-            acc.status
-          }')" class="text-primary-500 hover:text-primary-600 text-sm font-medium">
+                  acc.account_id
+                }', '${acc.owner_account}', '${acc.number_account}', '${acc.tag}', '${
+                  acc.status
+                }')" class="text-primary-500 hover:text-primary-600 text-sm font-medium">
                   Edit
                 </button>
                 <button onclick="handleDeleteAccounts(${
@@ -224,7 +258,7 @@ async function handleAddAccounts() {
     const options = listData.listData
       .map(
         (acc) =>
-          `<option value="${acc.akun_id}">${acc.nama_akun} (${acc.tipe})</option>`
+          `<option value="${acc.akun_id}">${acc.nama_akun} (${acc.tipe})</option>`,
       )
       .join("");
 
@@ -285,7 +319,7 @@ async function handleAddAccounts() {
             Swal.fire(
               "Sukses",
               "Akun pembayaran berhasil ditambahkan",
-              "success"
+              "success",
             );
             loadAccounts();
           } else {
@@ -307,7 +341,7 @@ async function handleEditAccounts(
   ownerAccount,
   numberAccount,
   tag,
-  statusAccount
+  statusAccount,
 ) {
   try {
     // ambil list bank (account_id)
@@ -395,7 +429,7 @@ async function handleEditAccounts(
             Authorization: `Bearer ${API_TOKEN}`,
           },
           body: JSON.stringify(formValues),
-        }
+        },
       );
 
       const data = await res.json();
@@ -434,7 +468,7 @@ async function handleDeleteAccounts(akunId) {
             Authorization: `Bearer ${API_TOKEN}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       const data = await res.json();
@@ -446,7 +480,7 @@ async function handleDeleteAccounts(akunId) {
         Swal.fire(
           "Gagal!",
           data.data?.message || "Gagal menghapus data",
-          "error"
+          "error",
         );
       }
     } catch (error) {
@@ -502,13 +536,13 @@ async function loadProfile(user_id) {
         "profile_role",
         `${baseUrl}/list/role/${owner_id}`,
         "role_id",
-        "role"
+        "role",
       ),
       loadDropdown(
         "profile_level",
         `${baseUrl}/list/level/${owner_id}`,
         "level_id",
-        "level"
+        "level",
       ),
     ]);
 
@@ -579,7 +613,7 @@ async function updateProfile() {
       Swal.fire(
         "Gagal",
         (data.data && data.data.message) || "Gagal update profil",
-        "error"
+        "error",
       );
     }
   } catch (err) {
@@ -646,15 +680,15 @@ async function saveCompanySetting() {
   formData.append("website", document.getElementById("company_website").value);
   formData.append(
     "instagram",
-    document.getElementById("company_instagram").value
+    document.getElementById("company_instagram").value,
   );
   formData.append(
     "linkedin",
-    document.getElementById("company_linkedin").value
+    document.getElementById("company_linkedin").value,
   );
   formData.append(
     "facebook",
-    document.getElementById("company_facebook").value
+    document.getElementById("company_facebook").value,
   );
 
   // file logo (optional)
@@ -751,6 +785,15 @@ async function loadTableData(dataType, page = 1) {
       pageSelectId: "unitPageSelect",
       headerId: "unitTableHeader",
       rowTemplate: window.unitRowTemplate,
+    },
+    sales_target: {
+      endpoint: (p) => `${baseUrl}/table/sales_target/${owner_id}/${p}`,
+      tbodyId: "salesTargetTableBody",
+      paginationId: "salesTargetPagination",
+      infoId: "salesTargetInfoText",
+      pageSelectId: "salesTargetPageSelect",
+      headerId: "salesTargetTableHeader",
+      rowTemplate: window.salesTargetRowTemplate,
     },
   };
 
@@ -863,10 +906,10 @@ function generatePagination(dataType, currentPage, totalPages) {
             class="px-3 py-1 border rounded ${
               active ? "bg-blue-500 text-white" : "bg-white"
             } ${
-      disabled
-        ? "text-gray-300 cursor-not-allowed"
-        : "text-gray-700 hover:bg-gray-100"
-    }"
+              disabled
+                ? "text-gray-300 cursor-not-allowed"
+                : "text-gray-700 hover:bg-gray-100"
+            }"
             ${disabled ? "disabled" : ""}>
             ${text}
         </button>`;
@@ -918,7 +961,7 @@ async function handleDeleteNote(id) {
     "notes",
     id,
     `${baseUrl}/delete/notes/${id}`,
-    "Catatan"
+    "Catatan",
   );
 }
 
@@ -935,7 +978,7 @@ async function handleDeleteTnc(id) {
     "tnc",
     id,
     `${baseUrl}/delete/terms/${id}`,
-    "Syarat & Ketentuan"
+    "Syarat & Ketentuan",
   );
 }
 
@@ -952,7 +995,7 @@ async function handleDeleteTop(id) {
     "top",
     id,
     `${baseUrl}/delete/term_of_payment/${id}`,
-    "Term of Payment"
+    "Term of Payment",
   );
 }
 /**
@@ -1064,7 +1107,7 @@ async function saveNotesTopData(mode, dataType, id, data) {
         result.message ||
           (result.data && result.data.message) ||
           "Gagal menyimpan data.",
-        "error"
+        "error",
       );
     }
   } catch (err) {
@@ -1073,9 +1116,8 @@ async function saveNotesTopData(mode, dataType, id, data) {
 }
 
 /**
- * 🔥 FUNGSI HAPUS GENERIK (FIXED) 🔥
- * - Method dikembalikan ke PUT.
- * - Logika deteksi "Sukses" diperluas agar reload tabel terpanggil.
+ * 🔥 FUNGSI HAPUS GENERIK (UPDATED UNTUK FORMAT BARU) 🔥
+ * Mendukung format response: { "data": { "message": "...", "id": "..." } }
  */
 async function handleDeleteGeneric(dataType, id, endpoint, title = "Data") {
   const confirm = await Swal.fire({
@@ -1084,12 +1126,13 @@ async function handleDeleteGeneric(dataType, id, endpoint, title = "Data") {
     icon: "warning",
     showCancelButton: true,
     confirmButtonColor: "#d33",
+    cancelButtonColor: "#6b7280",
     confirmButtonText: "Ya, hapus",
     cancelButtonText: "Batal",
   });
 
   if (confirm.isConfirmed) {
-    // Tampilkan loading sebentar agar user tau proses sedang berjalan
+    // Tampilkan loading
     Swal.fire({
       title: "Menghapus...",
       didOpen: () => Swal.showLoading(),
@@ -1097,7 +1140,7 @@ async function handleDeleteGeneric(dataType, id, endpoint, title = "Data") {
 
     try {
       const res = await fetch(endpoint, {
-        method: "PUT", // ✅ KEMBALI KE PUT SESUAI REQUEST
+        method: "PUT", // Sesuai request sebelumnya
         headers: {
           Authorization: `Bearer ${API_TOKEN}`,
           "Content-Type": "application/json",
@@ -1106,45 +1149,45 @@ async function handleDeleteGeneric(dataType, id, endpoint, title = "Data") {
 
       const result = await res.json();
 
-      // ✅ LOGIKA PENGECEKAN SUKSES YANG LEBIH LUAS
-      // Kita anggap sukses jika:
-      // 1. HTTP Status OK (200-299)
-      // 2. Ada indikator sukses di JSON (success: true, response: "200", atau di dalam data)
+      // --- LOGIKA PENGECEKAN SUKSES BARU ---
       let isSuccess = false;
       let successMessage = "Data berhasil dihapus";
 
       if (res.ok) {
+        // CASE 1: Format Lama (success: true / response: "200" di root)
         if (result.success === true || result.response === "200") {
           isSuccess = true;
           if (result.message) successMessage = result.message;
-        } else if (
+        }
+        // CASE 2: Format Lama Nested (data.success: true)
+        else if (
           result.data &&
           (result.data.success === true || result.data.response === "200")
         ) {
           isSuccess = true;
           if (result.data.message) successMessage = result.data.message;
         }
+        // CASE 3 (NEW): Format Baru Sales Target ({ data: { message: "...", id: "..." } })
+        // Kita anggap sukses jika HTTP OK (res.ok) dan ada properti result.data.message
+        else if (result.data && result.data.message) {
+          isSuccess = true;
+          successMessage = result.data.message;
+        }
       }
 
       if (isSuccess) {
-        // 1. Tutup loading & Tampilkan pesan sukses
+        // 1. Pesan Sukses
         await Swal.fire("Terhapus!", successMessage, "success");
 
-        // 2. 🔄 REFRESH TABEL OTOMATIS
-        // Pastikan dataType valid dan ada di tableStates
+        // 2. Refresh Tabel
         if (tableStates[dataType]) {
-          console.log(`Reloading table for: ${dataType}`); // Debugging di console
           loadTableData(dataType, tableStates[dataType].currentPage);
-        } else {
-          console.error(
-            "Gagal refresh: dataType tidak ditemukan di tableStates"
-          );
         }
       } else {
         // Jika gagal
         const errorMessage =
-          result.message ||
           (result.data && result.data.message) ||
+          result.message ||
           "Gagal menghapus data.";
         Swal.fire("Gagal!", errorMessage, "error");
       }
@@ -1172,7 +1215,7 @@ async function handleDeleteUnit(id) {
     "unit",
     id,
     `${baseUrl}/delete/unit/${id}`,
-    "Satuan"
+    "Satuan",
   );
 }
 
@@ -1238,7 +1281,7 @@ async function saveUnitData(mode, id, data) {
       Swal.fire(
         "Sukses!",
         result.data.message, // Ambil pesan dari API
-        "success"
+        "success",
       ); // Muat ulang tabel unit sesuai permintaan
       loadTableData("unit", tableStates.unit.currentPage);
     } else {
@@ -1256,11 +1299,158 @@ async function saveUnitData(mode, id, data) {
 }
 
 // =====================================================================
+// == CRUD Handlers (Sales Target) ==
+// =====================================================================
+
+function handleAddSalesTarget() {
+  showSalesTargetModal("add");
+}
+
+function handleEditSalesTarget(id, year, nominal) {
+  showSalesTargetModal("edit", id, year, nominal);
+}
+
+async function handleDeleteSalesTarget(id) {
+  await handleDeleteGeneric(
+    "sales_target",
+    id,
+    `${baseUrl}/delete/sales_target/${id}`,
+    "Target Penjualan",
+  );
+}
+
+async function showSalesTargetModal(mode, id = null, year = "", nominal = "") {
+  const title =
+    mode === "add" ? "Tambah Target Penjualan" : "Edit Target Penjualan";
+  const currentYear = new Date().getFullYear();
+
+  // 1. Format nilai awal jika sedang Edit (menggunakan fungsi formatNumber Anda)
+  // Jika nominal ada, format jadi "27.000.000". Jika tidak, kosongkan.
+  const formattedNominal = nominal ? formatNumber(nominal) : "";
+
+  const htmlContent = `
+    <div class="space-y-4 text-left">
+        <div>
+            <label for="swal_year" class="block text-sm font-medium text-gray-700 mb-1">Tahun</label>
+            <input id="swal_year" type="number" placeholder="${currentYear}" 
+                   value="${year}"
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+            <label for="swal_nominal" class="block text-sm font-medium text-gray-700 mb-1">Target Nominal (IDR)</label>
+            <input id="swal_nominal" type="text" placeholder="Contoh: 27.000.000.000" 
+                   value="${formattedNominal}"
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+    </div>
+  `;
+
+  const { value: formValues } = await Swal.fire({
+    title: title,
+    html: htmlContent,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: "Simpan",
+
+    // 2. Pasang Event Listener saat Modal Terbuka (didOpen)
+    didOpen: () => {
+      const input = document.getElementById("swal_nominal");
+      // Terapkan logika formatNumber Anda di sini
+      input.addEventListener("input", (e) => {
+        // Hapus karakter selain angka
+        const value = e.target.value.replace(/\D/g, "");
+        // Tambahkan titik setiap 3 digit
+        e.target.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      });
+    },
+
+    // 3. Bersihkan format titik sebelum diproses (preConfirm)
+    preConfirm: () => {
+      const yearVal = document.getElementById("swal_year").value;
+      const nominalRaw = document.getElementById("swal_nominal").value;
+
+      if (!yearVal || !nominalRaw) {
+        Swal.showValidationMessage("Tahun dan Nominal harus diisi");
+        return false;
+      }
+
+      // Hapus semua titik (.) dari string agar menjadi integer murni untuk API
+      // Contoh: "27.000.000" -> "27000000"
+      const cleanNominal = nominalRaw.replace(/\./g, "");
+
+      return {
+        year: parseInt(yearVal),
+        target_nominal: parseInt(cleanNominal), // Pastikan dikirim sebagai number
+      };
+    },
+  });
+
+  if (formValues) {
+    saveSalesTargetData(mode, id, formValues);
+  }
+}
+
+async function saveSalesTargetData(mode, id, data) {
+  const isAdd = mode === "add";
+  const endpoint = isAdd
+    ? `${baseUrl}/add/sales_target`
+    : `${baseUrl}/update/sales_target/${id}`;
+
+  const method = isAdd ? "POST" : "PUT";
+
+  const payload = {
+    owner_id: owner_id,
+    year: data.year,
+    target_nominal: data.target_nominal,
+  };
+
+  try {
+    const res = await fetch(endpoint, {
+      method: method,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await res.json();
+
+    // LOGIKA BARU SESUAI RESPONSE JSON ANDA:
+    // Kita anggap sukses jika HTTP Status OK (200-299) DAN ada object 'data' di response
+    if (res.ok && result.data) {
+      // Ambil pesan dari result.data.message
+      const successMessage = result.data.message || "Data berhasil disimpan";
+
+      Swal.fire("Sukses!", successMessage, "success");
+
+      // Refresh tabel
+      loadTableData("sales_target", tableStates.sales_target.currentPage);
+    } else {
+      // Handle error jika format berbeda atau status code error
+      const errorMessage =
+        (result.data && result.data.message) || // Cek message di dalam data
+        result.message || // Cek message di root
+        "Gagal menyimpan data.";
+
+      Swal.fire("Gagal!", errorMessage, "error");
+    }
+  } catch (err) {
+    console.error(err);
+    Swal.fire("Error", `Koneksi gagal: ${err.message}`, "error");
+  }
+}
+
+// =====================================================================
 // == FUNGSI LAMA YANG DIMODIFIKASI / DI-RETAIN ==
 // =====================================================================
 
 async function loadTermOfPayment() {
   loadTableData("top", 1);
+}
+
+function loadSalesTarget() {
+  loadTableData("sales_target", 1);
 }
 
 async function loadTermCondition() {
@@ -1305,7 +1495,7 @@ async function loadDropdown(selectId, apiUrl, valueField, labelField) {
     } else {
       console.error(
         `Format listData tidak sesuai untuk ${selectId}:`,
-        listData
+        listData,
       );
       select.innerHTML = `<option value="">Gagal memuat data</option>`;
     }
