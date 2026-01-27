@@ -725,30 +725,35 @@ document.getElementById("importButton").addEventListener("click", () => {
   showImportModal();
 });
 
+// Fungsi untuk memicu modal upload
 function showImportModal() {
   const templateInfo = `
-        <div class="text-left text-sm p-3 bg-blue-50 border border-blue-200 rounded mb-4">
-            <p class="font-semibold text-blue-800 mb-1">💡 Ketentuan Format Excel:</p>
-            <ul class="list-disc ml-4 text-blue-700">
-                <li>Kolom: <b>akun_id, kategori, tanggal_request, tanggal_transaksi, nominal, deskripsi, no_ref</b></li>
-                <li><b>akun_id</b> harus berupa angka (ID Akun yang terdaftar).</li>
-                <li><b>nominal</b> hanya angka tanpa titik/koma.</li>
-                <li>Format tanggal: <b>YYYY-MM-DD</b>.</li>
+        <div class="text-left text-sm p-3 bg-green-50 border border-green-200 rounded mb-4">
+            <p class="font-semibold text-green-800 mb-1">📋 Petunjuk Import:</p>
+            <ul class="list-decimal ml-4 text-green-700">
+                <li>Gunakan file Excel (.xlsx atau .xls).</li>
+                <li>Kolom wajib: <b>akun_id, kategori, tanggal_request, tanggal_transaksi, nominal, deskripsi, no_ref</b>.</li>
+                <li>Pastikan <b>akun_id</b> sesuai dengan ID yang ada di sistem.</li>
             </ul>
-            <a href="#" onclick="downloadTemplate()" class="mt-2 inline-block text-blue-600 underline font-bold">⬇️ Download Template Excel</a>
+            <button onclick="downloadTemplate()" class="mt-2 text-blue-600 hover:underline font-bold flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Download Template Excel
+            </button>
         </div>
-        <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" class="w-full border p-2 rounded">
+        <input type="file" id="excelFile" accept=".xlsx, .xls" class="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-green-500 outline-none">
     `;
 
   Swal.fire({
-    title: "Import Internal Expenses",
+    title: "Import Data Expenses",
     html: templateInfo,
     showCancelButton: true,
-    confirmButtonText: "🚀 Upload & Proses",
+    confirmButtonText: "📤 Upload Sekarang",
+    cancelButtonText: "Batal",
+    confirmButtonColor: "#16a34a",
     preConfirm: () => {
       const fileInput = document.getElementById("excelFile");
       if (!fileInput.files[0]) {
-        Swal.showValidationMessage("Silakan pilih file terlebih dahulu!");
+        Swal.showValidationMessage("Pilih file Excel dulu bos!");
         return false;
       }
       return fileInput.files[0];
@@ -762,7 +767,6 @@ function showImportModal() {
 async function processExcel(file) {
   const reader = new FileReader();
 
-  // Tampilkan loading
   Swal.fire({
     title: "Memproses File...",
     didOpen: () => Swal.showLoading(),
@@ -781,32 +785,47 @@ async function processExcel(file) {
       let successCount = 0;
       let failCount = 0;
 
-      // Loop dan kirim data satu per satu ke endpoint add
       for (const row of jsonData) {
         const formData = new FormData();
 
-        // Data dari Excel
-        formData.append("akun_id", row.akun_id);
-        formData.append("kategori", row.kategori);
-        formData.append("tanggal_request", row.tanggal_request);
-        formData.append("tanggal_transaksi", row.tanggal_transaksi);
-        formData.append("nominal", String(row.nominal).replace(/\./g, "")); // Pastikan bersih
-        formData.append("deskripsi", row.deskripsi);
-        formData.append("no_ref", row.no_ref);
+        // Pastikan ID dikirim sebagai string yang bersih
+        formData.append("owner_id", String(owner_id));
+        formData.append("user_id", String(user_id));
+        formData.append("akun_id", String(row.akun_id));
 
-        // Data Otomatis dari Session (Sesuai request kamu)
-        formData.append("owner_id", owner_id);
-        formData.append("user_id", user_id);
+        // Pastikan nominal benar-benar angka tanpa karakter aneh
+        let cleanNominal = String(row.nominal).replace(/[^0-9]/g, "");
+        formData.append("nominal", cleanNominal);
+
+        formData.append("kategori", row.kategori);
+        formData.append("deskripsi", row.deskripsi);
+        formData.append("no_ref", row.no_ref || "-");
+        formData.append("tanggal_transaksi", row.tanggal_transaksi);
+        formData.append("tanggal_request", row.tanggal_request);
+
+        // ... sisa kode fetch
 
         try {
+          // DISESUAIKAN: Endpoint diubah ke /add/expenses_import sesuai gambar
           const response = await fetch(`${baseUrl}/add/expenses`, {
             method: "POST",
-            headers: { Authorization: `Bearer ${API_TOKEN}` },
+            headers: {
+              // Catatan: Jika menggunakan FormData, JANGAN set Content-Type manual ke multipart/form-data
+              // Biarkan browser yang menanganinya agar boundary-nya benar.
+              Authorization: `Bearer ${API_TOKEN}`,
+            },
             body: formData,
           });
-          if (response.ok) successCount++;
-          else failCount++;
+
+          if (response.ok) {
+            successCount++;
+          } else {
+            const errorText = await response.text();
+            console.error("Gagal baris ini:", errorText);
+            failCount++;
+          }
         } catch (err) {
+          console.error("Network error:", err);
           failCount++;
         }
       }

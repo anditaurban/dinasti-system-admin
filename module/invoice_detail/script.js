@@ -137,7 +137,7 @@ async function loadDetailSales(Id, Detail) {
           });
 
           // Beri delay tambahan 1.5 detik agar database benar-benar settle
-          await new Promise((resolve) => setTimeout(resolve, 1500));
+          await new Promise((resolve) => setTimeout(resolve, 3000));
 
           // 🔄 Panggil fungsi utama untuk refresh UI secara total
           await loadDetailSales(Id, Detail);
