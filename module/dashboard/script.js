@@ -361,7 +361,7 @@ function renderAllCharts(data) {
     "growth",
     "line",
     {
-      labels: data.revenue_growth_line_chart.yAxis, // Using months as labels
+      labels: data.revenue_growth_line_chart.yAxis,
       datasets: [
         {
           label: "Growth %",
@@ -382,7 +382,15 @@ function renderAllCharts(data) {
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        y: { grid: { borderDash: [4, 4] } },
+        y: {
+          grid: { borderDash: [4, 4] },
+          // TAMBAHKAN BAGIAN INI:
+          ticks: {
+            callback: function (value) {
+              return value + "%";
+            },
+          },
+        },
         x: { grid: { display: false } },
       },
     },
