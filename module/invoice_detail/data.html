@@ -103,7 +103,15 @@
           <div id="ringkasanSection" class="p-3 space-y-2">
             <p><span class="text-gray-500">Subtotal:</span> <span id="contract_amount" class="float-right">0</span></p>
             <p><span class="text-gray-500">Diskon:</span> <span id="diskon" class="float-right">0</span></p>
-            <p><span class="text-gray-500">Pajak (11%):</span> <span id="ppn" class="float-right">0</span></p>
+
+            <div class="flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                <input type="checkbox" id="is_ppn_active" class="w-4 h-4 cursor-pointer">
+                <span class="text-gray-500">Pajak (11%):</span>
+              </div>
+              <span id="ppn" class="font-medium text-gray-700">0</span>
+            </div>
+
             <hr>
             <p class="font-bold">Total: <span id="total" class="float-right">0</span></p>
             <p class="font-bold">Payment: <span id="payment" class="float-right">0</span></p>

@@ -49,6 +49,111 @@ async function loadDetailSales(Id, Detail) {
     document.getElementById("total").innerHTML = finance(data.total) || "";
     document.getElementById("total").innerHTML = finance(data.total) || "";
 
+    // ... kode fetch data awal ...
+
+    // 🔹 Inisialisasi Elemen Ringkasan
+    const ppnCheckbox = document.getElementById("is_ppn_active");
+    const ppnTextEl = document.getElementById("ppn");
+    const totalTextEl = document.getElementById("total");
+    const outstandingTextEl = document.getElementById("outstanding");
+
+    const subtotal = parseFloat(data.subtotal || 0);
+    const disc = parseFloat(data.disc || 0);
+    const totalPaid = parseFloat(data.total_paid || 0);
+    const ppnFromAPI = parseFloat(data.ppn || 0);
+
+    // 1. Set State Awal Berdasarkan Data API
+    ppnCheckbox.checked = ppnFromAPI > 0;
+    ppnTextEl.innerHTML = finance(ppnFromAPI);
+
+    // 2. Event Listener Checkbox dengan API Update
+    ppnCheckbox.onchange = async function () {
+      const isChecked = this.checked;
+      const newPpnValue = isChecked ? Math.round(subtotal * 0.11) : 0;
+      const revertCheckbox = () => {
+        this.checked = !isChecked;
+      };
+
+      // 1. Konfirmasi Awal
+      const confirm = await Swal.fire({
+        title: "Update Pajak?",
+        text: `Apakah Anda ingin ${isChecked ? "mengenakan" : "menghapus"} PPN 11%?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Ya, Update!",
+        cancelButtonText: "Batal",
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+      });
+
+      if (!confirm.isConfirmed) {
+        revertCheckbox();
+        return;
+      }
+
+      // 2. Loading State (Menunggu Respon API)
+      Swal.fire({
+        title: "Memproses...",
+        text: "Menyimpan perubahan ke server",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
+      try {
+        const response = await fetch(
+          `${baseUrl}/update/ppn_sales/${data.pesanan_id}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${API_TOKEN}`,
+            },
+            body: JSON.stringify({ ppn: newPpnValue }),
+          },
+        );
+
+        const result = await response.json();
+
+        if (response.ok) {
+          // ✅ Tampilkan pesan sukses sebentar
+          await Swal.fire({
+            icon: "success",
+            title: "Berhasil!",
+            text: "Data sedang disinkronkan...",
+            timer: 1000, // Tampil 1 detik
+            showConfirmButton: false,
+          });
+
+          // 🔄 Tampilkan Loading lagi khusus untuk Refresh Data
+          Swal.fire({
+            title: "Sinkronisasi...",
+            text: "Memuat ulang data terbaru",
+            allowOutsideClick: false,
+            didOpen: () => {
+              Swal.showLoading();
+            },
+          });
+
+          // Beri delay tambahan 1.5 detik agar database benar-benar settle
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+
+          // 🔄 Panggil fungsi utama untuk refresh UI secara total
+          await loadDetailSales(Id, Detail);
+
+          // Swal akan otomatis tertutup di akhir fungsi loadDetailSales
+        } else {
+          throw new Error(result.message || "Gagal update PPN");
+        }
+      } catch (err) {
+        revertCheckbox();
+        Swal.fire("Error", err.message, "error");
+      }
+    };
+
+    // ... sisa kode render lainnya ...
+
     const paymentEl = document.getElementById("payment");
     paymentEl.textContent = formatNumber(data.total_paid || "0");
     if (data.total_paid <= 0)
@@ -1123,8 +1228,6 @@ async function openEditInvoiceModal() {
   }
 
   const data = currentInvoiceData;
-  const subtotal = parseFloat(data.subtotal || 0);
-  const existingPpn = parseFloat(data.ppn || 0);
 
   const { value: formValues } = await Swal.fire({
     title: "Edit Informasi Invoice",
@@ -1133,53 +1236,34 @@ async function openEditInvoiceModal() {
       <div class="space-y-4 text-left p-2 text-gray-800">
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-sm text-gray-600 mb-1">Nomor Invoice</label>
-            <input type="text" id="edit_no_inv" class="w-full border rounded px-3 py-2 bg-gray-50" readonly value="${data.inv_number || ""}">
+            <label class="block text-sm text-gray-600 mb-1 font-semibold">Nomor Invoice</label>
+            <input type="text" id="edit_no_inv" class="w-full border rounded px-3 py-2 bg-gray-50 font-medium" readonly value="${data.inv_number || ""}">
           </div>
           <div>
-            <label class="block text-sm text-gray-600 mb-1">Tanggal Invoice</label>
+            <label class="block text-sm text-gray-600 mb-1 font-semibold">Tanggal Invoice</label>
             <input type="date" id="edit_tanggal_inv" class="w-full border rounded px-3 py-2" value="${data.invoice_date_ymd || ""}">
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-sm text-gray-600 mb-1">Nomor PO</label>
+            <label class="block text-sm text-gray-600 mb-1 font-semibold">Nomor PO</label>
             <input type="text" id="edit_no_po" class="w-full border rounded px-3 py-2" value="${data.po_number || ""}">
           </div>
           <div>
-            <label class="block text-sm text-gray-600 mb-1">Tanggal PO</label>
+            <label class="block text-sm text-gray-600 mb-1 font-semibold">Tanggal PO</label>
             <input type="date" id="edit_tanggal_po" class="w-full border rounded px-3 py-2" value="${data.po_date_ymd || ""}">
           </div>
         </div>
 
-        <div class="border rounded-lg p-4 bg-white shadow-sm space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <input type="checkbox" id="edit_is_tax" class="w-4 h-4 rounded text-blue-600 cursor-pointer" ${existingPpn > 0 ? "checked" : ""}>
-              <label for="edit_is_tax" class="text-base font-semibold text-gray-700 cursor-pointer">Aktifkan PPN (11%)</label>
-            </div>
-            <span class="text-xs text-gray-400">Subtotal: ${formatRupiah(subtotal)}</span>
-          </div>
-          
-          <input type="text" id="edit_ppn_val" onkeyup="formatCurrencyInput(this)" 
-            class="w-full border border-gray-200 rounded-md px-4 py-3 text-lg font-bold text-blue-600 focus:ring-1 focus:ring-blue-400 outline-none transition-all" 
-            value="${formatNumber(existingPpn)}" placeholder="0">
-            
-          <div class="text-right pt-1">
-            <span class="text-sm text-gray-500">Total Tagihan: </span>
-            <span id="edit_total_preview" class="text-sm font-bold text-gray-700">${formatRupiah(subtotal + existingPpn)}</span>
-          </div>
-        </div>
-
         <div>
-          <label class="block text-sm text-gray-600 mb-1">Jatuh Tempo (Due Date)</label>
+          <label class="block text-sm text-gray-600 mb-1 font-semibold">Jatuh Tempo (Due Date)</label>
           <input type="date" id="edit_due_date" class="w-full border rounded px-3 py-2" value="${data.due_date_ymd || ""}"> 
         </div>
 
         <div>
-          <label class="block text-sm text-gray-600 mb-1">Catatan Internal</label>
-          <textarea id="edit_internal_notes" rows="2" class="w-full border rounded px-3 py-2" placeholder="Catatan internal...">${data.internal_notes || ""}</textarea>
+          <label class="block text-sm text-gray-600 mb-1 font-semibold">Catatan Internal</label>
+          <textarea id="edit_internal_notes" rows="3" class="w-full border rounded px-3 py-2" placeholder="Masukkan catatan internal di sini...">${data.internal_notes || ""}</textarea>
         </div>
       </div>
     `,
@@ -1189,46 +1273,13 @@ async function openEditInvoiceModal() {
     cancelButtonText: "Batal",
     customClass: {
       confirmButton:
-        "bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded",
+        "bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded shadow-sm",
       cancelButton:
-        "bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded ml-2",
+        "bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-2 px-6 rounded ml-2",
     },
     buttonsStyling: false,
-    didOpen: () => {
-      const checkPpn = document.getElementById("edit_is_tax");
-      const inputPpn = document.getElementById("edit_ppn_val");
-      const totalPreview = document.getElementById("edit_total_preview");
-
-      const updateUI = () => {
-        let ppnNominal = 0;
-        if (checkPpn.checked) {
-          inputPpn.disabled = false;
-          inputPpn.classList.remove("bg-gray-50", "text-gray-400");
-          inputPpn.classList.add("text-blue-600");
-
-          // Jika baru diaktifkan dan masih 0, isi 11% otomatis
-          const currentVal = parseInt(inputPpn.value.replace(/\D/g, "")) || 0;
-          if (currentVal === 0) {
-            ppnNominal = Math.round(subtotal * 0.11);
-            inputPpn.value = formatNumber(ppnNominal);
-          } else {
-            ppnNominal = currentVal;
-          }
-        } else {
-          ppnNominal = 0;
-          inputPpn.value = "0";
-          inputPpn.disabled = true;
-          inputPpn.classList.add("bg-gray-50", "text-gray-400");
-          inputPpn.classList.remove("text-blue-600");
-        }
-        totalPreview.innerText = formatRupiah(subtotal + ppnNominal);
-      };
-
-      checkPpn.addEventListener("change", updateUI);
-      inputPpn.addEventListener("keyup", updateUI);
-      updateUI();
-    },
     preConfirm: () => {
+      // Mengambil data dari form modal
       return {
         inv_number: document.getElementById("edit_no_inv").value,
         invoice_date: document.getElementById("edit_tanggal_inv").value,
@@ -1236,44 +1287,40 @@ async function openEditInvoiceModal() {
         po_date: document.getElementById("edit_tanggal_po").value,
         due_date: document.getElementById("edit_due_date").value,
         internal_notes: document.getElementById("edit_internal_notes").value,
-        ppn:
-          parseInt(
-            document.getElementById("edit_ppn_val").value.replace(/\D/g, ""),
-          ) || 0,
       };
     },
   });
 
   if (formValues) {
-    // Jalankan kedua update secara paralel
-    await Promise.all([
-      handleSaveInvoiceInfo(formValues),
-      handleUpdatePpn(data.pesanan_id, formValues.ppn),
-    ]);
-
-    // Refresh content setelah semua selesai
-    loadDetailSales(window.detail_id, window.detail_desc);
-  }
-}
-async function handleUpdatePpn(pesananId, ppnNominal) {
-  try {
-    const res = await fetch(`${baseUrl}/update/ppn_sales/${pesananId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${API_TOKEN}`,
+    // Tampilkan loading saat proses simpan
+    Swal.fire({
+      title: "Menyimpan...",
+      text: "Sedang memperbarui informasi invoice",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
       },
-      body: JSON.stringify({
-        ppn: ppnNominal,
-      }),
     });
 
-    const result = await res.json();
-    if (!res.ok) throw new Error(result.message || "Gagal update PPN");
-    return true;
-  } catch (err) {
-    console.error("PPN Update Error:", err);
-    return false;
+    try {
+      // Hanya menjalankan update info dokumen saja
+      await handleSaveInvoiceInfo(formValues);
+
+      // Notifikasi sukses
+      await Swal.fire({
+        icon: "success",
+        title: "Berhasil!",
+        text: "Informasi invoice telah diperbarui.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
+      // Refresh data di halaman utama
+      loadDetailSales(window.detail_id, window.detail_desc);
+    } catch (err) {
+      console.error("Gagal simpan edit:", err);
+      Swal.fire("Error", "Gagal menyimpan perubahan.", "error");
+    }
   }
 }
 
