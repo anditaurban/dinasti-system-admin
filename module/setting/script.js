@@ -199,8 +199,10 @@ async function loadAccounts() {
                   <p class="text-sm text-gray-500 dark:text-gray-400">
                     ${acc.owner_account} (${acc.number_account})
                   </p>
-                  <p class="text-xs text-gray-400">${acc.tag || ""}</p>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">
+                    Account_id : ${acc.account_id}</p>
                 </div>
+                
               </div>
               <div class="flex gap-x-3">
                 <button onclick="handleEditAccounts(${acc.akun_id}, '${

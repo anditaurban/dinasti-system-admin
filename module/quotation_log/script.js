@@ -90,7 +90,7 @@ async function renderInvoice(invoiceData) {
   // mapping sub_category name ke item
   const itemsWithCategory = invoiceData.items.map((item) => {
     const category = subCategories.find(
-      (c) => c.sub_category_id == item.sub_category_id
+      (c) => c.sub_category_id == item.sub_category_id,
     );
     return {
       ...item,
@@ -134,10 +134,10 @@ ${
           <td class="text-center border border-black">${item.qty}</td>
           <td class="text-center border border-black">${item.unit}</td>
           <td class="text-right border border-black">${finance(
-            item.unit_price
+            item.unit_price,
           )}</td>
           <td class="text-right font-medium border border-black">${finance(
-            item.total
+            item.total,
           )}</td>
         `
 }
@@ -152,16 +152,16 @@ ${
           <td class="text-center border border-black">${mat.qty}</td>
           <td class="text-center border border-black">${mat.unit}</td>
           <td class="text-right border border-black">${finance(
-            mat.unit_price
+            mat.unit_price,
           )}</td>
           <td class="text-right font-medium border border-black">${finance(
-            mat.total
+            mat.total,
           )}</td>
         </tr>
-      `
+      `,
         )
         .join("")}
-    `
+    `,
       )
       .join("")}
   `;
@@ -321,7 +321,7 @@ ${
       <tr>
         <td class="pr-3 py-0.5 text-right font-semibold text-gray-700">SUBTOTAL</td>
         <td class="py-0.5 text-right text-gray-800">${finance(
-          invoiceData.subtotal
+          invoiceData.subtotal,
         )}</td>
       </tr>
       <tr>
@@ -339,13 +339,13 @@ ${
       <tr>
         <td class="pr-3 py-0.5 text-right font-semibold text-gray-700">PPN 11%</td>
         <td class="py-0.5 text-right text-gray-800">${finance(
-          invoiceData.ppn
+          invoiceData.ppn,
         )}</td>
       </tr>
       <tr class="font-bold border-t border-gray-300 total-row">
         <td class="pr-3 py-1 text-right text-gray-900">TOTAL</td>
         <td class="py-1 text-right text-blue-800 bg-blue-100">${finance(
-          invoiceData.total
+          invoiceData.total,
         )}</td>
       </tr>
     </table>
@@ -394,7 +394,7 @@ function renderVersionHistory(versions) {
                 
             </div>
         </li>
-    `
+    `,
     )
     .join("");
 }
@@ -420,7 +420,7 @@ function loadVersionFromList(index) {
             .querySelector("button")
             .insertAdjacentHTML(
               "beforeend",
-              '<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Current</span>'
+              '<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Current</span>',
             );
         }
       } else {

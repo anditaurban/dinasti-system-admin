@@ -312,7 +312,7 @@ async function showExpenseModal(id = null) {
       requests.push(
         fetch(`${baseUrl}/detail/expenses/${id}`, {
           headers: { Authorization: `Bearer ${API_TOKEN}` },
-        })
+        }),
       );
     }
 
@@ -467,7 +467,7 @@ async function showExpenseModal(id = null) {
         // VALIDASI INPUT
         if (!akunVal || !katVal || !rawNominal) {
           Swal.showValidationMessage(
-            "Mohon lengkapi Akun, Kategori, dan Nominal!"
+            "Mohon lengkapi Akun, Kategori, dan Nominal!",
           );
           return false;
         }
@@ -577,7 +577,7 @@ async function loadCategoryOptions(selectedCategoryName = null) {
       `${baseUrl}/list/expenses_category/${currentOwnerId}`,
       {
         headers: { Authorization: `Bearer ${API_TOKEN}` },
-      }
+      },
     );
     const result = await res.json();
 
@@ -719,4 +719,126 @@ window.loadDropdownCall = async function () {
   console.log("Memanggil loadDropdownCall (alias ke loadAccountOptions)...");
   // Kita arahkan supaya dia menjalankan logika load akun yang sudah kita buat
   await loadAccountOptions();
+};
+
+document.getElementById("importButton").addEventListener("click", () => {
+  showImportModal();
+});
+
+function showImportModal() {
+  const templateInfo = `
+        <div class="text-left text-sm p-3 bg-blue-50 border border-blue-200 rounded mb-4">
+            <p class="font-semibold text-blue-800 mb-1">💡 Ketentuan Format Excel:</p>
+            <ul class="list-disc ml-4 text-blue-700">
+                <li>Kolom: <b>akun_id, kategori, tanggal_request, tanggal_transaksi, nominal, deskripsi, no_ref</b></li>
+                <li><b>akun_id</b> harus berupa angka (ID Akun yang terdaftar).</li>
+                <li><b>nominal</b> hanya angka tanpa titik/koma.</li>
+                <li>Format tanggal: <b>YYYY-MM-DD</b>.</li>
+            </ul>
+            <a href="#" onclick="downloadTemplate()" class="mt-2 inline-block text-blue-600 underline font-bold">⬇️ Download Template Excel</a>
+        </div>
+        <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" class="w-full border p-2 rounded">
+    `;
+
+  Swal.fire({
+    title: "Import Internal Expenses",
+    html: templateInfo,
+    showCancelButton: true,
+    confirmButtonText: "🚀 Upload & Proses",
+    preConfirm: () => {
+      const fileInput = document.getElementById("excelFile");
+      if (!fileInput.files[0]) {
+        Swal.showValidationMessage("Silakan pilih file terlebih dahulu!");
+        return false;
+      }
+      return fileInput.files[0];
+    },
+  }).then((result) => {
+    if (result.isConfirmed) {
+      processExcel(result.value);
+    }
+  });
+}
+async function processExcel(file) {
+  const reader = new FileReader();
+
+  // Tampilkan loading
+  Swal.fire({
+    title: "Memproses File...",
+    didOpen: () => Swal.showLoading(),
+    allowOutsideClick: false,
+  });
+
+  reader.onload = async (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const firstSheet = workbook.SheetNames[0];
+      const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet]);
+
+      if (jsonData.length === 0) throw new Error("File Excel kosong.");
+
+      let successCount = 0;
+      let failCount = 0;
+
+      // Loop dan kirim data satu per satu ke endpoint add
+      for (const row of jsonData) {
+        const formData = new FormData();
+
+        // Data dari Excel
+        formData.append("akun_id", row.akun_id);
+        formData.append("kategori", row.kategori);
+        formData.append("tanggal_request", row.tanggal_request);
+        formData.append("tanggal_transaksi", row.tanggal_transaksi);
+        formData.append("nominal", String(row.nominal).replace(/\./g, "")); // Pastikan bersih
+        formData.append("deskripsi", row.deskripsi);
+        formData.append("no_ref", row.no_ref);
+
+        // Data Otomatis dari Session (Sesuai request kamu)
+        formData.append("owner_id", owner_id);
+        formData.append("user_id", user_id);
+
+        try {
+          const response = await fetch(`${baseUrl}/add/expenses`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${API_TOKEN}` },
+            body: formData,
+          });
+          if (response.ok) successCount++;
+          else failCount++;
+        } catch (err) {
+          failCount++;
+        }
+      }
+
+      Swal.fire({
+        icon: successCount > 0 ? "success" : "error",
+        title: "Import Selesai",
+        text: `${successCount} data berhasil, ${failCount} data gagal.`,
+      }).then(() => {
+        if (typeof fetchAndUpdateData === "function") fetchAndUpdateData();
+      });
+    } catch (error) {
+      Swal.fire("Gagal", "Format file tidak valid: " + error.message, "error");
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+window.downloadTemplate = function () {
+  const templateData = [
+    {
+      akun_id: "10",
+      kategori: "Operasional",
+      tanggal_request: "2026-01-27",
+      tanggal_transaksi: "2026-01-27",
+      nominal: 500000,
+      deskripsi: "Pembelian ATK Kantor",
+      no_ref: "REF-001",
+    },
+  ];
+
+  const worksheet = XLSX.utils.json_to_sheet(templateData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Template");
+  XLSX.writeFile(workbook, "Template_Internal_Expenses.xlsx");
 };
