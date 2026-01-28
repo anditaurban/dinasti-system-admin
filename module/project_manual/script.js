@@ -15,11 +15,10 @@ var projectDetailData = null; // Penting untuk fitur Convert to Sales
   const breadcrumbEl = document.getElementById("breadcrumbCurrent");
   if (breadcrumbEl) breadcrumbEl.textContent = subpagemodule;
 
-  // Load Dropdowns (Hapus loadCustomerList dari sini)
+  // 1. Load Dropdown yang bersifat Global (Tidak bergantung pada pilihan lain)
   try {
     await Promise.all([
       loadSalesType("add_type_id"),
-      // loadCustomerList("add_client"), // <-- HAPUS ATAU KOMENTAR BARIS INI
       loadProjectManagers("add_project_manager"),
     ]);
   } catch (e) {
@@ -30,37 +29,50 @@ var projectDetailData = null; // Penting untuk fitur Convert to Sales
   if (currentModeManual === "create") {
     setTodayDate("add_tanggal");
     setTodayDate("add_finish_date");
-    document.getElementById(
-      "tabelItemAdd"
-    ).innerHTML = `<tr><td colspan="3" class="text-center py-4 text-gray-500">Belum ada item.</td></tr>`;
+
+    // Reset Dropdown PIC saat membuat project baru
+    const picSelect = document.getElementById("add_pic_client");
+    if (picSelect)
+      picSelect.innerHTML = '<option value="">-- Pilih PIC --</option>';
+
+    document.getElementById("tabelItemAdd").innerHTML =
+      `<tr><td colspan="3" class="text-center py-4 text-gray-500">Belum ada item.</td></tr>`;
+
     document.getElementById("saveNewProjectBtn").onclick = () =>
       saveProject("create");
   } else {
+    // Mode Update
     const projectId = window.detail_id;
     const projectDesc = window.detail_desc || "Update";
-    document.getElementById(
-      "formTitleManual"
-    ).textContent = `Update: ${projectDesc}`;
+
+    document.getElementById("formTitleManual").textContent =
+      `Update: ${projectDesc}`;
+
     document.getElementById("saveNewProjectBtn").onclick = () =>
       saveProject("update", projectId);
+
+    // loadProjectDataForUpdate akan menangani pemanggilan loadPicByClient secara internal
+    // karena dia membutuhkan pelanggan_id dari hasil detail API.
     await loadProjectDataForUpdate(projectId);
   }
 })();
 
 function filterClientSuggestions(inputElement) {
   const inputVal = inputElement.value.toLowerCase();
-  const suggestionBox = document.getElementById("clientSuggestionList"); // Sesuai ID di HTML baru
+  const suggestionBox = document.getElementById("clientSuggestionList");
   const hiddenIdInput = document.getElementById("add_client");
+  const picSelect = document.getElementById("add_pic_client");
 
   if (!suggestionBox) return;
 
   clearTimeout(clientDebounceTimer);
 
-  // Jika input kosong
   if (inputVal.length < 1) {
     suggestionBox.innerHTML = "";
     suggestionBox.classList.add("hidden");
-    hiddenIdInput.value = ""; // Reset ID jika nama dihapus
+    hiddenIdInput.value = "";
+    if (picSelect)
+      picSelect.innerHTML = '<option value="">-- Pilih PIC --</option>';
     return;
   }
 
@@ -69,12 +81,9 @@ function filterClientSuggestions(inputElement) {
     suggestionBox.classList.remove("hidden");
 
     try {
-      // API Search Client
       const res = await fetch(
-        `${baseUrl}/table/client/${owner_id}/1?search=${encodeURIComponent(
-          inputVal
-        )}`,
-        { headers: { Authorization: `Bearer ${API_TOKEN}` } }
+        `${baseUrl}/table/client/${owner_id}/1?search=${encodeURIComponent(inputVal)}`,
+        { headers: { Authorization: `Bearer ${API_TOKEN}` } },
       );
       const result = await res.json();
       suggestionBox.innerHTML = "";
@@ -82,24 +91,21 @@ function filterClientSuggestions(inputElement) {
       if (result.tableData && result.tableData.length > 0) {
         result.tableData.forEach((item) => {
           const clientName = item.nama || "N/A";
-          const clientAlias = item.alias ? `(${item.alias})` : "";
-
           const li = document.createElement("li");
           li.innerHTML = `
             <div class="font-medium">${clientName}</div>
-            <div class="text-xs text-gray-500">${clientAlias}</div>
+            <div class="text-xs text-gray-500">${item.alias || ""}</div>
           `;
           li.className =
             "px-3 py-2 hover:bg-gray-100 cursor-pointer border-b last:border-b-0";
 
-          // SAAT KLIK ITEM:
           li.addEventListener("click", () => {
-            inputElement.value = clientName; // Isi Text Input
-            hiddenIdInput.value = item.pelanggan_id || ""; // Isi Hidden ID
-            suggestionBox.classList.add("hidden"); // Tutup Suggestion
+            inputElement.value = clientName;
+            hiddenIdInput.value = item.pelanggan_id || "";
+            suggestionBox.classList.add("hidden");
 
-            // Opsional: Jika ada logika PIC, tambahkan di sini.
-            // Untuk modul Project Manual default, biasanya PIC belum mandatory di tahap ini.
+            // Trigger load PIC setelah client dipilih
+            loadPicByClient(item.pelanggan_id);
           });
           suggestionBox.appendChild(li);
         });
@@ -107,10 +113,37 @@ function filterClientSuggestions(inputElement) {
         suggestionBox.innerHTML = `<li class="px-3 py-2 text-gray-500 italic">Tidak ditemukan</li>`;
       }
     } catch (err) {
-      console.error("Gagal fetch client:", err);
       suggestionBox.innerHTML = `<li class="px-3 py-2 text-red-500 italic">Gagal memuat data</li>`;
     }
-  }, 300); // Debounce 300ms
+  }, 300);
+}
+
+async function loadPicByClient(clientId, selectedPic = "") {
+  const picSelect = document.getElementById("add_pic_client");
+  if (!picSelect || !clientId) return;
+
+  picSelect.innerHTML = '<option value="">Memuat...</option>';
+
+  try {
+    const res = await fetch(`${baseUrl}/list/contact/${clientId}`, {
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+    });
+    const json = await res.json();
+
+    let options = '<option value="">-- Pilih PIC --</option>';
+    if (json.listData && json.listData.length > 0) {
+      json.listData.forEach((c) => {
+        const isSelected = selectedPic === c.name ? "selected" : "";
+        options += `<option value="${c.name}" ${isSelected}>${c.name}</option>`;
+      });
+    } else {
+      options = '<option value="">Tidak ada PIC</option>';
+    }
+    picSelect.innerHTML = options;
+  } catch (e) {
+    console.error("Gagal load PIC:", e);
+    picSelect.innerHTML = '<option value="">Gagal memuat</option>';
+  }
 }
 
 async function loadProjectDataForUpdate(Id) {
@@ -122,54 +155,41 @@ async function loadProjectDataForUpdate(Id) {
     });
     const json = await res.json();
     const data = json.detail;
-
     projectDetailData = data;
 
-    // --- MULAI PERBAIKAN RINGKAS ---
-    // 1. Ambil Nama
+    // 1. Set Client Info
     const clientName = data.customer || data.client_name || "";
     document.getElementById("add_client_name").value = clientName;
-
-    // 2. Ambil ID. Jika API tidak kasih (alias 0), kita cari manual di sini (INLINE)
     let finalClientId = data.pelanggan_id || data.client_id || 0;
 
+    // Fallback search ID jika 0
     if (finalClientId === 0 && clientName) {
-      try {
-        // Tembak API Search Client langsung di sini
-        const searchRes = await fetch(
-          `${baseUrl}/table/client/${owner_id}/1?search=${encodeURIComponent(
-            clientName
-          )}`,
-          { headers: { Authorization: `Bearer ${API_TOKEN}` } }
-        );
-        const searchJson = await searchRes.json();
-        // Jika ketemu, ambil ID yang pertama
-        if (searchJson.tableData && searchJson.tableData.length > 0) {
-          finalClientId = searchJson.tableData[0].pelanggan_id;
-        }
-      } catch (e) {
-        console.warn("Gagal auto-search ID client", e);
-      }
+      const searchRes = await fetch(
+        `${baseUrl}/table/client/${owner_id}/1?search=${encodeURIComponent(clientName)}`,
+        { headers: { Authorization: `Bearer ${API_TOKEN}` } },
+      );
+      const searchJson = await searchRes.json();
+      if (searchJson.tableData?.length > 0)
+        finalClientId = searchJson.tableData[0].pelanggan_id;
+    }
+    document.getElementById("add_client").value = finalClientId;
+
+    // 2. Load PIC List dan otomatis pilih PIC yang tersimpan
+    if (finalClientId) {
+      // Pastikan await agar dropdown terisi dulu sebelum baris berikutnya mengeksekusi .value
+      await loadPicByClient(finalClientId, data.pic_name);
     }
 
-    // 3. Set ID yang sudah ketemu ke hidden input
-    document.getElementById("add_client").value = finalClientId;
-    // --- SELESAI PERBAIKAN ---
-
-    // Isi Form Lainnya
+    // 3. Isi Field Dasar
     document.getElementById("add_project_name").value = data.project_name || "";
     document.getElementById("add_tanggal").value = data.start_date || "";
     document.getElementById("add_finish_date").value = data.finish_date || "";
     document.getElementById("add_project_manager").value =
       data.project_manager_id || "";
 
-    // Setup Tipe Sales
+    // 4. Setup Tipe & Render Items (Logika filter tetap sama)
     const typeSelect = document.getElementById("add_type_id");
     typeSelect.value = data.type_id || "";
-    typeSelect.disabled = false;
-    typeSelect.classList.remove("bg-gray-100");
-
-    // Filter & Toggle
     filterCompatibleTypes(data.type_id);
     toggleTambahItemBtn();
 
@@ -181,11 +201,10 @@ async function loadProjectDataForUpdate(Id) {
     } else {
       document.getElementById("saveNewProjectBtn").classList.add("hidden");
       document.getElementById("addItemBtn").classList.add("hidden");
-      document.getElementById(
-        "formTitleManual"
-      ).innerHTML += ` <span class="text-red-500 text-sm">(Locked / Sales Order Created)</span>`;
+      document.getElementById("formTitleManual").innerHTML +=
+        ` <span class="text-red-500 text-sm">(Locked / Sales Order Created)</span>`;
       const inputs = document.querySelectorAll(
-        "#addProjectForm input, #addProjectForm select:not(#add_type_id)"
+        "#addProjectForm input, #addProjectForm select:not(#add_type_id)",
       );
       inputs.forEach((el) => (el.disabled = true));
     }
@@ -207,12 +226,12 @@ async function loadProjectDataForUpdate(Id) {
         // Keuangan Parent
         itemRow.querySelector(".itemHpp").value = finance(item.hpp || 0);
         itemRow.querySelector(".itemMarkupNominal").value = finance(
-          item.markup_nominal || 0
+          item.markup_nominal || 0,
         );
         itemRow.querySelector(".itemMarkupPersen").value =
           item.markup_percent || 0;
         itemRow.querySelector(".itemHarga").value = finance(
-          item.unit_price || 0
+          item.unit_price || 0,
         );
 
         // Sub Items (Materials)
@@ -228,18 +247,18 @@ async function loadProjectDataForUpdate(Id) {
                 subRow.querySelector(".subItemQty").value = mat.qty || 0;
                 subRow.querySelector(".subItemUnit").value = mat.unit || "";
                 subRow.querySelector(".subItemHpp").value = finance(
-                  mat.hpp || 0
+                  mat.hpp || 0,
                 );
                 subRow.querySelector(".subItemMarkupNominal").value = finance(
-                  mat.markup_nominal || 0
+                  mat.markup_nominal || 0,
                 );
                 subRow.querySelector(".subItemMarkupPersen").value =
                   mat.markup_percent || 0;
                 subRow.querySelector(".subItemHarga").value = finance(
-                  mat.unit_price || 0
+                  mat.unit_price || 0,
                 );
                 subRow.querySelector(".subItemTotal").innerText = finance(
-                  mat.material_total || 0
+                  mat.material_total || 0,
                 );
               }
             }
@@ -346,7 +365,7 @@ async function saveProject(mode = "create", id = null) {
         currentItem = {
           product: row.querySelector(".itemProduct")?.value.trim() || "",
           sub_category_id: parseInt(
-            row.querySelector(".itemSubcategory")?.value || 0
+            row.querySelector(".itemSubcategory")?.value || 0,
           ),
           description: row.querySelector(".itemDesc")?.value.trim() || "",
           qty: parseInt(row.querySelector(".itemQty")?.value || 0),
@@ -354,10 +373,10 @@ async function saveProject(mode = "create", id = null) {
           // Keuangan Parent (Jika Service/Simple, ini terisi. Jika Turnkey, ini biasanya 0)
           hpp: parseRupiah(row.querySelector(".itemHpp")?.value || 0),
           markup_nominal: parseRupiah(
-            row.querySelector(".itemMarkupNominal")?.value || 0
+            row.querySelector(".itemMarkupNominal")?.value || 0,
           ),
           markup_percent: parseFloat(
-            row.querySelector(".itemMarkupPersen")?.value || 0
+            row.querySelector(".itemMarkupPersen")?.value || 0,
           ),
 
           unit: row.querySelector(".itemUnit")?.value.trim() || "pcs",
@@ -380,19 +399,19 @@ async function saveProject(mode = "create", id = null) {
             subItemSpec: sub.querySelector(".subItemSpec")?.value.trim() || "",
             subItemQty: parseInt(sub.querySelector(".subItemQty")?.value || 0),
             subItemHpp: parseRupiah(
-              sub.querySelector(".subItemHpp")?.value || 0
+              sub.querySelector(".subItemHpp")?.value || 0,
             ),
             subItemMarkupNominal: parseRupiah(
-              sub.querySelector(".subItemMarkupNominal")?.value || 0
+              sub.querySelector(".subItemMarkupNominal")?.value || 0,
             ),
             subItemMarkupPercent: parseFloat(
-              sub.querySelector(".subItemMarkupPersen")?.value || 0
+              sub.querySelector(".subItemMarkupPersen")?.value || 0,
             ),
             subItemUnit:
               sub.querySelector(".subItemUnit")?.value.trim() || "pcs",
             // Di JSON Anda material pakai 'subItemHarga'
             subItemHarga: parseRupiah(
-              sub.querySelector(".subItemHarga")?.value || 0
+              sub.querySelector(".subItemHarga")?.value || 0,
             ),
           });
         });
@@ -408,10 +427,11 @@ async function saveProject(mode = "create", id = null) {
     const payload = {
       owner_id: user.owner_id, // Tetap perlu owner
       project_manager_id: parseInt(
-        document.getElementById("add_project_manager")?.value || 0
+        document.getElementById("add_project_manager")?.value || 0,
       ),
       type_id: parseInt(document.getElementById("add_type_id")?.value || 0),
       pelanggan_id: parseInt(document.getElementById("add_client")?.value || 0),
+      pic_name: document.getElementById("add_pic_client").value,
       project_name: document.getElementById("add_project_name")?.value || "",
       start_date: document.getElementById("add_tanggal")?.value || "",
       finish_date: document.getElementById("add_finish_date")?.value || "",
@@ -452,73 +472,44 @@ async function saveProject(mode = "create", id = null) {
   }
 }
 
-// --- CONVERT TO SALES (Fungsi Pindahan) ---
-
 async function openConvertToSalesModal() {
   if (!projectDetailData) return Swal.fire("Error", "Data belum siap", "error");
 
-  const customerName =
-    projectDetailData.customer || projectDetailData.client_name;
-  let clientId = projectDetailData.pelanggan_id || projectDetailData.client_id;
-
-  // Fallback search if ID missing
-  if (!clientId && customerName) {
-    try {
-      const res = await fetch(
-        `${baseUrl}/table/client/${owner_id}/1?search=${encodeURIComponent(
-          customerName
-        )}`,
-        { headers: { Authorization: `Bearer ${API_TOKEN}` } }
-      );
-      const json = await res.json();
-      if (json.tableData?.length > 0) clientId = json.tableData[0].pelanggan_id;
-    } catch (e) {
-      console.error("Gagal cari client ID");
-    }
-  }
-
-  let picOptions = '<option value="">-- Pilih PIC --</option>';
-  if (clientId) {
-    try {
-      const res = await fetch(`${baseUrl}/list/contact/${clientId}`, {
-        headers: { Authorization: `Bearer ${API_TOKEN}` },
-      });
-      const json = await res.json();
-      if (json.listData)
-        json.listData.forEach(
-          (c) => (picOptions += `<option value="${c.name}">${c.name}</option>`)
-        );
-    } catch (e) {}
+  // Validasi: PIC harus sudah dipilih di form utama
+  const mainPic = document.getElementById("add_pic_client").value;
+  if (!mainPic) {
+    return Swal.fire(
+      "Perhatian",
+      "Pilih PIC Client di form utama terlebih dahulu",
+      "warning",
+    );
   }
 
   const { value: formValues } = await Swal.fire({
     title: "Buat Sales Order",
     html: `
-      <input type="hidden" id="swal_client" value="${clientId || ""}">
-      <div class="text-left space-y-3">
-        <div><label class="text-xs font-bold block mb-1">TANGGAL ORDER</label><input type="date" id="swal_date" class="w-full border p-2 rounded" value="${
-          new Date().toISOString().split("T")[0]
-        }"></div>
-        <div><label class="text-xs font-bold block mb-1">PIC</label><select id="swal_pic" class="w-full border p-2 rounded bg-white">${picOptions}</select></div>
+      <div class="text-left">
+        <label class="text-xs font-bold block mb-1">TANGGAL ORDER</label>
+        <input type="date" id="swal_date" class="w-full border p-2 rounded" 
+          value="${new Date().toISOString().split("T")[0]}">
       </div>`,
     focusConfirm: false,
     showCancelButton: true,
     confirmButtonText: "Simpan",
-    cancelButtonText: "Batal",
     preConfirm: () => {
       const date = document.getElementById("swal_date").value;
-      const pic = document.getElementById("swal_pic").value;
-      const cid = document.getElementById("swal_client").value;
-      if (!date || !pic) Swal.showValidationMessage("Lengkapi data");
-      if (!cid)
-        Swal.showValidationMessage(
-          "ID Client tidak ditemukan. Pastikan client terpilih dengan benar."
-        );
-      return { date, pic, cid };
+      if (!date) Swal.showValidationMessage("Lengkapi data");
+      return { date };
     },
   });
 
-  if (formValues) handleSaveConvertToSales(formValues);
+  if (formValues) {
+    handleSaveConvertToSales({
+      date: formValues.date,
+      pic: mainPic, // Mengambil PIC dari form utama
+      cid: document.getElementById("add_client").value,
+    });
+  }
 }
 
 async function handleSaveConvertToSales(data) {
@@ -550,12 +541,14 @@ async function handleSaveConvertToSales(data) {
   // Jika data.cid (dari modal) kosong, ambil dari dropdown #add_client
   const finalClientId =
     parseInt(data.cid) || parseInt(document.getElementById("add_client").value);
-
+  if (finalClientId) {
+    await loadPicByClient(finalClientId, data.pic_name || data.pic);
+  }
   if (!finalClientId) {
     Swal.fire(
       "Gagal",
       "ID Client tidak valid. Mohon pilih client ulang.",
-      "error"
+      "error",
     );
     return;
   }
@@ -587,7 +580,7 @@ async function handleSaveConvertToSales(data) {
       loadModuleContent(
         "project_detail",
         projectDetailData.project_id,
-        projectDetailData.project_name
+        projectDetailData.project_name,
       );
     } else {
       throw new Error(json.message);
@@ -701,7 +694,7 @@ async function tambahItem(selectedSubCategoryId = "") {
 
   await loadSubcategories(
     tr.querySelector(".itemSubcategory"),
-    selectedSubCategoryId
+    selectedSubCategoryId,
   );
 
   return tr;
@@ -924,7 +917,7 @@ function filterUnitSuggestions(inputElement) {
     try {
       const res = await fetch(
         `${baseUrl}/table/unit/${owner_id}/1?search=${inputVal}`,
-        { headers: { Authorization: `Bearer ${API_TOKEN}` } }
+        { headers: { Authorization: `Bearer ${API_TOKEN}` } },
       );
       const result = await res.json();
       suggestionBox.innerHTML = "";
