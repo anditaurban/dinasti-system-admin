@@ -26,7 +26,7 @@ async function fillFormData(data) {
       const check = () => {
         const select = document.getElementById(selectId);
         const exists = Array.from(select.options).some(
-          (opt) => opt.value === expectedValue?.toString()
+          (opt) => opt.value === expectedValue?.toString(),
         );
         if (exists || waited >= timeout) {
           resolve();
@@ -100,13 +100,13 @@ function loadDropdownCall() {
     "formRole",
     `${baseUrl}/list/role/${owner_id}`,
     "role_id",
-    "role"
+    "role",
   );
   loadDropdown(
     "formLevel",
     `${baseUrl}/list/level/${owner_id}`,
     "level_id",
-    "level"
+    "level",
   );
 }
 
@@ -165,30 +165,29 @@ document.getElementById("addButton").addEventListener("click", () => {
 formHtml = `
 <form id="dataform" class="space-y-2">
 
-  <!-- Hidden owner_id -->
   <input type="hidden" name="owner_id" value="1">
 
   <label for="formName" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Nama <span class="text-red-500">*</span></label>
-  <input id="formName" name="name" type="text" 
+  <input id="formName" name="name" type="text" placeholder="Masukkan nama lengkap"
     class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" required>
 
   <label for="formAlias" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Alias <span class="text-red-500">*</span></label>
-  <input id="formAlias" name="alias" type="text" 
+  <input id="formAlias" name="alias" type="text" placeholder="Nama panggilan / alias"
     class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" required>
   
 
   <label for="formEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Email <span class="text-red-500">*</span></label>
-  <input id="formEmail" name="email" type="email" 
+  <input id="formEmail" name="email" type="email" placeholder="contoh@email.com"
     class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" required>
 
   <label for="formPhone" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Phone <span class="text-red-500">*</span></label>
-  <input id="formPhone" name="phone" type="text" 
+  <input id="formPhone" name="phone" type="text" placeholder="Contoh: 0812xxxxxxxx"
     class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" required>
@@ -198,7 +197,7 @@ formHtml = `
     class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-    <option value="">-- Pilih Level --</option>
+    <option value="" disabled selected>-- Pilih Level --</option>
   </select>
 
   <label for="formRole" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Role <span class="text-red-500">*</span></label>
@@ -206,7 +205,7 @@ formHtml = `
     class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-    <option value="">-- Pilih Role --</option>
+    <option value="" disabled selected>-- Pilih Role --</option>
   </select>
 
 

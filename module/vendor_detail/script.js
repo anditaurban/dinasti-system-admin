@@ -28,18 +28,18 @@ if (titleElement) {
 // -----------------------------------------------------------------
 formHtml = `
 <form id="dataform" class="space-y-2">
-  <input type="hidden" name="owner_id" value="${owner_id}">
+  <input type="hidden" name="owner_id" value="\${owner_id}">
   
-  <input type="hidden" name="vendor_id" value="${currentVendorId}">
+  <input type="hidden" name="vendor_id" value="\${currentVendorId}">
 
   <label for="formNama" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Nama Kontak <span class="text-red-500">*</span></label>
-  <input id="formNama" name="name" type="text" class="form-control w-full px-3 py-2 border rounded-md" required>
+  <input id="formNama" name="name" type="text" placeholder="Nama lengkap person in charge" class="form-control w-full px-3 py-2 border rounded-md" required>
 
   <label for="formEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Email</label>
-  <input id="formEmail" name="email" type="email" class="form-control w-full px-3 py-2 border rounded-md" >
+  <input id="formEmail" name="email" type="email" placeholder="alamat@email.com" class="form-control w-full px-3 py-2 border rounded-md" >
 
   <label for="formPhone" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Phone <span class="text-red-500">*</span></label>
-  <input id="formPhone" name="phone" type="text" class="form-control w-full px-3 py-2 border rounded-md" required>
+  <input id="formPhone" name="phone" type="text" placeholder="Contoh: 08123456789" class="form-control w-full px-3 py-2 border rounded-md" required>
 </form>
 `;
 
@@ -95,8 +95,8 @@ window.rowTemplate = function (item, index, perPage = 10) {
       
       <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow z-50 text-sm">
         <button onclick="event.stopPropagation(); handleEdit('${id}', '${
-    item.name
-  }')" 
+          item.name
+        }')" 
           class="block w-full text-left px-4 py-2 hover:bg-gray-100" data-id="${id}">
           ✏️ Edit Kontak
         </button>

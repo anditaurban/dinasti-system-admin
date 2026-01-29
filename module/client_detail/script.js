@@ -20,17 +20,17 @@ document.getElementById("clientNameTitle").textContent =
 // Ini akan digunakan oleh showFormModal() & handleEdit() dari table.js
 formHtml = `
 <form id="dataform" class="space-y-2">
-  <input type="hidden" name="owner_id" value="${owner_id}">
-  <input type="hidden" name="pelanggan_id" value="${currentClientId}">
+  <input type="hidden" name="owner_id" value="\${owner_id}">
+  <input type="hidden" name="pelanggan_id" value="\${currentClientId}">
 
   <label for="formNama" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Nama Kontak <span class="text-red-500">*</span></label>
-  <input id="formNama" name="name" type="text" class="form-control w-full px-3 py-2 border rounded-md" required>
+  <input id="formNama" name="name" type="text" placeholder="Masukkan nama lengkap kontak" class="form-control w-full px-3 py-2 border rounded-md" required>
 
   <label for="formEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Email</label>
-  <input id="formEmail" name="email" type="email" class="form-control w-full px-3 py-2 border rounded-md" required>
+  <input id="formEmail" name="email" type="email" placeholder="contoh@email.com" class="form-control w-full px-3 py-2 border rounded-md" required>
 
   <label for="formPhone" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Phone <span class="text-red-500">*</span></label>
-  <input id="formPhone" name="phone" type="text" class="form-control w-full px-3 py-2 border rounded-md" required>
+  <input id="formPhone" name="phone" type="text" placeholder="Contoh: 0812xxxxxxxx" class="form-control w-full px-3 py-2 border rounded-md" required>
 </form>
 `;
 

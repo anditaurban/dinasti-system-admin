@@ -26,7 +26,7 @@ async function fillFormData(data) {
       const check = () => {
         const select = document.getElementById(selectId);
         const exists = Array.from(select.options).some(
-          (opt) => opt.value === expectedValue?.toString()
+          (opt) => opt.value === expectedValue?.toString(),
         );
         if (exists || waited >= timeout) {
           resolve();
@@ -93,13 +93,13 @@ function loadDropdownCall() {
     "formRole",
     `${baseUrl}/list/role/${owner_id}`,
     "role_id",
-    "role"
+    "role",
   );
   loadDropdown(
     "formLevel",
     `${baseUrl}/list/level/${owner_id}`,
     "level_id",
-    "level"
+    "level",
   );
 }
 
@@ -169,6 +169,7 @@ formHtml = `
     id="formName" 
     name="nama" 
     type="text" 
+    placeholder="Masukkan nama lengkap"
     class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
     required
   >
@@ -180,6 +181,7 @@ formHtml = `
     id="formPhone" 
     name="phone" 
     type="text" 
+    placeholder="Contoh: 081234567890"
     class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
     required
   >
@@ -191,6 +193,7 @@ formHtml = `
     id="formEmail" 
     name="email" 
     type="email" 
+    placeholder="email@domain.com"
     class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
     required
   >
@@ -204,7 +207,7 @@ formHtml = `
     class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
     required
   >
-    <option value="">-- Pilih Level --</option>
+    <option value="" disabled selected>-- Pilih Tingkatan Level --</option>
   </select>
 
   <label for="formRole" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">
@@ -216,7 +219,7 @@ formHtml = `
     class="form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
     required
   >
-    <option value="">-- Pilih Role --</option>
+    <option value="" disabled selected>-- Pilih Hak Akses Role --</option>
   </select>
 
 </form>

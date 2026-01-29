@@ -139,51 +139,50 @@ document.getElementById("addButton").addEventListener("click", () => {
 formHtml = `
 <form id="dataform" class="space-y-2">
 
-  <!-- Hidden owner_id -->
   <input type="hidden" name="owner_id" value="1">
 
   <label for="formNama" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Nama Perusahaan <span class="text-red-500">*</span></label>
-  <input id="formNama" name="nama" type="text" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
+  <input id="formNama" name="nama" type="text" placeholder="Contoh: PT. Dinasti Elektrik" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" required>
 
   <label for="formAlias" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Alias <span class="text-red-500">*</span></label>
-  <input id="formAlias" name="alias" type="text" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
+  <input id="formAlias" name="alias" type="text" placeholder="Nama singkat/brand (DEI)" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" required>
 
   <label for="formPhone" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Phone <span class="text-red-500">*</span></label>
-  <input id="formPhone" name="phone" type="text" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
+  <input id="formPhone" name="phone" type="text" placeholder="0812xxxxxxx" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" required>
 
   <label for="formWhatsapp" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">WhatsApp</label>
-  <input id="formWhatsapp" name="whatsapp" type="text" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
+  <input id="formWhatsapp" name="whatsapp" type="text" placeholder="0812xxxxxxxx" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" >
 
   <label for="formEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Email</label>
-  <input id="formEmail" name="email" type="email" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
+  <input id="formEmail" name="email" type="email" placeholder="admin@perusahaan.com" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" >
 
   <label for="formNpwp" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">No. NPWP</label>
-  <input id="formNpwp" name="no_npwp" type="text" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
+  <input id="formNpwp" name="no_npwp" type="text" placeholder="00.000.000.0-000.000" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" >
 
   <label for="formWebsite" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Website</label>
-  <input id="formWebsite" name="website" type="url" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
+  <input id="formWebsite" name="website" type="url" placeholder="https://www.website.com" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" >
     
   <label for="formCity" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Kota <span class="text-red-500">*</span></label>
-  <input id="formCity" name="city_name" type="text" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
+  <input id="formCity" name="city_name" type="text" placeholder="Masukkan nama kota" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" required>
 
   <label for="formAlamat" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Alamat <span class="text-red-500">*</span></label>
-  <textarea id="formAlamat" name="alamat" rows="3" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
+  <textarea id="formAlamat" name="alamat" rows="3" placeholder="Jl. Nama Jalan No. XX, Kecamatan, Kode Pos" class="form-control form-control w-full px-3 py-2 border border-gray-300 dark:border-gray-600
     rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-white
     focus:outline-none focus:ring-2 focus:ring-blue-500" required></textarea>
 
