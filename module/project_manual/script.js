@@ -175,25 +175,34 @@ async function loadProjectDataForUpdate(Id) {
     document.getElementById("add_client").value = finalClientId;
 
     // 2. Load PIC List dan otomatis pilih PIC yang tersimpan
+    // Menggunakan key 'customer_pic' sesuai instruksi Anda
+    const savedPic = data.customer_pic || "";
+
     if (finalClientId) {
-      // Pastikan await agar dropdown terisi dulu sebelum baris berikutnya mengeksekusi .value
-      await loadPicByClient(finalClientId, data.pic_name);
+      // Kita tunggu (await) loadPicByClient selesai agar option dropdown terbentuk,
+      // baru kemudian nilai savedPic bisa "menempel" (selected).
+      await loadPicByClient(finalClientId, savedPic);
     }
 
-    // 3. Isi Field Dasar
+    // 3. Isi Field Dasar Form
     document.getElementById("add_project_name").value = data.project_name || "";
     document.getElementById("add_tanggal").value = data.start_date || "";
     document.getElementById("add_finish_date").value = data.finish_date || "";
     document.getElementById("add_project_manager").value =
       data.project_manager_id || "";
 
-    // 4. Setup Tipe & Render Items (Logika filter tetap sama)
+    // 4. Setup Tipe & Render Items
     const typeSelect = document.getElementById("add_type_id");
-    typeSelect.value = data.type_id || "";
+    if (typeSelect) {
+      typeSelect.value = data.type_id || "";
+      typeSelect.disabled = false;
+      typeSelect.classList.remove("bg-gray-100");
+    }
+
     filterCompatibleTypes(data.type_id);
     toggleTambahItemBtn();
 
-    // Logic Locked
+    // Logic Locked (Jika sudah jadi Sales Order)
     const isLocked = data.pesanan_id && data.pesanan_id !== 0;
     if (!isLocked) {
       const convertBtn = document.getElementById("convertToSalesBtn");
@@ -209,7 +218,7 @@ async function loadProjectDataForUpdate(Id) {
       inputs.forEach((el) => (el.disabled = true));
     }
 
-    // Render Items
+    // 5. Render Items (Tabel Produk)
     const tbody = document.getElementById("tabelItemAdd");
     tbody.innerHTML = "";
 
@@ -222,8 +231,6 @@ async function loadProjectDataForUpdate(Id) {
         itemRow.querySelector(".itemDesc").value = item.description || "";
         itemRow.querySelector(".itemQty").value = item.qty || 1;
         itemRow.querySelector(".itemUnit").value = item.unit || "pcs";
-
-        // Keuangan Parent
         itemRow.querySelector(".itemHpp").value = finance(item.hpp || 0);
         itemRow.querySelector(".itemMarkupNominal").value = finance(
           item.markup_nominal || 0,
@@ -234,7 +241,6 @@ async function loadProjectDataForUpdate(Id) {
           item.unit_price || 0,
         );
 
-        // Sub Items (Materials)
         if (item.materials?.length) {
           const btnAddSub = itemRow.querySelector(".btnTambahSubItem");
           if (btnAddSub) {
