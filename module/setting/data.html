@@ -49,6 +49,14 @@
             Profil
           </button>
           <button class="setting-btn w-full text-left px-3 py-2 rounded hover:bg-gray-100"
+            onclick="switchSection(this, 'level')">
+            Level
+          </button>
+          <button class="setting-btn w-full text-left px-3 py-2 rounded hover:bg-gray-100"
+            onclick="switchSection(this, 'role')">
+            Role
+          </button>
+          <button class="setting-btn w-full text-left px-3 py-2 rounded hover:bg-gray-100"
             onclick="switchSection(this, 'company')">
             Company
           </button>
@@ -298,6 +306,67 @@
               </button>
             </div>
           </form>
+        </div>
+
+        <div id="section-level" class="setting-section hidden">
+          <div class="flex justify-between items-center mb-4">
+            <h1 class="text-xl font-bold">Manajemen Level</h1>
+            <button onclick="handleAddLevel()"
+              class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium text-sm">
+              <i class="fas fa-plus"></i> Tambah Level
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table id="levelTable" class="min-w-full text-sm border">
+              <thead id="levelTableHeader" class="hidden md:table-header-group bg-gray-100 text-gray-600">
+                <tr>
+                  <th class="px-4 py-2 border">LEVEL</th>
+                  <th class="px-4 py-2 border">DESKRIPSI</th>
+                  <th class="px-4 py-2 border w-32">ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody id="levelTableBody"></tbody>
+            </table>
+          </div>
+          <div class="mt-4 flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+            <p id="levelInfoText" class="hidden md:block text-gray-600 text-sm"></p>
+            <div id="levelPagination" class="hidden md:flex w-full justify-end items-center flex-wrap gap-2 text-sm">
+            </div>
+            <div class="block md:hidden text-sm text-center mb-12">
+              <label for="levelPageSelect" class="mr-2">Go to Page:</label>
+              <select id="levelPageSelect" class="px-2 py-1 border rounded"></select>
+            </div>
+          </div>
+        </div>
+
+        <div id="section-role" class="setting-section hidden">
+          <div class="flex justify-between items-center mb-4">
+            <h1 class="text-xl font-bold">Manajemen Role</h1>
+            <button onclick="handleAddRole()"
+              class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium text-sm">
+              <i class="fas fa-plus"></i> Tambah Role
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table id="roleTable" class="min-w-full text-sm border">
+              <thead id="roleTableHeader" class="hidden md:table-header-group bg-gray-100 text-gray-600">
+                <tr>
+                  <th class="px-4 py-2 border">ROLE</th>
+                  <th class="px-4 py-2 border w-32">ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody id="roleTableBody"></tbody>
+            </table>
+          </div>
+          <div class="mt-4 flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+            <p id="roleInfoText" class="hidden md:block text-gray-600 text-sm"></p>
+            <div id="rolePagination" class="hidden md:flex w-full justify-end items-center flex-wrap gap-2 text-sm">
+            </div>
+            <div class="block md:hidden text-sm text-center mb-12">
+              <label for="rolePageSelect" class="mr-2">Go to Page:</label>
+              <select id="rolePageSelect" class="px-2 py-1 border rounded"></select>
+            </div>
+          </div>
         </div>
         <div id="section-company" class="setting-section hidden">
           <h1 class="text-xl font-bold mb-4">Company Setting</h1>

@@ -13,6 +13,8 @@ tableStates = {
   tnc: { currentPage: 1, perPage: 10 },
   unit: { currentPage: 1, perPage: 10 },
   sales_target: { currentPage: 1, perPage: 10 },
+  level: { currentPage: 1, perPage: 10 }, // Tambahan
+  role: { currentPage: 1, perPage: 10 }, // Tambahan
 };
 
 /**
@@ -128,6 +130,37 @@ window.salesTargetRowTemplate = function (item, dataType) {
     </tr>`;
 };
 
+window.levelRowTemplate = function (item) {
+  const safeLevel = JSON.stringify(item.level).replace(/"/g, "&quot;");
+  const safeDesc = JSON.stringify(item.description || "").replace(
+    /"/g,
+    "&quot;",
+  );
+
+  return `
+    <tr class="flex flex-col sm:table-row border mb-4 sm:mb-0 transition hover:bg-gray-50">
+      <td class="px-6 py-4 text-sm font-medium border-b sm:border-0">${item.level}</td>
+      <td class="px-6 py-4 text-sm text-gray-600 border-b sm:border-0">${item.description || "-"}</td>
+      <td class="px-6 py-4 text-sm text-right sm:table-cell" style="width: 150px;">
+        <button onclick="handleEditLevel(${item.level_id}, ${safeLevel}, ${safeDesc})" class="text-blue-500 hover:text-blue-700 mr-2"><i class="fas fa-edit"></i> Edit</button>
+        <button onclick="handleDeleteLevel(${item.level_id})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i> Hapus</button>
+      </td>
+    </tr>`;
+};
+
+window.roleRowTemplate = function (item) {
+  const safeRole = JSON.stringify(item.role).replace(/"/g, "&quot;");
+
+  return `
+    <tr class="flex flex-col sm:table-row border mb-4 sm:mb-0 transition hover:bg-gray-50">
+      <td class="px-6 py-4 text-sm font-medium border-b sm:border-0">${item.role}</td>
+      <td class="px-6 py-4 text-sm text-right sm:table-cell" style="width: 150px;">
+        <button onclick="handleEditRole(${item.role_id}, ${safeRole})" class="text-blue-500 hover:text-blue-700 mr-2"><i class="fas fa-edit"></i> Edit</button>
+        <button onclick="handleDeleteRole(${item.role_id})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i> Hapus</button>
+      </td>
+    </tr>`;
+};
+
 // =====================================================================
 // == SCRIPT AWAL (SEKARANG AMAN) ==
 // =====================================================================
@@ -141,6 +174,8 @@ loadNotes();
 loadSalesTarget();
 loadUnits();
 loadUpdateLog();
+loadLevel();
+loadRole();
 
 function switchSection(btn, section) {
   // reset button style
@@ -760,6 +795,25 @@ async function loadTableData(dataType, page = 1) {
       pageSelectId: "catatanPageSelect",
       headerId: "catatanTableHeader",
       rowTemplate: window.notesTopRowTemplate,
+    },
+    // Di dalam config object pada loadTableData:
+    level: {
+      endpoint: (p) => `${baseUrl}/table/level/${owner_id}/${p}`,
+      tbodyId: "levelTableBody",
+      paginationId: "levelPagination",
+      infoId: "levelInfoText",
+      pageSelectId: "levelPageSelect",
+      headerId: "levelTableHeader",
+      rowTemplate: window.levelRowTemplate,
+    },
+    role: {
+      endpoint: (p) => `${baseUrl}/table/role/${owner_id}/${p}`,
+      tbodyId: "roleTableBody",
+      paginationId: "rolePagination",
+      infoId: "roleInfoText",
+      pageSelectId: "rolePageSelect",
+      headerId: "roleTableHeader",
+      rowTemplate: window.roleRowTemplate,
     },
     top: {
       endpoint: (p) => `${baseUrl}/table/term_of_payment/${owner_id}/${p}`,
@@ -1443,6 +1497,101 @@ async function saveSalesTargetData(mode, id, data) {
   }
 }
 
+// --- Level Handlers ---
+function handleAddLevel() {
+  showLevelModal("add");
+}
+function handleEditLevel(id, level, desc) {
+  showLevelModal("edit", id, level, desc);
+}
+async function handleDeleteLevel(id) {
+  await handleDeleteGeneric(
+    "level",
+    id,
+    `${baseUrl}/delete/level/${id}`,
+    "Level",
+  );
+}
+
+async function showLevelModal(mode, id = null, level = "", desc = "") {
+  const title = mode === "add" ? "Tambah Level Baru" : "Edit Level";
+  const { value: formValues } = await Swal.fire({
+    title: title,
+    html: `
+      <div class="space-y-3 text-left">
+        <label class="block text-sm font-medium">Nama Level</label>
+        <input id="swal_level" type="text" value="${level}" class="w-full border rounded-lg px-3 py-2 mb-3">
+        <label class="block text-sm font-medium">Deskripsi</label>
+        <textarea id="swal_desc" class="w-full border rounded-lg px-3 py-2">${desc}</textarea>
+      </div>`,
+    showCancelButton: true,
+    preConfirm: () => ({
+      level: document.getElementById("swal_level").value,
+      description: document.getElementById("swal_desc").value,
+    }),
+  });
+
+  if (formValues) {
+    const endpoint =
+      mode === "add" ? `${baseUrl}/add/level` : `${baseUrl}/update/level/${id}`;
+    const method = mode === "add" ? "POST" : "PUT";
+    saveGenericData("level", endpoint, method, { owner_id, ...formValues });
+  }
+}
+
+// --- Role Handlers ---
+function handleAddRole() {
+  showRoleModal("add");
+}
+function handleEditRole(id, role) {
+  showRoleModal("edit", id, role);
+}
+async function handleDeleteRole(id) {
+  await handleDeleteGeneric("role", id, `${baseUrl}/delete/role/${id}`, "Role");
+}
+
+async function showRoleModal(mode, id = null, role = "") {
+  const title = mode === "add" ? "Tambah Role Baru" : "Edit Role";
+  const { value: roleName } = await Swal.fire({
+    title: title,
+    input: "text",
+    inputLabel: "Nama Role",
+    inputValue: role,
+    showCancelButton: true,
+    inputValidator: (value) => !value && "Nama role tidak boleh kosong!",
+  });
+
+  if (roleName) {
+    const endpoint =
+      mode === "add" ? `${baseUrl}/add/role` : `${baseUrl}/update/role/${id}`;
+    const method = mode === "add" ? "POST" : "PUT";
+    saveGenericData("role", endpoint, method, { owner_id, role: roleName });
+  }
+}
+
+// Fungsi Helper untuk Simpan Data
+async function saveGenericData(dataType, endpoint, method, payload) {
+  try {
+    const res = await fetch(endpoint, {
+      method: method,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    const result = await res.json();
+    if (res.ok) {
+      Swal.fire("Sukses", "Data berhasil diperbarui", "success");
+      loadTableData(dataType, 1);
+    } else {
+      Swal.fire("Gagal", result.message || "Terjadi kesalahan", "error");
+    }
+  } catch (err) {
+    Swal.fire("Error", "Gagal menghubungi server", "error");
+  }
+}
+
 // =====================================================================
 // == FUNGSI LAMA YANG DIMODIFIKASI / DI-RETAIN ==
 // =====================================================================
@@ -1465,6 +1614,13 @@ async function loadNotes() {
 
 async function loadUnits() {
   loadTableData("unit", 1);
+}
+
+function loadLevel() {
+  loadTableData("level", 1);
+}
+function loadRole() {
+  loadTableData("role", 1);
 }
 
 async function loadDropdown(selectId, apiUrl, valueField, labelField) {
