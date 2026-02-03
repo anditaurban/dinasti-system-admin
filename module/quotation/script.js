@@ -685,50 +685,115 @@ function showImportQOModal() {
 // =========================================================
 function downloadQOTemplate() {
   try {
-    // 1. Tentukan header kolom (ini akan menjadi baris pertama di Excel)
-    // Nama header ini akan digunakan untuk mapping di `handleImportQO`
-    const headers = [
-      "order_date",
-      "no_qtn",
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1: info_QO (Header)
+    const infoHeader = [
+      "QO_date",
+      "auto_QO",
+      "No_QO",
+      "auto",
+      "no.rev",
+      "Status",
       "project_type",
       "project_name",
-      "client",
-      "pic_name",
-      "amount",
-      "ppn",
+      "client (harus sesuai database)",
+      "PIC_Client (harus sesuai database)",
+      "Tax (Yes/No)",
+      "Diskon_TotalAmount",
     ];
-
-    // 2. Buat contoh data (opsional, tapi membantu pengguna)
-    const sampleData = [
+    const infoSample = [
       {
-        order_date: "2025-10-28",
-        no_qtn: "QO-001",
-        project_type: "Material",
-        project_name: "Proyek Gedung A",
-        client: "PT Maju Jaya",
-        pic_name: "Bapak Budi",
-        amount: 10000000,
-        ppn: 1100000,
+        QO_date: "2025-05-25",
+        auto_QO: "DEI.0525",
+        No_QO: "001",
+        auto: "DEI.0525/001",
+        "no.rev": "3",
+        Status: "Draft",
+        project_type: "Material (PM)",
+        project_name: "Pengadaan Grounding",
+        "client (harus sesuai database)": "PT Schneider Indonesia",
+        "PIC_Client (harus sesuai database)": "Pak Samudra",
+        "Tax (Yes/No)": "Y",
+        Diskon_TotalAmount: 50000,
       },
     ];
+    const wsInfo = XLSX.utils.json_to_sheet(infoSample, { header: infoHeader });
+    XLSX.utils.book_append_sheet(wb, wsInfo, "info_QO");
 
-    // 3. Buat Workbook dan Worksheet
-    const wb = XLSX.utils.book_new();
-    // Gunakan {header: headers} untuk memastikan urutan kolom sesuai
-    const ws = XLSX.utils.json_to_sheet(sampleData, { header: headers });
+    // Sheet 2: isi_QO (Detail Items)
+    const isiHeader = [
+      "QO",
+      "Tipe_Produk",
+      "Product",
+      "Deskripsi",
+      "unit_price",
+      "Qty",
+      "unit",
+    ];
+    const isiSample = [
+      {
+        QO: "DEI.0525/001",
+        Tipe_Produk: "MATERIAL",
+        Product: "Kabel BC 5sqmm",
+        Deskripsi: "",
+        unit_price: 50000,
+        Qty: 5,
+        unit: "m",
+      },
+      {
+        QO: "DEI.0525/001",
+        Tipe_Produk: "MATERIAL",
+        Product: "Klem Buaya",
+        Deskripsi: "",
+        unit_price: 20000,
+        Qty: 2,
+        unit: "pcs",
+      },
+    ];
+    const wsIsi = XLSX.utils.json_to_sheet(isiSample, { header: isiHeader });
+    XLSX.utils.book_append_sheet(wb, wsIsi, "isi_QO");
 
-    // 4. Tambahkan sheet ke workbook
-    XLSX.utils.book_append_sheet(wb, ws, "Template Import QO");
-
-    // 5. Download file
-    XLSX.writeFile(wb, "Template_Import_QO.xlsx");
+    XLSX.writeFile(wb, "Template_Import_QO_MultiSheet.xlsx");
   } catch (err) {
     console.error("Gagal membuat template:", err);
-    Swal.fire(
-      "Error",
-      "Gagal membuat template. Pastikan library XLSX sudah dimuat.",
-      "error",
-    );
+  }
+}
+
+async function loadStatusFilters() {
+  try {
+    const res = await fetch(`${baseUrl}/status/sales`, {
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+    });
+    const result = await res.json();
+
+    if (res.ok && result.data?.length) {
+      const menu = document.getElementById("dropdownFilterMenu");
+
+      // FIX: Cek apakah elemen ada sebelum akses innerHTML
+      if (!menu) return;
+
+      menu.innerHTML =
+        result.data
+          .map(
+            (status) => `
+          <button onclick="applyFilter('status=${status.status_id}')" 
+            class="flex justify-between w-full px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">
+            <span>${status.status_sales}</span>
+            <span id="status-${status.status_id}" class="font-bold">0</span>
+          </button>
+        `,
+          )
+          .join("") +
+        `
+        <button onclick="applyFilter('')" 
+          class="block w-full px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">Semua</button>
+      `;
+    }
+  } catch (err) {
+    console.error("Gagal ambil status sales:", err);
   }
 }
 
@@ -737,71 +802,81 @@ function downloadQOTemplate() {
 // =========================================================
 async function handleImportQO(file) {
   try {
-    // 1. Baca file (tidak berubah)
-    const data = await readExcelFile(file);
-    console.log("Data dari Excel:", data);
+    const sheets = await readExcelFile(file);
+    const infoData = sheets["info_QO"] || [];
+    const isiData = sheets["isi_QO"] || [];
 
-    if (!data.length) {
-      Swal.fire("Gagal", "File Excel kosong atau tidak terbaca!", "error");
+    if (!infoData.length) {
+      Swal.fire("Gagal", "Sheet 'info_QO' tidak ditemukan!", "error");
       return;
     }
 
     let sukses = 0;
-    let gagal = 0; // 2. Looping data dari Excel
+    let gagal = 0;
 
-    for (const row of data) {
-      // 3. Buat payload JSON
+    for (const info of infoData) {
+      // Filter: Lewati baris template yang kosong (/000) atau tidak ada nomor QO
+      if (!info["auto"] || info["auto"].includes("/000") || info["auto"] === "")
+        continue;
+
+      const qoKey = info["auto"];
+
+      // Ambil item terkait dan pastikan tidak ada nilai undefined/null
+      const items = isiData
+        .filter((item) => item["QO"] === qoKey)
+        .map((item) => ({
+          tipe_produk: item["Tipe_Produk"] || "-",
+          product_name: item["Product"] || "-",
+          deskripsi: item["Deskripsi"] || "-",
+          price: Number(item["unit_price"]) || 0,
+          qty: Number(item["Qty"]) || 0,
+          unit: item["unit"] || "-",
+        }));
+
+      // Susun Payload dengan tipe data yang eksplisit (casting)
       const payload = {
-        // Ambil data user dari global scope (sesuai kode lama Anda)
-        owner_id: user.owner_id || 1,
-        user_id: user.user_id || 1, // Mapping dari header Excel (template) ke key JSON
-
-        // Pastikan nama di "row[...]" SAMA PERSIS dengan header di template
-        order_date: row["order_date"] || "",
-        no_qtn: row["no_qtn"] || "",
-        project_type: row["project_type"] || "",
-        project_name: row["project_name"] || "",
-        client: row["client"] || "",
-        pic_name: row["pic_name"] || "",
-        amount: parseFloat(row["amount"]) || 0,
-        ppn: parseFloat(row["ppn"]) || 0,
+        owner_id: parseInt(user.owner_id) || 1,
+        user_id: parseInt(user.user_id) || 1,
+        order_date: info["QO_date"] || new Date().toISOString().split("T")[0],
+        no_qtn: String(info["auto"]),
+        project_type: info["project_type"] || "-",
+        project_name: info["project_name"] || "-",
+        client: info["client (harus sesuai database)"] || "-",
+        pic_name: info["PIC_Client (harus sesuai database)"] || "-",
+        tax_status:
+          String(info["Tax (Yes/No)"]).toUpperCase() === "Y" ? "yes" : "no",
+        discount: parseFloat(info["Diskon_TotalAmount"]) || 0,
+        items: items,
       };
 
-      // Validasi sederhana: Jika tidak ada No QO, lewati baris
-      if (!payload.no_qtn) {
-        console.warn("Melewatkan baris, 'no_qtn' kosong:", row);
-        gagal++;
-        continue;
-      }
-
-      console.log("Mengirim payload:", payload); // 4. Kirim ke endpoint BARU
-
       const res = await fetch(`${baseUrl}/add/sales_import`, {
-        // <-- ENDPOINT BARU
         method: "POST",
         headers: {
           Authorization: `Bearer ${API_TOKEN}`,
-          "Content-Type": "application/json", // <-- PENTING: Ubah ke JSON
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload), // <-- Kirim sebagai string JSON
+        body: JSON.stringify(payload),
       });
 
-      const result = await res.json();
-      console.log("Response QO:", result);
-
-      if (res.ok) sukses++;
-      else gagal++;
-    } // 5. Tampilkan hasil (tidak berubah)
+      if (res.ok) {
+        sukses++;
+      } else {
+        // Jika error 500, kita log response dari server untuk debug
+        const errorResult = await res.json().catch(() => ({}));
+        console.error(`Server Error 500 on ${qoKey}:`, errorResult);
+        gagal++;
+      }
+    }
 
     Swal.fire(
       "Import Selesai",
-      `✅ Berhasil import ${sukses} data, ❌ gagal ${gagal}.`,
-      "success",
+      `✅ Berhasil: ${sukses} | ❌ Gagal: ${gagal}`,
+      "info",
     );
-    loadModuleContent("quotation"); // Refresh list
+    if (sukses > 0) fetchAndUpdateData();
   } catch (err) {
-    console.error("Error import:", err);
-    Swal.fire("Error", err.message || "Gagal import data!", "error");
+    console.error("Crash saat import:", err);
+    Swal.fire("Error", "Terjadi kesalahan pada script import.", "error");
   }
 }
 
@@ -814,9 +889,17 @@ async function readExcelFile(file) {
     reader.onload = (e) => {
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: "array" });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]]; // defval: "" memastikan sel kosong dibaca sebagai string kosong
-      const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-      resolve(json);
+
+      const allSheetsData = {};
+      workbook.SheetNames.forEach((sheetName) => {
+        const sheet = workbook.Sheets[sheetName];
+        // defval: "" memastikan sel kosong dibaca sebagai string kosong
+        allSheetsData[sheetName] = XLSX.utils.sheet_to_json(sheet, {
+          defval: "",
+        });
+      });
+
+      resolve(allSheetsData);
     };
     reader.onerror = reject;
     reader.readAsArrayBuffer(file);

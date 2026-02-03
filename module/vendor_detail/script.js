@@ -28,9 +28,9 @@ if (titleElement) {
 // -----------------------------------------------------------------
 formHtml = `
 <form id="dataform" class="space-y-2">
-  <input type="hidden" name="owner_id" value="\${owner_id}">
+  <input type="hidden" name="owner_id" value="${owner_id}">
   
-  <input type="hidden" name="vendor_id" value="\${currentVendorId}">
+  <input type="hidden" name="vendor_id" value="${currentVendorId}">
 
   <label for="formNama" class="block text-sm font-medium text-gray-700 dark:text-gray-200 text-left">Nama Kontak <span class="text-red-500">*</span></label>
   <input id="formNama" name="name" type="text" placeholder="Nama lengkap person in charge" class="form-control w-full px-3 py-2 border rounded-md" required>
