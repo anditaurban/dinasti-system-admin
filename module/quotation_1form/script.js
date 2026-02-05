@@ -3,6 +3,7 @@ subpagemodule = "Form Quotation";
 renderHeader();
 var autosaveTimer; // Gunakan var agar scope lebih fleksibel di SPA
 var isSubmitting = false; // Default false
+var originalDataSnapshot = null;
 
 submitInvoice = () => saveInvoice("create");
 updateInvoice = () => saveInvoice("update", window.detail_id);
@@ -51,6 +52,13 @@ if (window.detail_id && window.detail_desc) {
   });
 
   document.getElementById("status").value = "Draft";
+
+  document
+    .getElementById("tanggal")
+    ?.addEventListener("change", tryGenerateNoQtn);
+  document
+    .getElementById("type_id")
+    ?.addEventListener("change", tryGenerateNoQtn);
 
   // --- VALIDASI & LISTENERS (Hanya dipasang di sini) ---
 
@@ -1203,6 +1211,7 @@ async function loadDetailSales(Id, Detail) {
 
     calculateTotals();
     window.dataLoaded = true;
+    originalDataSnapshot = JSON.stringify(scrapeFormData());
     Swal.close();
   } catch (err) {
     console.error("Gagal load detail:", err);
@@ -1527,6 +1536,18 @@ async function saveInvoice(mode = "create", id = null) {
     // 1. Validasi
     if (!validateForm()) return;
 
+    if (mode === "update") {
+      const currentDataSnapshot = JSON.stringify(scrapeFormData());
+
+      if (originalDataSnapshot === currentDataSnapshot) {
+        Swal.fire({
+          title: "Informasi",
+          text: "Tidak ada perubahan data yang terdeteksi.",
+          icon: "info",
+        });
+        return; // Hentikan proses jika data sama persis
+      }
+    }
     // 2. Persiapan
     isSubmitting = true;
     clearTimeout(autosaveTimer);
@@ -1661,7 +1682,11 @@ async function saveInvoice(mode = "create", id = null) {
     );
     // Di dalam saveInvoice, pastikan baris ini mengambil data segar:
     const finalNoQtn = document.getElementById("no_qtn").value;
-    formData.append("no_qtn", finalNoQtn);
+    if (mode === "create") {
+      formData.append("no_qtn", finalNoQtn);
+    } else {
+      formData.append("no_qtn_update", finalNoQtn);
+    }
     formData.append("client", document.getElementById("client")?.value || "-");
     formData.append(
       "pic_name",
@@ -1718,6 +1743,11 @@ async function saveInvoice(mode = "create", id = null) {
       for (let i = 0; i < fileInput.files.length; i++) {
         formData.append("files", fileInput.files[i]);
       }
+    }
+
+    console.log(`--- DEBUG: SENDING DATA (${mode.toUpperCase()}) ---`);
+    for (let pair of formData.entries()) {
+      console.log(pair[0] + ": " + pair[1]);
     }
 
     const url =
