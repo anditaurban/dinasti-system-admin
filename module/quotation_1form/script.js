@@ -11,23 +11,27 @@ if (window.detail_id && window.detail_desc) {
   // --- MODE EDIT ---
   const simpanBtn = document.getElementById("simpanBtn");
   simpanBtn?.classList.add("hidden");
-
-  // Pastikan saat edit, autosave dimatikan total
-  isSubmitting = true; // Anggap submit agar autosave tidak jalan menimpa draft
-
+  isSubmitting = true;
   loadDetailSales(window.detail_id, window.detail_desc);
+  // --- LISTENERS GLOBAL ---
+  // Ditaruh di luar agar pasti terpasang saat halaman load
+  const tanggalInput = document.getElementById("tanggal");
+  const typeSelect = document.getElementById("type_id");
+
+  if (tanggalInput) {
+    // Gunakan mousedown atau click sebagai alternatif jika change telat merespon
+    tanggalInput.addEventListener("change", tryGenerateNoQtn);
+  }
+
+  if (typeSelect) {
+    typeSelect.addEventListener("change", tryGenerateNoQtn);
+  }
 } else {
   // --- MODE CREATE ---
-
-  // 🔥 FIX UTAMA: RESET STATUS SIMPAN & TIMER 🔥
-  // Ini memaksa sistem "Sadar" bahwa kita tidak sedang menyimpan data
-  // meskipun tidak di-refresh browsernya.
   isSubmitting = false;
   clearTimeout(autosaveTimer);
-
   setTodayDate();
 
-  // Load Master Data
   Promise.all([
     populateDropdown("/list/notes/", "catatan", "Pilih Catatan..."),
     populateDropdown(
@@ -43,31 +47,22 @@ if (window.detail_id && window.detail_desc) {
     loadSalesType(),
     loadStatusOptions(),
   ]).then(() => {
-    // Cek Autosave HANYA setelah dropdown siap
     checkAndLoadAutosave();
   });
 
   document.getElementById("status").value = "Draft";
 
-  // --- VALIDASI & LISTENERS ---
-  const tanggalInput = document.getElementById("tanggal");
-  const typeSelect = document.getElementById("type_id");
-  const picInput = document.getElementById("pic_name");
+  // --- VALIDASI & LISTENERS (Hanya dipasang di sini) ---
 
-  if (tanggalInput) tanggalInput.addEventListener("change", tryGenerateNoQtn);
-  if (typeSelect) {
-    typeSelect.addEventListener("change", tryGenerateNoQtn);
-    typeSelect.addEventListener("change", updateButtonVisibility);
-  }
+  const picInput = document.getElementById("pic_name");
   if (picInput) picInput.addEventListener("input", updateButtonVisibility);
 
   updateButtonVisibility();
-
-  // Aktifkan listener Autosave
   initAutosaveListener();
 }
 
-document.getElementById("tanggal").addEventListener("change", tryGenerateNoQtn);
+// 🛑 HAPUS BARIS INI (Yang ada di paling bawah kode Anda sebelumnya)
+// document.getElementById("tanggal").addEventListener("change", tryGenerateNoQtn);
 // document.getElementById("type_id").addEventListener("change", tryGenerateNoQtn);
 
 document.getElementById("btnVersionHistory").addEventListener("click", (e) => {
@@ -628,12 +623,54 @@ async function printInvoice(pesanan_id) {
 }
 
 async function tryGenerateNoQtn() {
-  const order_date = document.getElementById("tanggal").value;
-  const type_id = document.getElementById("type_id").value;
+  const tanggalEl = document.getElementById("tanggal");
+  const typeEl = document.getElementById("type_id");
+  const noQtnEl = document.getElementById("no_qtn");
 
-  if (!order_date || !type_id) return;
+  if (!tanggalEl || !typeEl || !noQtnEl) return;
 
+  const order_date = tanggalEl.value;
+  const type_id = typeEl.value;
+
+  // 1. Simpan nomor LAMA secara konstan sebagai backup
+  const nomorLamaBackup = noQtnEl.value.trim();
+
+  if (!order_date || !type_id || type_id === "0" || type_id === "") return;
+
+  // Cek apakah sudah ada nomor (bukan baru/kosong)
+  const sudahAdaNomor =
+    nomorLamaBackup !== "" &&
+    nomorLamaBackup !== "[no_qtn kosong]" &&
+    nomorLamaBackup.length > 5;
+
+  if (sudahAdaNomor) {
+    const confirm = await Swal.fire({
+      title: "Update Nomor Quotation?",
+      text: `Tanggal berubah. Apakah Anda ingin memperbarui nomor "${nomorLamaBackup}" secara otomatis?`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Ya, Update",
+      cancelButtonText: "Tidak, Pakai Nomor Lama",
+      reverseButtons: true,
+      allowOutsideClick: false,
+    });
+
+    // 🛑 JIKA USER PILIH TIDAK
+    if (!confirm.isConfirmed) {
+      // Kembalikan ke nomor lama di tampilan
+      noQtnEl.value = nomorLamaBackup;
+
+      // 🔥 PENTING: Paksa Autosave & sistem internal sinkronisasi ulang
+      noQtnEl.dispatchEvent(new Event("input", { bubbles: true }));
+      noQtnEl.dispatchEvent(new Event("change", { bubbles: true }));
+      return;
+    }
+  }
+
+  // 3. JALANKAN GENERATE
   try {
+    noQtnEl.value = "Generating...";
+
     const response = await fetch(`${baseUrl}/generate/noqtn`, {
       method: "POST",
       headers: {
@@ -649,13 +686,17 @@ async function tryGenerateNoQtn() {
     });
 
     const result = await response.json();
-    // console.log("Hasil generate:", result);
 
-    // ambil dari result.data.no_qtn_content
-    document.getElementById("no_qtn").value =
-      result.data?.no_qtn_content || "[no_qtn kosong]";
+    if (result.data && result.data.no_qtn_content) {
+      noQtnEl.value = result.data.no_qtn_content;
+      // Sinkronisasi nomor baru ke sistem
+      noQtnEl.dispatchEvent(new Event("input", { bubbles: true }));
+    } else {
+      noQtnEl.value = nomorLamaBackup;
+    }
   } catch (error) {
     console.error("Gagal generate no_qtn:", error);
+    noQtnEl.value = nomorLamaBackup;
   }
 }
 
@@ -1618,7 +1659,9 @@ async function saveInvoice(mode = "create", id = null) {
       "project_name",
       document.getElementById("project_name")?.value || "-",
     );
-    formData.append("no_qtn", document.getElementById("no_qtn")?.value || "");
+    // Di dalam saveInvoice, pastikan baris ini mengambil data segar:
+    const finalNoQtn = document.getElementById("no_qtn").value;
+    formData.append("no_qtn", finalNoQtn);
     formData.append("client", document.getElementById("client")?.value || "-");
     formData.append(
       "pic_name",
