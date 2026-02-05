@@ -67,7 +67,7 @@ if (window.detail_id && window.detail_desc) {
   initAutosaveListener();
 }
 
-// document.getElementById("tanggal").addEventListener("change", tryGenerateNoQtn);
+document.getElementById("tanggal").addEventListener("change", tryGenerateNoQtn);
 // document.getElementById("type_id").addEventListener("change", tryGenerateNoQtn);
 
 document.getElementById("btnVersionHistory").addEventListener("click", (e) => {
