@@ -134,21 +134,24 @@ window.rowTemplate = function (item, index, perPage = 10) {
               : ""
           } 
 
-          ${
-            item.status_id != 3
-              ? `
-              <button 
-                onclick="event.stopPropagation(); openUpdateStatus('${item.pesanan_id}', '${item.status_id}')"
-                class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600">
-                🔄 Update Status
-              </button>
+         ${
+      item.status_id != 3 
+        ? `<button 
+            onclick="event.stopPropagation(); openUpdateStatus('${item.pesanan_id}', '${item.status_id}')"
+            class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600">
+            🔄 Update Status
+          </button>` 
+        : ""
+    }
 
-              <button onclick="handleDelete('${item.pesanan_id}')" 
-                  class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">
-                  🗑 Delete Order
-                </button>`
-              : ""
-          }
+             ${
+      (item.status_id != 3 || Number(item.contract_amount) === 0)
+        ? `<button onclick="handleDelete('${item.pesanan_id}')" 
+            class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">
+            🗑 Delete Order
+          </button>`
+        : ""
+    }
       </div>
     </td>
 
