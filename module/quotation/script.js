@@ -137,7 +137,7 @@ window.rowTemplate = function (item, index, perPage = 10) {
          ${
       item.status_id != 3 
         ? `<button 
-            onclick="event.stopPropagation(); openUpdateStatus('${item.pesanan_id}', '${item.status_id}')"
+            onclick="event.stopPropagation(); openUpdateStatus('${item.pesanan_id}', '${item.status_id}','${item.internal_notes}')"
             class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600">
             🔄 Update Status
           </button>` 
@@ -341,7 +341,7 @@ function getStatusClass(status) {
   }
 }
 
-async function openUpdateStatus(pesananId, statusId) {
+async function openUpdateStatus(pesananId, statusId, internal_notes = "") {
   try {
     // 🔹 Ambil list status dari API pakai Bearer Token
     const res = await fetch(`${baseUrl}/status/sales`, {
@@ -380,7 +380,7 @@ async function openUpdateStatus(pesananId, statusId) {
           <div>
             <label class="block text-sm text-gray-600 mb-1">Komentar <span class="text-red-500">*</span></label>
             <textarea id="revisionInput" rows="3" placeholder="Masukkan komentar"
-              class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"></textarea>
+              class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">${internal_notes}</textarea>
           </div>
         </div>
       `,
@@ -390,14 +390,14 @@ async function openUpdateStatus(pesananId, statusId) {
       cancelButtonText: "Batal",
       preConfirm: () => {
         const status_id = document.getElementById("statusSelect").value;
-        const revision_status = document
+        const internal_notes = document
           .getElementById("revisionInput")
           .value.trim();
-        if (!status_id || !revision_status) {
+        if (!status_id || !internal_notes) {
           Swal.showValidationMessage("Status & komentar wajib diisi");
           return false;
         }
-        return { status_id: parseInt(status_id), revision_status };
+        return { status_id: parseInt(status_id), internal_notes: internal_notes };
       },
     });
 

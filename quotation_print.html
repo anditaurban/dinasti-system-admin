@@ -143,134 +143,115 @@
     }
 
     async function loadPesananData() {
-      try {
-        const [subCategories, pesananRes] = await Promise.all([
-          loadSubCategories(),
-          fetch(`${baseUrl}/detail/sales/${pesanan_id}`, {
-            headers: { Authorization: `Bearer ${API_TOKEN}` }
-          })
-        ]);
+  try {
+    const [subCategories, pesananRes] = await Promise.all([
+      loadSubCategories(),
+      fetch(`${baseUrl}/detail/sales/${pesanan_id}`, {
+        headers: { Authorization: `Bearer ${API_TOKEN}` }
+      })
+    ]);
 
-        const pesananResult = await pesananRes.json();
-        const data = pesananResult?.detail;
-        const salestype = parseInt(data.type_id);
+    const pesananResult = await pesananRes.json();
+    const data = pesananResult?.detail;
+    const salestype = parseInt(data.type_id);
 
-        if (!data) throw new Error("Data pesanan tidak ditemukan");
+    if (!data) throw new Error("Data pesanan tidak ditemukan");
 
-        // Mapping sub_category
-        const itemsWithCategory = data.items.map(item => {
-          const category = subCategories.find(c => c.sub_category_id == item.sub_category_id);
-          return {
-            ...item,
-            categoryName: category ? category.nama : 'Lainnya'
-          };
-        });
+    // 1. Mapping sub_category
+    const itemsWithCategory = data.items.map(item => {
+      const category = subCategories.find(c => c.sub_category_id == item.sub_category_id);
+      return {
+        ...item,
+        categoryName: category ? category.nama : 'Lainnya'
+      };
+    });
 
-        // Grouping
-        const groupedItems = itemsWithCategory.reduce((acc, item) => {
-          if (!acc[item.categoryName]) acc[item.categoryName] = [];
-          acc[item.categoryName].push(item);
-          return acc;
-        }, {});
+    // 2. Dapatkan urutan kategori unik sesuai urutan di payload API
+    const uniqueCategories = [...new Set(itemsWithCategory.map(item => item.categoryName))];
 
-        const showSpec = (salestype === 2 || salestype === 3);
-        const isTurnkey = showSpec;
+    // 3. Generate baris tabel
+    const tableRows = uniqueCategories.map(category => {
+      // Filter item yang masuk ke kategori ini
+      const itemsInCat = itemsWithCategory.filter(item => item.categoryName === category);
 
-        // Build Table
-        const tableRows = Object.entries(groupedItems).map(([category, items]) => {
+      // Reset counter No. untuk setiap kategori baru
+      let categoryItemCounter = 1;
 
-          // PERUBAHAN DISINI:
-          // Variabel counter kita taruh di DALAM loop kategori.
-          // Sehingga setiap kategori baru, dia akan reset jadi 1 lagi.
-          let categoryItemCounter = 1;
+      // Header Kategori
+      let headerHtml = `
+        <tr class="bg-white">
+          <td colspan="7" class="p-1 font-bold bg-gray-400 text-black text-xs border border-black">
+            ${category}
+          </td>
+        </tr>
+      `;
 
-          // Header Kategori
-          let headerHtml = `
-              <tr class="bg-white">
-                <td colspan="7" class="p-1 font-bold bg-gray-400 text-black text-xs border border-black">
-                  ${category}
+      // Item Loop dalam kategori tersebut
+      const itemsHtml = itemsInCat.map(item => {
+        let rowNumberDisplay = categoryItemCounter++;
+
+        return `
+          <tr class="bg-material">
+            <td class="text-center text-gray-800 border border-black align-top">
+              ${rowNumberDisplay}
+            </td>
+            <td colspan="2" class="p-1 text-black border border-black">
+              <div class="text-xs font-medium">
+                ${item.product || "-"}
+              </div>
+              ${item.description ? `
+                <div class="text-[11px] text-black mt-1">
+                  ${item.description.split(/\r?\n|-/).filter(line => line.trim() !== "").map(line => `<div class="mb-1">- ${line.trim()}</div>`).join("")}
+                </div>` : ''}
+            </td>
+            ${(item.materials && item.materials.length > 0)
+              ? `<td colspan="4" class="text-center border border-black"></td>`
+              : `
+                <td class="text-center border border-black align-top">${item.qty}</td>
+                <td class="text-center border border-black align-top">${item.unit}</td>
+                <td class="border border-black align-top">
+                  <div class="flex justify-between px-1"><span>Rp</span><span>${finance(item.unit_price)}</span></div>
                 </td>
-              </tr>
-           `;
-
-          // Item Loop
-          const itemsHtml = items.map(item => {
-
-            // Mengambil angka counter lokal (per kategori)
-            let rowNumberDisplay = categoryItemCounter++;
+                <td class="border border-black font-medium align-top">
+                  <div class="flex justify-between px-1"><span>Rp</span><span>${finance(item.total)}</span></div>
+                </td>
+              `
+            }
+          </tr>
+          ${(item.materials || []).map((mat, matIndex) => {
+            const hasSpec = mat.specification && mat.specification.trim() !== "" && mat.specification !== "-";
+            const subNumber = `${rowNumberDisplay}.${matIndex + 1}`;
+            const formattedSpec = hasSpec ? mat.specification.replace(/(?:\r\n|\r|\n)/g, '<br>') : '';
 
             return `
-                <tr class="bg-material">
-                  
-                  <td class="text-center text-gray-800 border border-black align-top">
-                    ${rowNumberDisplay}
-                  </td>
-                  
-                  <td colspan="2" class="p-1 text-black border border-black">
-                    <div class="text-xs text-black">
-                          ${item.product || "-"}
-                    </div>
-                    ${item.description ? `<div class="text-xs text-black mt-1">
-                      ${item.description.split(/\r?\n|-/).filter(line => line.trim() !== "").map((line, i) => `<div class="mb-1">- ${line.trim()}</div>`).join("")}
-                    </div>` : ''}
-                  </td>
+              <tr>
+                <td class="border border-black"></td> 
+                <td colspan="2" class="border border-black align-top p-1">
+                   <div class="text-black text-[11px]">
+                       ${subNumber} ${mat.name}
+                   </div>
+                   ${hasSpec ? `
+                       <div class="text-[10px] text-gray-600 mt-0.5 ml-4 italic">
+                          ${formattedSpec}
+                       </div>
+                   ` : ''}
+                </td>
+                <td class="text-center border border-black align-top text-[11px]">${mat.qty}</td>
+                <td class="text-center border border-black align-top text-[11px]">${mat.unit}</td>
+                <td class="border border-black align-top text-[11px]">
+                    <div class="flex justify-between px-1"><span>Rp</span><span>${finance(mat.unit_price)}</span></div>
+                </td>
+                <td class="border border-black font-medium align-top text-[11px]">
+                    <div class="flex justify-between px-1"><span>Rp</span><span>${finance(mat.total)}</span></div>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        `;
+      }).join('');
 
-                  ${(item.materials && item.materials.length > 0)
-                ? `<td colspan="4" class="text-center border border-black"></td>`
-                : `
-                        <td class="text-center border border-black align-top">${item.qty}</td>
-                        <td class="text-center border border-black align-top">${item.unit}</td>
-                        <td class="border border-black align-top">
-                          <div class="flex justify-between"><span>Rp</span><span>${finance(item.unit_price)}</span></div>
-                        </td>
-                        <td class="border border-black font-medium align-top">
-                          <div class="flex justify-between"><span>Rp</span><span>${finance(item.total)}</span></div>
-                        </td>
-                      `
-              }
-                </tr>
-
-                ${(item.materials || []).map((mat, matIndex) => {
-                const hasSpec = mat.specification && mat.specification.trim() !== "" && mat.specification !== "-";
-
-                // MENGEMBALIKAN PENOMORAN SUB ITEM (Contoh: 1.1, 1.2, dst)
-                // Menggunakan rowNumberDisplay yang sudah ter-reset per kategori
-                const subNumber = `${rowNumberDisplay}.${matIndex + 1}`;
-
-                const formattedSpec = hasSpec ? mat.specification.replace(/(?:\r\n|\r|\n)/g, '<br>') : '';
-
-                return `
-                    <tr>
-                      <td class="text-center text-gray-600 border border-black align-top text-[10px]">
-                      </td> 
-                      
-                      <td colspan="2" class="border border-black align-top">
-                         <div class="text-black">
-                             ${subNumber} ${mat.name}
-                         </div>
-                         ${hasSpec ? `
-                             <div class="text-xs text-black mt-1 ml-3">
-                                ${formattedSpec}
-                             </div>
-                         ` : ''}
-                      </td>
-
-                      <td class="text-center border border-black align-top">${mat.qty}</td>
-                      <td class="text-center border border-black align-top">${mat.unit}</td>
-                      <td class="border border-black align-top">
-                          <div class="flex justify-between"><span>Rp</span><span>${finance(mat.unit_price)}</span></div>
-                      </td>
-                      <td class="border border-black font-medium align-top">
-                          <div class="flex justify-between"><span>Rp</span><span>${finance(mat.total)}</span></div>
-                      </td>
-                    </tr>
-                  `}).join('')
-              }
-              `;
-          }).join('');
-
-          return headerHtml + itemsHtml;
-        }).join('');
+      return headerHtml + itemsHtml;
+    }).join('');
 
         const revisionInfo = data.revision_status && data.revision_number ? `${data.revision_status} (${data.revision_number})` : '-';
         const isWon = data.status_id == 2 || data.status_sales === "Won";

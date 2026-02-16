@@ -1533,29 +1533,29 @@ function validateForm() {
 
 async function saveInvoice(mode = "create", id = null) {
   try {
-    // 1. Validasi
+    // 1. Validasi Input
     if (!validateForm()) return;
 
     if (mode === "update") {
       const currentDataSnapshot = JSON.stringify(scrapeFormData());
-
       if (originalDataSnapshot === currentDataSnapshot) {
         Swal.fire({
           title: "Informasi",
           text: "Tidak ada perubahan data yang terdeteksi.",
           icon: "info",
         });
-        return; // Hentikan proses jika data sama persis
+        return;
       }
     }
-    // 2. Persiapan
+
+    // 2. Persiapan State
     isSubmitting = true;
     clearTimeout(autosaveTimer);
     calculateTotals();
 
     let revisionUpdate = "no";
 
-    // Konfirmasi Update
+    // 3. Konfirmasi (Hanya untuk Update)
     if (mode === "update") {
       const konfirmasi = await Swal.fire({
         title: "Update Data?",
@@ -1581,163 +1581,96 @@ async function saveInvoice(mode = "create", id = null) {
       revisionUpdate = revisionConfirm.isConfirmed ? "yes" : "no";
     }
 
-    // Scrape Items
-    const rows = document.querySelectorAll("#tabelItem tr");
-    const groupedItems = {};
+    // 4. SCRAPING DATA (URUT SESUAI BARIS TABEL)
+    const items = [];
+    const itemRows = document.querySelectorAll("#tabelItem tr.itemRow");
 
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      if (!row.querySelector(".itemProduct")) continue;
+    for (let i = 0; i < itemRows.length; i++) {
+      const row = itemRows[i];
 
-      const sub_category_id = parseInt(
-        row.querySelector(".itemSubcategory")?.value || 0,
-      );
-      const product = row.querySelector(".itemProduct")?.value.trim() || "";
-      const description = row.querySelector(".itemDesc")?.value.trim() || "";
-      const qty = parseInt(row.querySelector(".itemQty")?.value || 0);
-      const unit = row.querySelector(".itemUnit")?.value.trim() || "";
-      const unit_price = parseRupiah(
-        row.querySelector(".itemHarga")?.value || 0,
-      );
-      const hpp = parseRupiah(row.querySelector(".itemHpp")?.value || 0);
-      const markup_nominal = parseRupiah(
-        row.querySelector(".itemMarkupNominal")?.value || 0,
-      );
-      const markup_percent = parseFloat(
-        row.querySelector(".itemMarkupPersen")?.value || 0,
-      );
+      // Ambil data Item Utama
+      const currentItem = {
+        sub_category_id: parseInt(row.querySelector(".itemSubcategory")?.value || 0),
+        product: row.querySelector(".itemProduct")?.value.trim() || "",
+        description: row.querySelector(".itemDesc")?.value.trim() || "",
+        qty: parseInt(row.querySelector(".itemQty")?.value || 0),
+        unit: row.querySelector(".itemUnit")?.value.trim() || "",
+        unit_price: parseRupiah(row.querySelector(".itemHarga")?.value || 0),
+        hpp: parseRupiah(row.querySelector(".itemHpp")?.value || 0),
+        markup_nominal: parseRupiah(row.querySelector(".itemMarkupNominal")?.value || 0),
+        markup_percent: parseFloat(row.querySelector(".itemMarkupPersen")?.value || 0),
+        materials: [], // Penampung sub-item
+      };
 
-      const key = `${sub_category_id}-${product}-${i}`;
-      if (!groupedItems[key]) {
-        groupedItems[key] = {
-          product,
-          sub_category_id,
-          description,
-          qty,
-          unit,
-          unit_price,
-          hpp,
-          markup_nominal,
-          markup_percent,
-          materials: [],
-        };
-      }
-
+      // Ambil Sub-Items (Materials) yang ada di baris berikutnya (subItemWrapper)
       const subWrapper = row.nextElementSibling;
       if (subWrapper && subWrapper.classList.contains("subItemWrapper")) {
-        const subItems = subWrapper.querySelectorAll(".subItemRow");
-        subItems.forEach((sub) => {
+        const subRows = subWrapper.querySelectorAll(".subItemRow");
+        subRows.forEach((sub) => {
           const mName = sub.querySelector(".subItemMaterial")?.value.trim();
           if (mName) {
-            groupedItems[key].materials.push({
+            currentItem.materials.push({
               subItemMaterial: mName,
-              subItemSpec:
-                sub.querySelector(".subItemSpec")?.value.trim() || "",
-              subItemQty: parseInt(
-                sub.querySelector(".subItemQty")?.value || 0,
-              ),
-              subItemUnit:
-                sub.querySelector(".subItemUnit")?.value.trim() || "pcs",
-              subItemHarga: parseRupiah(
-                sub.querySelector(".subItemHarga")?.value || 0,
-              ),
-              subItemHpp: parseRupiah(
-                sub.querySelector(".subItemHpp")?.value || 0,
-              ),
-              subItemMarkupNominal: parseRupiah(
-                sub.querySelector(".subItemMarkupNominal")?.value || 0,
-              ),
-              subItemMarkupPercent: parseFloat(
-                sub.querySelector(".subItemMarkupPersen")?.value || 0,
-              ),
+              subItemSpec: sub.querySelector(".subItemSpec")?.value.trim() || "",
+              subItemQty: parseInt(sub.querySelector(".subItemQty")?.value || 0),
+              subItemUnit: sub.querySelector(".subItemUnit")?.value.trim() || "pcs",
+              subItemHarga: parseRupiah(sub.querySelector(".subItemHarga")?.value || 0),
+              subItemHpp: parseRupiah(sub.querySelector(".subItemHpp")?.value || 0),
+              subItemMarkupNominal: parseRupiah(sub.querySelector(".subItemMarkupNominal")?.value || 0),
+              subItemMarkupPercent: parseFloat(sub.querySelector(".subItemMarkupPersen")?.value || 0),
             });
           }
         });
       }
-      if (i % 50 === 0) await new Promise((resolve) => setTimeout(resolve, 0));
+
+      items.push(currentItem);
+      
+      // Berikan jeda napas ke browser jika data sangat banyak
+      if (i % 20 === 0) await new Promise((resolve) => setTimeout(resolve, 0));
     }
-    const items = Object.values(groupedItems);
 
-    // Prepare Data
-    const owner_id = user.owner_id;
-    const user_id = user.user_id;
-    const nominalKontrak = parseRupiah(
-      document.getElementById("contract_amount").value,
-    );
+    // 5. Kalkulasi Final
+    const nominalKontrak = parseRupiah(document.getElementById("contract_amount").value);
     const disc = parseRupiah(document.getElementById("discount")?.value || 0);
-
-    // 🛑 FIX PPN (STRICT MODE) 🛑
     const isPpnChecked = document.getElementById("cekPpn")?.checked;
-    const ppn = isPpnChecked
-      ? parseRupiah(document.getElementById("ppn").value)
-      : 0;
+    const ppn = isPpnChecked ? parseRupiah(document.getElementById("ppn").value) : 0;
     const total = nominalKontrak - disc + ppn;
 
+    // 6. Build FormData
     const formData = new FormData();
-    formData.append("owner_id", owner_id);
-    formData.append("user_id", user_id);
-    formData.append(
-      "project_name",
-      document.getElementById("project_name")?.value || "-",
-    );
-    // Di dalam saveInvoice, pastikan baris ini mengambil data segar:
+    formData.append("owner_id", user.owner_id);
+    formData.append("user_id", user.user_id);
+    formData.append("project_name", document.getElementById("project_name")?.value || "-");
+    
     const finalNoQtn = document.getElementById("no_qtn").value;
     if (mode === "create") {
       formData.append("no_qtn", finalNoQtn);
     } else {
       formData.append("no_qtn_update", finalNoQtn);
     }
-    formData.append("client", document.getElementById("client")?.value || "-");
-    formData.append(
-      "pic_name",
-      document.getElementById("pic_name")?.value || "-",
-    );
-    formData.append(
-      "pelanggan_id",
-      parseInt(document.getElementById("client_id")?.value || 0),
-    );
-    formData.append(
-      "type_id",
-      parseInt(document.getElementById("type_id")?.value || 0),
-    );
-    formData.append(
-      "order_date",
-      document.getElementById("tanggal")?.value || "",
-    );
 
+    formData.append("client", document.getElementById("client")?.value || "-");
+    formData.append("pic_name", document.getElementById("pic_name")?.value || "-");
+    formData.append("pelanggan_id", parseInt(document.getElementById("client_id")?.value || 0));
+    formData.append("type_id", parseInt(document.getElementById("type_id")?.value || 0));
+    formData.append("order_date", document.getElementById("tanggal")?.value || "");
     formData.append("contract_amount", nominalKontrak);
     formData.append("disc", disc);
-    formData.append("ppn", ppn); // PPN pasti 0 jika uncheck
+    formData.append("ppn", ppn);
     formData.append("total", total);
-
+    formData.append("has_ppn", isPpnChecked ? 1 : 0);
     formData.append("status_id", 1);
-    formData.append("revision_number", 0);
-    formData.append(
-      "revision_status",
-      document.getElementById("revision_number").value,
-    );
+    formData.append("revision_status", document.getElementById("revision_number").value);
     formData.append("revision_update", revisionUpdate);
-    formData.append(
-      "catatan",
-      document.getElementById("catatan")?.value || "-",
-    );
-    formData.append(
-      "syarat_ketentuan",
-      document.getElementById("syarat_ketentuan")?.value || "-",
-    );
-    formData.append(
-      "term_pembayaran",
-      document.getElementById("term_pembayaran")?.value || "-",
-    );
-    formData.append(
-      "internal_notes",
-      document.getElementById("internal_notes")?.value || "",
-    );
+    formData.append("catatan", document.getElementById("catatan")?.value || "-");
+    formData.append("syarat_ketentuan", document.getElementById("syarat_ketentuan")?.value || "-");
+    formData.append("term_pembayaran", document.getElementById("term_pembayaran")?.value || "-");
+    formData.append("internal_notes", document.getElementById("internal_notes")?.value || "");
+    
+    // Kirim item yang sudah pasti urut
     formData.append("items", JSON.stringify(items));
 
-    // 🛑 KIRIM FLAG PPN SEBAGAI INTEGER (1 atau 0) 🛑
-    formData.append("has_ppn", isPpnChecked ? 1 : 0);
-
+    // Handle Files
     const fileInput = document.getElementById("file");
     if (fileInput && fileInput.files.length > 0) {
       for (let i = 0; i < fileInput.files.length; i++) {
@@ -1745,15 +1678,8 @@ async function saveInvoice(mode = "create", id = null) {
       }
     }
 
-    console.log(`--- DEBUG: SENDING DATA (${mode.toUpperCase()}) ---`);
-    for (let pair of formData.entries()) {
-      console.log(pair[0] + ": " + pair[1]);
-    }
-
-    const url =
-      mode === "create"
-        ? `${baseUrl}/add/sales`
-        : `${baseUrl}/update/sales/${id}`;
+    // 7. Send Request
+    const url = mode === "create" ? `${baseUrl}/add/sales` : `${baseUrl}/update/sales/${id}`;
     const method = mode === "create" ? "POST" : "PUT";
 
     const res = await fetch(url, {
@@ -1761,16 +1687,12 @@ async function saveInvoice(mode = "create", id = null) {
       headers: { Authorization: `Bearer ${API_TOKEN}` },
       body: formData,
     });
+    
     const json = await res.json();
 
     if (res.ok) {
-      clearTimeout(autosaveTimer);
       localStorage.removeItem(AUTOSAVE_KEY);
-      Swal.fire(
-        "Sukses",
-        `Data berhasil ${mode === "create" ? "disimpan" : "diupdate"}`,
-        "success",
-      );
+      Swal.fire("Sukses", `Data berhasil ${mode === "create" ? "disimpan" : "diupdate"}`, "success");
       loadModuleContent("quotation");
     } else {
       isSubmitting = false;
