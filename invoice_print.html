@@ -245,12 +245,14 @@
         });
 
         // grouping by sub_category
-        const uniqueCategories = [...new Set(itemsWithCategory.map(item => item.categoryName))];
+        const groupedItems = itemsWithCategory.reduce((acc, item) => {
+          if (!acc[item.categoryName]) acc[item.categoryName] = [];
+          acc[item.categoryName].push(item);
+          return acc;
+        }, {});
 
         // build table (tetap pakai tableRows asli)
-        const tableRows = uniqueCategories.map(category => {
-  // Filter item yang masuk ke kategori ini
-  const itemsInCat = itemsWithCategory.filter(item => item.categoryName === category);
+        const tableRows = Object.entries(groupedItems).map(([category, items]) => {
           let globalIndex = 1;
           return `
     <tr class="bg-white">
