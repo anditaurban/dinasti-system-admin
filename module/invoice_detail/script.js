@@ -1514,112 +1514,92 @@ async function openUpdateDPModal(dpDataString) {
     cancelButtonText: "Batal",
     // ... (Bagian atas Swal tetap sama) ...
 
-    didOpen: () => {
-      // Set tanggal default hari ini
-      document.getElementById("dp_date").valueAsDate = new Date();
+    // Di dalam openUpdateDPModal
+didOpen: () => {
+  // Gunakan ID dengan akhiran _update sesuai HTML modalnya
+  const percentageInput = document.getElementById("percentage_update");
+  const amountInput = document.getElementById("amount_update");
+  const isTaxCheck = document.getElementById("is_tax_update");
+  const taxPercentInput = document.getElementById("tax_percent_update");
 
-      const percentageInput = document.getElementById("percentage");
-      const amountInput = document.getElementById("amount");
-      const isTaxCheck = document.getElementById("is_tax");
-      const taxPercentInput = document.getElementById("tax_percent");
+  const previewPpn = document.getElementById("preview_ppn_update");
+  const previewTotal = document.getElementById("preview_total_update");
 
-      const previewPpn = document.getElementById("preview_ppn_amount");
-      const previewTotal = document.getElementById("preview_total_display");
+  function parseRupiahInput(inputVal) {
+    if (!inputVal) return 0;
+    let clean = inputVal.replace(/[^0-9,]/g, "").replace(/,/g, ".");
+    return parseFloat(clean) || 0;
+  }
 
-      // --- HELPER: Parsing angka super aman ---
-      function parseRupiahInput(inputVal) {
-        if (!inputVal) return 0;
-        // 1. Hapus SEMUA karakter KECUALI angka (0-9) dan koma (,)
-        //    Ini akan otomatis menghapus "Rp", titik ribuan, spasi, dll.
-        let clean = inputVal.replace(/[^0-9,]/g, "");
+  function calculateFinal() {
+    let amount = parseRupiahInput(amountInput.value);
+    let taxRate = 0;
 
-        // 2. Ganti koma (,) jadi titik (.) untuk format float JavaScript
-        clean = clean.replace(/,/g, ".");
+    if (isTaxCheck.checked) {
+      taxPercentInput.removeAttribute("disabled");
+      taxPercentInput.classList.remove("bg-gray-100");
+      taxRate = parseFloat(taxPercentInput.value) || 0;
+    } else {
+      taxPercentInput.setAttribute("disabled", true);
+      taxPercentInput.classList.add("bg-gray-100");
+    }
 
-        return parseFloat(clean) || 0;
+    let taxValue = amount * (taxRate / 100);
+    let total = amount + taxValue;
+
+    previewPpn.textContent = formatRupiah(taxValue);
+    previewTotal.textContent = formatRupiah(total);
+  }
+
+  // Tambahkan listener ke elemen yang benar
+  if(percentageInput) {
+    percentageInput.addEventListener("input", () => {
+      let pct = parseFloat(percentageInput.value) || 0;
+      let nominal = contractAmount * (pct / 100);
+      amountInput.value = formatRupiah(nominal);
+      calculateFinal();
+    });
+  }
+
+  if(amountInput) {
+    amountInput.addEventListener("keyup", () => {
+      let nominal = parseRupiahInput(amountInput.value);
+      if (contractAmount > 0) {
+        let pct = (nominal / contractAmount) * 100;
+        percentageInput.value = parseFloat(pct.toFixed(2));
       }
+      calculateFinal();
+    });
+  }
 
-      // 1. Logic: Input Persen -> Hitung Nominal
-      percentageInput.addEventListener("input", () => {
-        let pct = parseFloat(percentageInput.value) || 0;
-        let nominal = contractAmount * (pct / 100);
+  isTaxCheck?.addEventListener("change", calculateFinal);
+  taxPercentInput?.addEventListener("input", calculateFinal);
+  
+  // Jalankan kalkulasi pertama kali saat modal buka
+  calculateFinal();
+},
 
-        // formatRupiah: asumsikan fungsi global Anda yang menambahkan format tampilan
-        amountInput.value = formatRupiah(nominal);
-        calculateFinal();
-      });
+preConfirm: () => {
+  // Ambil nilai dari ID _update
+  const rawVal = document.getElementById("amount_update").value;
+  const cleanVal = rawVal.replace(/[^0-9,]/g, "").replace(/,/g, ".");
+  const amountVal = parseFloat(cleanVal) || 0;
 
-      // 2. Logic: Input Nominal -> Hitung Persen
-      amountInput.addEventListener("keyup", () => {
-        let nominal = parseRupiahInput(amountInput.value);
+  const isTax = document.getElementById("is_tax_update").checked;
+  const taxRate = isTax ? parseFloat(document.getElementById("tax_percent_update").value) || 0 : 0;
 
-        if (contractAmount > 0) {
-          let pct = (nominal / contractAmount) * 100;
-          // Tampilkan max 2 desimal
-          percentageInput.value = parseFloat(pct.toFixed(2));
-        }
-        calculateFinal();
-      });
-
-      // 3. Logic: Hitung Pajak & Total Akhir
-      function calculateFinal() {
-        // Gunakan helper parsing yang aman
-        let amount = parseRupiahInput(amountInput.value);
-        let taxRate = 0;
-
-        if (isTaxCheck.checked) {
-          taxPercentInput.removeAttribute("disabled");
-          taxPercentInput.classList.remove("bg-gray-100");
-          taxRate = parseFloat(taxPercentInput.value) || 0;
-        } else {
-          taxPercentInput.setAttribute("disabled", true);
-          taxPercentInput.classList.add("bg-gray-100");
-        }
-
-        let taxValue = amount * (taxRate / 100);
-        let total = amount + taxValue;
-
-        // Update UI dengan format Rupiah
-        previewPpn.textContent = formatRupiah(taxValue);
-        previewTotal.textContent = formatRupiah(total);
-      }
-
-      // Event Listeners Tambahan (Checkbox & Input Pajak)
-      isTaxCheck.addEventListener("change", calculateFinal);
-      taxPercentInput.addEventListener("input", calculateFinal);
-    },
-
-    preConfirm: () => {
-      // Parsing nilai untuk dikirim ke API
-      // Kita lakukan parsing manual di sini agar sama persis logikanya
-      const rawVal = document.getElementById("amount").value;
-      // Hapus selain angka dan koma -> ganti koma jadi titik
-      const cleanVal = rawVal.replace(/[^0-9,]/g, "").replace(/,/g, ".");
-      const amountVal = parseFloat(cleanVal) || 0;
-
-      const isTax = document.getElementById("is_tax").checked;
-      const taxRate = isTax
-        ? parseFloat(document.getElementById("tax_percent").value) || 0
-        : 0;
-
-      const ppnAmount = amountVal * (taxRate / 100);
-      const totalAmount = amountVal + ppnAmount;
-
-      return {
-        dp_date: document.getElementById("dp_date").value,
-        due_date: document.getElementById("due_date").value,
-
-        // Data Nominal yang sudah bersih (Float/Integer)
-        amount: amountVal,
-        percentage:
-          parseFloat(document.getElementById("percentage").value) || 0,
-        ppn_percent: taxRate,
-        ppn_amount: ppnAmount,
-        total_amount: totalAmount,
-
-        description: document.getElementById("description").value,
-      };
-    },
+  return {
+    dp_id: dpData.dp_id, // Pastikan ID DP dibawa untuk update
+    dp_date: document.getElementById("dp_date_update").value,
+    due_date: document.getElementById("due_date_update").value,
+    amount: amountVal,
+    percentage: parseFloat(document.getElementById("percentage_update").value) || 0,
+    ppn_percent: taxRate,
+    ppn_amount: amountVal * (taxRate / 100),
+    total_amount: amountVal + (amountVal * (taxRate / 100)),
+    description: document.getElementById("description_update").value,
+  };
+}
 
     // ... (Sisa kode sama) ...
   });

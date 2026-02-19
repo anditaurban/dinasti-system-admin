@@ -99,14 +99,22 @@ window.rowTemplate = function (item, index, perPage = 10) {
             👁️ View Detail 
           </button>
 
-          ${
-            item.status_id === 3 && item.invoice != "yes"
-              ? `<button onclick="openInvoiceModal('${item.pesanan_id}')" 
-                  class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-600">
-                  ➕ Add Invoice
-                </button>`
-              : ""
-          }
+         ${item.status_id === 3 && item.invoice !== "yes" 
+      ? `<button onclick="openInvoiceModal('${item.pesanan_id}')" 
+                 class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-600">
+            ➕ Add Invoice
+         </button>` 
+      : ""
+    }
+
+    ${item.status_id === 3 && item.project_id === 0
+      ? `<button onclick="openCreateProject('${item.pesanan_id}', '${item.contract_amount}')"
+                 class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+            📝 Create Project
+         </button>`
+      : ""
+    }
+      
 
           ${
             item.approval_status === "pending"
@@ -188,6 +196,91 @@ window.rowTemplate = function (item, index, perPage = 10) {
     
   </tr>`;
 };
+
+async function openCreateProject(pesanan_id, nilai_kontrak) {
+  // ambil daftar project manager
+  let pmOptions = "";
+  try {
+    const res = await fetch(`${baseUrl}/list/project_manager/${owner_id}`, {
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
+    });
+    const data = await res.json();
+
+    if (data.listData && data.listData.length > 0) {
+      pmOptions = data.listData
+        .map(
+          (pm) =>
+            `<option value="${pm.employee_id}">${pm.name} (${pm.alias})</option>`
+        )
+        .join("");
+    }
+  } catch (err) {
+    console.error("Gagal ambil PM:", err);
+    pmOptions = `<option value="">Gagal load PM</option>`;
+  }
+
+  Swal.fire({
+    title: "Buat Project Baru",
+    html: `
+      <div class="space-y-3 text-left">
+        <label class="block text-sm font-medium text-gray-700">Project Manager</label>
+        <select id="project_manager_id" class="w-full p-2 border rounded-lg">
+          ${pmOptions}
+        </select>
+
+        <label class="block text-sm font-medium text-gray-700">Start Date</label>
+        <input id="start_date" type="date" class="w-full p-2 border rounded-lg">
+
+        <label class="block text-sm font-medium text-gray-700">Finish Date</label>
+        <input id="finish_date" type="date" class="w-full p-2 border rounded-lg">
+      </div>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: "Simpan",
+    cancelButtonText: "Batal",
+    preConfirm: async () => {
+      const project_manager_id =
+        document.getElementById("project_manager_id").value;
+      const start_date = document.getElementById("start_date").value;
+      const finish_date = document.getElementById("finish_date").value;
+
+      try {
+        const res = await fetch(`${baseUrl}/add/project`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${API_TOKEN}`,
+          },
+          body: JSON.stringify({
+            pesanan_id,
+            project_manager_id: Number(project_manager_id),
+            start_date,
+            finish_date,
+          }),
+        });
+
+        const data = await res.json();
+        if (data.data.success === true) {
+          Swal.fire(
+            "Sukses",
+            data.data.message || "Project berhasil dibuat",
+            "success"
+          );
+        } else {
+          Swal.fire(
+            "Gagal",
+            data.data.message || "Gagal membuat project",
+            "error"
+          );
+        }
+      } catch (err) {
+        console.error("Error create project:", err);
+        Swal.fire("Error", "Terjadi kesalahan server", "error");
+      }
+    },
+  });
+}
 
 // ==========================================
 // Helper Function (Tambahkan di bawah rowTemplate)
