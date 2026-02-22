@@ -55,16 +55,26 @@ window.rowTemplate = function (item, index, perPage = 10) {
     </td>
 
     <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-      
   <span class="font-medium sm:hidden">Description</span>
-  ${item.project_name}
-  ${
-    item.internal_notes &&
-    item.internal_notes.trim() !== "" &&
-    item.internal_notes.trim() !== "-"
-      ? `<div class="text-gray-500 text-xs">${item.internal_notes}</div>`
-      : ``
-  }
+  <div class="flex flex-col group">
+    <span>${item.project_name}</span>
+    <div class="flex items-center gap-2 mt-1">
+      <div class="text-gray-500 text-xs italic">
+        ${(item.internal_notes && item.internal_notes.trim() !== "" && item.internal_notes.trim() !== "-") 
+            ? item.internal_notes 
+            : '<span class="text-gray-300">No notes...</span>'}
+      </div>
+      <button 
+        onclick="event.stopPropagation(); openEditNotes('${item.pesanan_id}', \`${item.internal_notes || ''}\`, '${item.status_id}')"
+        class="text-blue-400 hover:text-blue-600 transition-colors"
+        title="Edit Internal Notes"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+        </svg>
+      </button>
+    </div>
+  </div>
 </td>
 
     <td class="px-6 py-4 text-sm text-gray-700 border-b text-right sm:border-0 flex justify-between sm:table-cell">
@@ -196,6 +206,72 @@ window.rowTemplate = function (item, index, perPage = 10) {
     
   </tr>`;
 };
+
+
+async function openEditNotes(pesananId, currentNotes) {
+  try {
+    const { value: notes } = await Swal.fire({
+      title: "Edit Internal Notes",
+      html: `
+        <div class="text-left">
+          <label class="block text-sm text-gray-600 mb-1 font-medium">Internal Notes</label>
+          <textarea id="notesInput" rows="4" placeholder="Masukkan catatan internal"
+            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none text-sm">${currentNotes === 'null' || !currentNotes ? '' : currentNotes}</textarea>
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: "Simpan",
+      cancelButtonText: "Batal",
+      preConfirm: () => {
+        const input = document.getElementById("notesInput").value.trim();
+        if (!input) {
+          Swal.showValidationMessage("Catatan tidak boleh kosong");
+          return false;
+        }
+        return input;
+      },
+    });
+
+    if (!notes) return;
+
+    // Loading State
+    Swal.fire({ 
+      title: 'Updating...', 
+      allowOutsideClick: false, 
+      didOpen: () => Swal.showLoading() 
+    });
+
+    // Sesuaikan dengan API: /update/internal_notes_sales/{id}
+    const updateRes = await fetch(`${baseUrl}/update/internal_notes_sales/${pesananId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+      // Body hanya mengirimkan internal_notes sesuai foto Postman
+      body: JSON.stringify({ 
+        internal_notes: notes 
+      }),
+    });
+
+    const result = await updateRes.json();
+
+    // Cek response "200" sesuai format API Anda
+    if (updateRes.ok && result.response === "200") {
+      Swal.fire("Berhasil", "Catatan internal telah diperbarui", "success");
+
+      // Refresh data table agar perubahan langsung terlihat
+      if (typeof fetchAndUpdateData === "function") {
+        fetchAndUpdateData();
+      }
+    } else {
+      throw new Error(result.message || "Gagal memperbarui catatan");
+    }
+  } catch (err) {
+    Swal.fire("❌ Error", err.message, "error");
+  }
+}
 
 async function openCreateProject(pesanan_id, nilai_kontrak) {
   // ambil daftar project manager
