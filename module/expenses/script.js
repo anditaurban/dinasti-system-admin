@@ -74,9 +74,9 @@ window.rowTemplate = function (item, index, perPage = 10) {
         
         <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow-lg z-50 text-sm right-0 mt-2 py-1">
             
-<button onclick="event.stopPropagation(); showExpenseModal('${
-    item.keuangan_id
-  }')"
+            <button onclick="event.stopPropagation(); showExpenseModal('${
+                item.keuangan_id
+              }')"
                 class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700 transition duration-150 ease-in-out">
                 ✏️ Edit
             </button>

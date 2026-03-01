@@ -117,7 +117,7 @@ window.rowTemplate = function (item, index, perPage = 10) {
       : ""
     }
 
-    ${item.status_id === 3 && item.project_id === 0
+    ${item.project_id === 0
       ? `<button onclick="openCreateProject('${item.pesanan_id}', '${item.contract_amount}')"
                  class="block w-full text-left px-4 py-2 hover:bg-gray-100">
             📝 Create Project
@@ -138,19 +138,17 @@ window.rowTemplate = function (item, index, perPage = 10) {
               : ""
           }
 
-          ${
-            // Tombol Reminder HANYA jika status pending DAN belum di-remind
-            item.approval_status === "pending" &&
-            item.approval_reminder !== "reminded"
-              ? `
-                <button 
-                  onclick="event.stopPropagation(); sendApprovalReminder('${item.pesanan_id}', '${item.no_qtn}')"
-                  class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-orange-500">
-                  📧 Reminder Approval
-                </button>
-                `
-              : ""
-          } 
+         ${
+          item.approval_status === "pending"
+            ? `
+              <button 
+                onclick="event.stopPropagation(); sendApprovalReminder('${item.pesanan_id}', '${item.no_qtn}')"
+                class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-orange-500">
+                📧 Reminder Approval
+              </button>
+              `
+            : ""
+        }
 
          ${
       item.status_id != 3 
@@ -193,14 +191,13 @@ window.rowTemplate = function (item, index, perPage = 10) {
         }
 
         ${
-          item.approval_reminder === "reminded" &&
-          item.approval_status === "pending"
+          item.approval_reminder && item.approval_status === "pending"
             ? `<div class="flex items-center gap-1 bg-orange-50 text-orange-600 border border-orange-200 px-2 py-0.5 rounded-full mt-1" title="Reminder Sent">
-                 <span class="text-[10px] font-bold">🔔 Reminded</span>
-               </div>`
+                <span class="text-[10px] font-bold capitalize">🔔 ${item.approval_reminder}</span>
+              </div>`
             : ""
         }
-        
+                
       </div>
     </td>
     
@@ -1044,7 +1041,6 @@ async function readExcelFile(file) {
 }
 
 async function sendApprovalReminder(pesananId, noQtn) {
-  // 1. Konfirmasi User
   const confirmResult = await Swal.fire({
     title: "Kirim Reminder Approval?",
     text: `Akan mengirim notifikasi reminder untuk Sales Order: ${noQtn}`,
@@ -1052,26 +1048,20 @@ async function sendApprovalReminder(pesananId, noQtn) {
     showCancelButton: true,
     confirmButtonText: "Ya, Kirim",
     cancelButtonText: "Batal",
-    confirmButtonColor: "#f97316", // Warna orange sesuai tombol
+    confirmButtonColor: "#f97316",
   });
 
   if (!confirmResult.isConfirmed) return;
 
-  // 2. Tampilkan Loading
   Swal.fire({
     title: "Mengirim Reminder...",
-    html: "Mohon tunggu sebentar...",
     allowOutsideClick: false,
-    didOpen: () => {
-      Swal.showLoading();
-    },
+    didOpen: () => Swal.showLoading(),
   });
 
   try {
-    // 3. Request ke API
-    // Endpoint: {{baseUrl}}/reminder/sales_approval/{{pesananId}}
     const res = await fetch(`${baseUrl}/reminder/sales_approval/${pesananId}`, {
-      method: "PUT", // Menggunakan POST karena ini memicu aksi (trigger email/notif)
+      method: "PUT",
       headers: {
         Authorization: `Bearer ${API_TOKEN}`,
         "Content-Type": "application/json",
@@ -1080,24 +1070,23 @@ async function sendApprovalReminder(pesananId, noQtn) {
 
     const result = await res.json();
 
-    // 4. Validasi Response
     if (res.ok) {
       Swal.fire({
         icon: "success",
         title: "Berhasil!",
-        text: result.message || "Reminder approval berhasil dikirim.",
-        timer: 2000,
+        text: result.message || "Reminder berhasil dikirim.",
+        timer: 1500,
         showConfirmButton: false,
       });
+
+      // Refresh data agar teks "Reminded 1st", "2nd" muncul
+      if (typeof fetchAndUpdateData === "function") {
+        fetchAndUpdateData();
+      }
     } else {
       throw new Error(result.message || "Gagal mengirim reminder.");
     }
   } catch (err) {
-    console.error("Error sending reminder:", err);
-    Swal.fire({
-      icon: "error",
-      title: "Gagal",
-      text: err.message || "Terjadi kesalahan saat menghubungi server.",
-    });
+    Swal.fire("❌ Error", err.message, "error");
   }
 }

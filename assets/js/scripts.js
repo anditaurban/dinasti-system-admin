@@ -34,6 +34,7 @@ let cashier_id = 0;
 let unitDebounceTimer;
 let picDebounceTimer;
 let clientDebounceTimer;
+let debounceTimer;
 let vendorDebounceTimer;
 const AUTOSAVE_KEY = "autosave_quotation_draft";
 
