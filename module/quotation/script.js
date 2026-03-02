@@ -340,6 +340,7 @@ async function openCreateProject(pesanan_id, nilai_kontrak) {
             data.data.message || "Project berhasil dibuat",
             "success"
           );
+        loadModuleContent("quotation");
         } else {
           Swal.fire(
             "Gagal",
