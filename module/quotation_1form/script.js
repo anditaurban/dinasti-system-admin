@@ -594,39 +594,119 @@ async function loadPICList(clientId) {
   }
 }
 
+
 async function printInvoice(pesanan_id) {
   try {
     const response = await fetch(`${baseUrl}/detail/sales/${pesanan_id}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${API_TOKEN}`,
-      },
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${API_TOKEN}` }
     });
 
     const result = await response.json();
-    const detail = result?.detail;
-    if (!detail) throw new Error("Data faktur tidak ditemukan");
+    const data = result?.detail;
+    if (!data) throw new Error('Data Quotation tidak ditemukan');
 
-    const swalResult = await Swal.fire({
-      title: "Cetak Quotation",
-      icon: "question",
+    const { isConfirmed, dismiss } = await Swal.fire({
+      title: 'Cetak Quotation',
+      text: 'Pilih metode pencetakan:',
+      icon: 'question',
       showCancelButton: true,
-      confirmButtonText: "Print Preview",
-      cancelButtonText: "Cancel",
-      reverseButtons: true,
+      confirmButtonText: 'Download PDF',
+      cancelButtonText: 'Print Langsung',
+      reverseButtons: true
     });
 
-    if (swalResult.isConfirmed) {
-      // Jika klik Print Preview
-      window.open(`quotation_print.html?id=${pesanan_id}`, "_blank");
+    if (isConfirmed) {
+      Swal.fire({
+        title: 'Menyiapkan Dokumen...',
+        html: 'Mengambil Quotation dan menggabungkan Lampiran...',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+          Swal.showLoading();
+
+          // 1. Buat pendengar (listener) untuk menangkap data dari iframe
+          const handlePdfData = async (event) => {
+            // Pastikan pesan datang dari proses yang benar
+            if (event.data && event.data.type === 'QUOTATION_PDF_READY') {
+              window.removeEventListener('message', handlePdfData); // Bersihkan listener
+
+              try {
+                const { PDFDocument } = PDFLib;
+                const mergedPdf = await PDFDocument.create();
+
+                // 2. Ambil data PDF Quotation (dalam format Base64) dari iframe
+                const base64Quotation = event.data.pdfBase64;
+                const quoBytes = Uint8Array.from(atob(base64Quotation), c => c.charCodeAt(0));
+                const quoDoc = await PDFDocument.load(quoBytes);
+
+                // 3. Ambil file Lampiran dari lokal folder
+                const lampiranResponse = await fetch('./assets/mock_lampiran.pdf');
+                if (!lampiranResponse.ok) throw new Error('File lampiran lokal tidak ditemukan');
+                const lampiranBytes = await lampiranResponse.arrayBuffer();
+                const lampiranDoc = await PDFDocument.load(lampiranBytes);
+
+                // 4. Proses Penggabungan (Merge)
+                const quoPages = await mergedPdf.copyPages(quoDoc, quoDoc.getPageIndices());
+                quoPages.forEach((page) => mergedPdf.addPage(page));
+
+                const lampiranPages = await mergedPdf.copyPages(lampiranDoc, lampiranDoc.getPageIndices());
+                lampiranPages.forEach((page) => mergedPdf.addPage(page));
+
+                // 5. Download hasil gabungan
+                const mergedPdfBytes = await mergedPdf.save();
+                const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+                const url = window.URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `Quotation_${pesanan_id}_Lengkap.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                Swal.fire('Berhasil', 'Dokumen lengkap berhasil diunduh.', 'success');
+
+              } catch (err) {
+                console.error('Error saat merge:', err);
+                Swal.fire('Gagal', 'Terjadi kesalahan saat menggabungkan dokumen.', 'error');
+              }
+
+              // Hapus iframe setelah selesai
+              if (document.body.contains(iframe)) {
+                document.body.removeChild(iframe);
+              }
+            }
+          };
+
+          // Daftarkan listener
+          window.addEventListener('message', handlePdfData);
+
+          // 6. Buat iframe dan tambahkan parameter 'action=get_data'
+          const iframe = document.createElement('iframe');
+          // Parameter ini memberi tahu quotation_print.html untuk TIDAK mendownload otomatis,
+          // melainkan mengirimkan datanya ke parent window.
+          iframe.src = `quotation_print.html?id=${pesanan_id}&action=get_data`; 
+          
+          iframe.style.position = 'absolute';
+          iframe.style.width = '210mm';
+          iframe.style.height = '297mm';
+          iframe.style.left = '-9999px';
+          iframe.style.border = 'none';
+          
+          document.body.appendChild(iframe);
+        }
+      });
+
+    } else if (dismiss === Swal.DismissReason.cancel) {
+      window.open(`quotation_print.html?id=${pesanan_id}`, '_blank');
     }
-    // Jika Cancel → Swal otomatis close, tidak perlu aksi tambahan
+
   } catch (error) {
-    Swal.fire({
-      title: "Gagal",
-      text: error.message || "Terjadi kesalahan saat memuat faktur.",
-      icon: "error",
-    });
+    Swal.fire({ title: 'Gagal', text: error.message, icon: 'error' }); 
   }
 }
 

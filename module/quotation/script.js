@@ -1091,3 +1091,55 @@ async function sendApprovalReminder(pesananId, noQtn) {
     Swal.fire("❌ Error", err.message, "error");
   }
 }
+
+async function handleDownloadWithAttachment(pesananId) {
+    // 1. Fetch data detail untuk cek attachment
+    const response = await fetch(`${baseUrl}/quotation/detail/${pesananId}`, {
+        headers: { Authorization: `Bearer ${API_TOKEN}` }
+    });
+    const data = await response.json();
+    
+    // Asumsi: URL lampiran ada di data.attachment_url
+    const attachmentUrl = data.attachment_url; 
+
+    if (!attachmentUrl) {
+        // Jika tidak ada lampiran, gunakan cara lama (langsung cetak)
+        // Kamu bisa arahkan ke file quotation_print.html dengan parameter isDownload=true
+        window.open(`quotation_print.html?id=${pesananId}&isDownload=true`, '_blank');
+        return;
+    }
+
+    // 2. JIKA ADA LAMPIRAN:
+    Swal.fire({ title: "Menggabungkan PDF...", didOpen: () => Swal.showLoading() });
+
+    try {
+        // Ambil PDF Utama (Hasil dari template quotation_print.html)
+        // Catatan: Kamu perlu menyesuaikan agar quotation_print bisa mengembalikan Blob
+        const mainPdfBytes = await generateMainPdfBlob(data); 
+        
+        // Ambil PDF Lampiran
+        const attachmentBytes = await fetch(attachmentUrl).then(res => res.arrayBuffer());
+
+        // Proses Gabung menggunakan pdf-lib
+        const { PDFDocument } = PDFLib;
+        const mainDoc = await PDFDocument.load(mainPdfBytes);
+        const attachDoc = await PDFDocument.load(attachmentBytes);
+
+        // Copy halaman dari lampiran ke dokumen utama
+        const copiedPages = await mainDoc.copyPages(attachDoc, attachDoc.getPageIndices());
+        copiedPages.forEach((page) => mainDoc.addPage(page));
+
+        // Save dan Download
+        const mergedPdfBytes = await mainDoc.save();
+        const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `Quotation_${data.no_qtn}_Complete.pdf`;
+        link.click();
+
+        Swal.close();
+    } catch (err) {
+        console.error(err);
+        Swal.fire("Error", "Gagal menggabungkan PDF", "error");
+    }
+}
