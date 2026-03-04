@@ -12,6 +12,8 @@ document.getElementById("addButton").addEventListener("click", async () => {
 window.rowTemplate = function (item, index, perPage = 10) {
   const { currentPage } = state[currentDataType];
   const globalIndex = (currentPage - 1) * perPage + index + 1;
+  const fileCount = item.file_count || 0;
+  const filesEncoded = encodeURIComponent(JSON.stringify(item.files || []));
 
   return `
   <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50" id="row-${
@@ -55,27 +57,28 @@ window.rowTemplate = function (item, index, perPage = 10) {
     </td>
 
     <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
-  <span class="font-medium sm:hidden">Description</span>
-  <div class="flex flex-col group">
-    <span>${item.project_name}</span>
-    <div class="flex items-center gap-2 mt-1">
-      <div class="text-gray-500 text-xs italic">
-        ${(item.internal_notes && item.internal_notes.trim() !== "" && item.internal_notes.trim() !== "-") 
-            ? item.internal_notes 
-            : '<span class="text-gray-300">No notes...</span>'}
+      <span class="font-medium sm:hidden">Description</span>
+      <div class="flex flex-col group items-start">
+        <span>${item.project_name}</span>
+        <div class="flex items-center gap-2 mt-1">
+          <div class="text-gray-500 text-xs italic">
+            ${(item.internal_notes && item.internal_notes.trim() !== "" && item.internal_notes.trim() !== "-") 
+                ? item.internal_notes 
+                : '<span class="text-gray-300">No notes...</span>'}
+          </div>
+          <button onclick="event.stopPropagation(); openEditNotes('${item.pesanan_id}', \`${item.internal_notes || ''}\`, '${item.status_id}')" class="text-blue-400 hover:text-blue-600 transition-colors" title="Edit Internal Notes">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+          </button>
+        </div>
+        
+        <button id="btn-lampiran-${item.pesanan_id}" data-files="${filesEncoded}" onclick="event.stopPropagation(); openLampiranModal('${item.pesanan_id}', '${item.owner_id || 1}')" class="mt-2 flex items-center gap-1 border border-gray-300 rounded-full px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 transition">
+  📎 <span id="count-${item.pesanan_id}"></span> Lampiran
+  <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+</button>
       </div>
-      <button 
-        onclick="event.stopPropagation(); openEditNotes('${item.pesanan_id}', \`${item.internal_notes || ''}\`, '${item.status_id}')"
-        class="text-blue-400 hover:text-blue-600 transition-colors"
-        title="Edit Internal Notes"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-        </svg>
-      </button>
-    </div>
-  </div>
-</td>
+    </td>
 
     <td class="px-6 py-4 text-sm text-gray-700 border-b text-right sm:border-0 flex justify-between sm:table-cell">
       <div class="flex flex-col items-end w-full">
@@ -1092,54 +1095,258 @@ async function sendApprovalReminder(pesananId, noQtn) {
   }
 }
 
-async function handleDownloadWithAttachment(pesananId) {
-    // 1. Fetch data detail untuk cek attachment
-    const response = await fetch(`${baseUrl}/quotation/detail/${pesananId}`, {
-        headers: { Authorization: `Bearer ${API_TOKEN}` }
-    });
-    const data = await response.json();
-    
-    // Asumsi: URL lampiran ada di data.attachment_url
-    const attachmentUrl = data.attachment_url; 
 
-    if (!attachmentUrl) {
-        // Jika tidak ada lampiran, gunakan cara lama (langsung cetak)
-        // Kamu bisa arahkan ke file quotation_print.html dengan parameter isDownload=true
-        window.open(`quotation_print.html?id=${pesananId}&isDownload=true`, '_blank');
-        return;
-    }
+// ==========================================
+// FITUR MODAL LAMPIRAN DOKUMEN (SWEETALERT & ASYNC)
+// ==========================================
+async function openLampiranModal(pesananId, ownerId) {
+  // Buka modal dengan status "Memuat data..." di bagian list
+  Swal.fire({
+    title: 'Lampiran Dokumen',
+    width: '750px',
+    showConfirmButton: false,
+    showCloseButton: true,
+    html: `
+      <div class="flex flex-col md:flex-row gap-6 text-left mt-4 border-t pt-4">
+        <div class="w-full md:w-5/12 border-b md:border-b-0 md:border-r border-gray-200 pb-4 md:pb-0 md:pr-4">
+          <h4 class="text-xs font-bold text-gray-500 mb-3 tracking-wider">☁️ UPLOAD DOKUMEN</h4>
+          <form id="formUploadLampiran" onsubmit="prosesUploadLampiran(event, '${pesananId}', '${ownerId}')">
+            <input type="file" id="inputLampiranFile" class="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 border border-gray-300 rounded mb-3 cursor-pointer" required>
+            <button type="submit" id="btnSubmitLampiran" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded text-xs font-medium transition shadow-sm">
+              Upload File
+            </button>
+            <p class="text-[10px] text-gray-400 mt-2">*Max 2MB (PNG, JPG, JPEG & PDF)</p>
+          </form>
+        </div>
 
-    // 2. JIKA ADA LAMPIRAN:
-    Swal.fire({ title: "Menggabungkan PDF...", didOpen: () => Swal.showLoading() });
-
-    try {
-        // Ambil PDF Utama (Hasil dari template quotation_print.html)
-        // Catatan: Kamu perlu menyesuaikan agar quotation_print bisa mengembalikan Blob
-        const mainPdfBytes = await generateMainPdfBlob(data); 
+        <div class="w-full md:w-7/12 md:pl-2">
+          <h4 class="text-xs font-bold text-gray-500 mb-3 tracking-wider">📁 FILE TERSIMPAN</h4>
+          <div id="containerListLampiran" class="flex flex-col gap-2 max-h-[200px] overflow-y-auto pr-2">
+            <p class="text-xs text-blue-500 animate-pulse">Mencari file di database...</p>
+          </div>
+        </div>
+      </div>
+    `,
+    didOpen: async () => {
+      // SETELAH MODAL TERBUKA, KITA FETCH DATA LANGSUNG KE DATABASE
+      try {
+        const response = await fetch(`${baseUrl}/list/quotation_file/${pesananId}`, {
+          headers: { 'Authorization': `Bearer ${API_TOKEN}` }
+        });
+        const result = await response.json();
         
-        // Ambil PDF Lampiran
-        const attachmentBytes = await fetch(attachmentUrl).then(res => res.arrayBuffer());
-
-        // Proses Gabung menggunakan pdf-lib
-        const { PDFDocument } = PDFLib;
-        const mainDoc = await PDFDocument.load(mainPdfBytes);
-        const attachDoc = await PDFDocument.load(attachmentBytes);
-
-        // Copy halaman dari lampiran ke dokumen utama
-        const copiedPages = await mainDoc.copyPages(attachDoc, attachDoc.getPageIndices());
-        copiedPages.forEach((page) => mainDoc.addPage(page));
-
-        // Save dan Download
-        const mergedPdfBytes = await mainDoc.save();
-        const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `Quotation_${data.no_qtn}_Complete.pdf`;
-        link.click();
-
-        Swal.close();
-    } catch (err) {
-        console.error(err);
-        Swal.fire("Error", "Gagal menggabungkan PDF", "error");
+        const container = document.getElementById('containerListLampiran');
+        
+        // Cek apakah API merespon sukses dan data listData ada
+        if (result.success && result.listData) {
+          // Render HTML berdasarkan data dari database
+          container.innerHTML = generateListLampiranHTML(result.listData, pesananId);
+          
+          // UPDATE JUGA ANGKA DI TABEL LUAR BIAR SINKRON
+          const countSpan = document.getElementById(`count-${pesananId}`);
+          if (countSpan) {
+            countSpan.innerText = result.listData.length;
+          }
+        } else {
+          // Kalau response API kosong
+          container.innerHTML = generateListLampiranHTML([], pesananId);
+        }
+      } catch (err) {
+        console.error("Gagal load lampiran:", err);
+        document.getElementById('containerListLampiran').innerHTML = `<span class="text-xs text-red-500">Koneksi error. Gagal menarik data.</span>`;
+      }
     }
+  });
+}
+
+function generateListLampiranHTML(files, pesananId) {
+  if (!files || files.length === 0) {
+    return `<span class="text-sm text-gray-400 italic" id="empty-lampiran-${pesananId}">Belum ada file tersimpan.</span>`;
+  }
+
+  return files.map(file => {
+    const ext = file.file ? file.file.split('.').pop().toLowerCase() : 'file';
+    const isPdf = ext === 'pdf';
+    // Ambil nama file dari URL untuk tampilan
+    const fileName = file.file ? file.file.split('/').pop() : 'Dokumen';
+
+    return `
+      <div class="flex items-center justify-between gap-2 border border-gray-200 rounded p-2 bg-gray-50 shadow-sm w-full hover:border-blue-300 transition group">
+        <div class="flex items-center gap-2 truncate">
+          <span class="${isPdf ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'} text-[10px] font-bold px-2 py-1 rounded uppercase min-w-[40px] text-center">
+            ${isPdf ? 'PDF' : 'IMG'}
+          </span>
+          <a href="${file.file}" target="_blank" class="text-xs text-gray-700 truncate hover:text-blue-600 font-medium" title="${fileName}">
+            ${fileName}
+          </a>
+        </div>
+        <button onclick="hapusLampiran('${file.id}', '${pesananId}')" class="text-gray-400 hover:text-red-600 transition-colors p-1" title="Hapus File">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+async function hapusLampiran(fileId, pesananId) {
+  const result = await Swal.fire({
+    title: 'Hapus file?',
+    text: "File yang dihapus tidak dapat dikembalikan!",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Ya, Hapus!',
+    cancelButtonText: 'Batal'
+  });
+
+  if (result.isConfirmed) {
+    try {
+      Swal.fire({
+        title: "Menghapus...",
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+      });
+
+      const response = await fetch(`${baseUrl}/delete/quotation_file/${fileId}`, {
+        method: 'DELETE', // Atau POST tergantung dokumentasi API kamu
+        headers: { 'Authorization': `Bearer ${API_TOKEN}` }
+      });
+
+      if (response.ok) {
+        Swal.fire({
+          icon: "success",
+          title: "Terhapus!",
+          text: "File berhasil dihapus.",
+          timer: 1500,
+          showConfirmButton: false
+        });
+
+        // Refresh data setelah hapus
+        if (typeof fetchAndUpdateData === "function") {
+          fetchAndUpdateData();
+        }
+      } else {
+        throw new Error("Gagal menghapus file.");
+      }
+    } catch (error) {
+      Swal.fire("Gagal!", error.message, "error");
+    }
+  }
+}
+
+async function refreshLampiranList(pesananId) {
+  const container = document.getElementById('containerListLampiran');
+  container.innerHTML = `<p class="text-xs text-blue-500 animate-pulse">Memperbarui daftar...</p>`;
+
+  try {
+    const response = await fetch(`${baseUrl}/list/quotation_file/${pesananId}`, {
+      headers: { 'Authorization': `Bearer ${API_TOKEN}` }
+    });
+    const result = await response.json();
+
+    if (result.success) {
+      // Update isi container dengan data terbaru dari API
+      // Pastikan format map disesuaikan dengan response API (menggunakan result.listData)
+      container.innerHTML = generateListLampiranHTML(result.listData, pesananId);
+      
+      // Opsional: Update juga atribut di tombol utama agar sinkron
+      const btn = document.getElementById(`btn-lampiran-${pesananId}`);
+      if (btn) {
+        btn.setAttribute('data-files', encodeURIComponent(JSON.stringify(result.listData)));
+      }
+    }
+  } catch (e) {
+    container.innerHTML = `<span class="text-xs text-red-500">Gagal memuat ulang data.</span>`;
+  }
+}
+
+
+async function prosesUploadLampiran(event, pesananId, ownerId) {
+  event.preventDefault();
+  const fileInput = document.getElementById('inputLampiranFile');
+
+  if (fileInput.files.length === 0) return;
+  const file = fileInput.files[0];
+
+  const formData = new FormData();
+  formData.append('owner_id', ownerId); 
+  formData.append('quotation_id', pesananId);
+  formData.append('file', file);
+
+  try {
+    // Munculkan loading alert (otomatis menimpa/menutup modal HTML)
+    Swal.fire({
+      title: "Uploading...",
+      text: "Mohon tunggu sebentar",
+      showConfirmButton: false,
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    const response = await fetch(`${baseUrl}/add/quotation_file`, { 
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${API_TOKEN}` }, 
+      body: formData
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      // Alert sukses persis kaya yang kamu kirim
+      Swal.fire({
+        icon: "success",
+        title: "Berhasil!",
+        text: "File dokumen berhasil ditambahkan!",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
+      refreshLampiranList(pesananId);
+
+      // Refresh data tabel di background
+      if (typeof fetchAndUpdateData === "function") {
+        fetchAndUpdateData();
+      }
+    } else {
+      // Lempar ke catch kalau dari API ngasih error message
+      throw new Error(result.message || "Gagal upload file.");
+    }
+  } catch (error) {
+    console.error(error);
+    // Alert gagal
+    Swal.fire({
+      icon: "error",
+      title: "Gagal!",
+      text: error.message || "Koneksi bermasalah atau server error.",
+      showConfirmButton: true,
+    });
+  }
+}
+async function loadAllAttachmentCounts() {
+  // Cari semua elemen span yang punya ID berawalan "count-"
+  const countElements = document.querySelectorAll('span[id^="count-"]');
+  
+  for (const element of countElements) {
+    // Ambil pesanan_id dari ID elemen (contoh: "count-346" -> "346")
+    const pesananId = element.id.split('-')[1];
+    
+    try {
+      const response = await fetch(`${baseUrl}/list/quotation_file/${pesananId}`, {
+        headers: { 'Authorization': `Bearer ${API_TOKEN}` }
+      });
+      const result = await response.json();
+      
+      if (result.success && result.listData) {
+        // Update angka 0 menjadi jumlah file yang sebenarnya
+        element.innerText = result.listData.length;
+      }
+    } catch (e) {
+      console.error(`Gagal memuat count untuk ${pesananId}`, e);
+    }
+  }
 }

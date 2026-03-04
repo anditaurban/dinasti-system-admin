@@ -151,6 +151,9 @@ function getTableBody() {
     default:
       return document.querySelector("#tableBody");
   }
+  setTimeout(() => {
+    loadAllAttachmentCounts();
+  }, 500); // Jeda setengah detik memastikan tabel sudah muncul
 }
 
 function updatePagination(paginationContainer, onPageChange) {
@@ -186,6 +189,7 @@ function updatePagination(paginationContainer, onPageChange) {
     if (!disabled && typeof onClick === "function")
       btn.addEventListener("click", onClick);
     return btn;
+    
   }
 
   nav.appendChild(

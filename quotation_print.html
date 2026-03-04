@@ -7,6 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
@@ -58,12 +59,6 @@
       }
     }
   </style>
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const script = document.createElement('script');
-      script.src = `./assets/js/api.js?v=${new Date().getTime()}`;
-      document.body.appendChild(script);
-    });
   </script>
 </head>
 
@@ -115,6 +110,8 @@
         console.error("Error load logo:", err);
       }
     }
+
+    
 
     function terbilang(n) {
       const satuan = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
@@ -285,21 +282,50 @@
         if (!isWon) {
           let signcode = 'https://digitalsign.dinastikelektrik.id/ref=' + (data.inv_number || data.no_qtn);
           let encodesign = encodeSign(signcode);
+          
+          // 1. Generate data matriks QR Code
+          let qr = qrcode(0, 'H'); // 0 = Auto size, H = High error correction
+          qr.addData(signcode);
+          qr.make();
+          
+          // 2. Susun tabel HTML murni berdasarkan kotak hitam/putih dari QR Code
+          let moduleCount = qr.getModuleCount();
+          let cellSize = 3; // Ukuran kotak per pixel
+          let qrTableHtml = `<table style="border-collapse: collapse; border: none; margin: 0; padding: 0;">`;
+          
+          for (let row = 0; row < moduleCount; row++) {
+            qrTableHtml += `<tr style="height: ${cellSize}px;">`;
+            for (let col = 0; col < moduleCount; col++) {
+              let isDark = qr.isDark(row, col);
+              let bgColor = isDark ? '#000000' : '#ffffff';
+              // Kita buat <td> (sel tabel) yang diwarnai hitam/putih
+              qrTableHtml += `<td style="width: ${cellSize}px; background-color: ${bgColor}; padding: 0; border: none;"></td>`;
+            }
+            qrTableHtml += `</tr>`;
+          }
+          qrTableHtml += `</table>`;
+
           approvedSection = `
                 <div class="text-sm text-right mt-10">
                   <p class="font-semibold">APPROVED BY</p>
-                  <div id="qrcode" class="mt-2 inline-block p-2 bg-white rounded shadow"></div>
+                  
+                  <div class="mt-2 flex justify-end">
+                     <div class="inline-block p-2 bg-white rounded shadow">
+                        ${qrTableHtml}
+                     </div>
+                  </div>
+                  
                   <p class="mt-2 font-semibold">Rian Septiadi Saimima</p>
                   <p class="text-xs text-gray-500 mt-1">
                     This document is digitally signed: <span class="font-mono">${encodesign}</span>
                   </p>
                 </div>`;
+          
           footerSection = `
                 <div class="quotation-footer">
                   <p>If you have any questions about this quotations, please contact<br>Nanda Febby Yuliantina, 082371425300, nandafebby@dinasti.id</p>
                 </div>`;
         }
-
         loadLogoWithAuth(user.logo_url);
 
         const html = `
@@ -395,31 +421,7 @@
         // 1. Tunggu Logo selesai dimuat
         await loadLogoWithAuth(user.logo_url);
 
-        // 2. Generate QR Code dan jadikan Image Murni
-        if (!isWon) {
-          await new Promise((resolve) => {
-            const qrContainer = document.getElementById("qrcode");
-            if (qrContainer) {
-              new QRCode(qrContainer, {
-                text: `https://digitalsign.dinastikelektrik.id/ref=${data.inv_number || data.no_qtn}`,
-                width: 100, height: 100, 
-                colorDark: "#000000", colorLight: "#ffffff", 
-                correctLevel: QRCode.CorrectLevel.H
-              });
 
-              setTimeout(() => {
-                const canvas = qrContainer.querySelector("canvas");
-                if (canvas) {
-                  const imgURL = canvas.toDataURL("image/png");
-                  qrContainer.innerHTML = `<img src="${imgURL}" style="width: 100px; height: 100px; box-shadow: 2px 2px 6px rgba(0,0,0,0.2);" />`;
-                }
-                resolve();
-              }, 800); 
-            } else {
-              resolve();
-            }
-          });
-        }
 
         // 3. CEK MODE APA YANG DIMINTA OLEH PARENT
         const isGetData = urlParams.get("action") === "get_data"; // Mode untuk Merge PDF
@@ -479,6 +481,5 @@
       document.body.appendChild(script);
     });
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </body>
 </html>

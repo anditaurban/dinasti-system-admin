@@ -594,7 +594,6 @@ async function loadPICList(clientId) {
   }
 }
 
-
 async function printInvoice(pesanan_id) {
   try {
     const response = await fetch(`${baseUrl}/detail/sales/${pesanan_id}`, {
@@ -626,8 +625,8 @@ async function printInvoice(pesanan_id) {
           Swal.showLoading();
 
           // 1. Buat pendengar (listener) untuk menangkap data dari iframe
+          // 1. Buat pendengar (listener) untuk menangkap data dari iframe
           const handlePdfData = async (event) => {
-            // Pastikan pesan datang dari proses yang benar
             if (event.data && event.data.type === 'QUOTATION_PDF_READY') {
               window.removeEventListener('message', handlePdfData); // Bersihkan listener
 
@@ -635,25 +634,43 @@ async function printInvoice(pesanan_id) {
                 const { PDFDocument } = PDFLib;
                 const mergedPdf = await PDFDocument.create();
 
-                // 2. Ambil data PDF Quotation (dalam format Base64) dari iframe
+                // --- A. PROSES PDF QUOTATION UTAMA (Dari iframe) ---
                 const base64Quotation = event.data.pdfBase64;
                 const quoBytes = Uint8Array.from(atob(base64Quotation), c => c.charCodeAt(0));
                 const quoDoc = await PDFDocument.load(quoBytes);
 
-                // 3. Ambil file Lampiran dari lokal folder
-                const lampiranResponse = await fetch('./assets/mock_lampiran.pdf');
-                if (!lampiranResponse.ok) throw new Error('File lampiran lokal tidak ditemukan');
-                const lampiranBytes = await lampiranResponse.arrayBuffer();
-                const lampiranDoc = await PDFDocument.load(lampiranBytes);
-
-                // 4. Proses Penggabungan (Merge)
                 const quoPages = await mergedPdf.copyPages(quoDoc, quoDoc.getPageIndices());
                 quoPages.forEach((page) => mergedPdf.addPage(page));
 
-                const lampiranPages = await mergedPdf.copyPages(lampiranDoc, lampiranDoc.getPageIndices());
-                lampiranPages.forEach((page) => mergedPdf.addPage(page));
+                // --- B. PROSES LAMPIRAN (Dari key data.files) ---
+                // Pastikan key 'files' ada dan berupa array yang tidak kosong
+                // --- B. PROSES LAMPIRAN ---
+                if (data.files && Array.isArray(data.files) && data.files.length > 0) {
+                  for (let i = 0; i < data.files.length; i++) {
+                    const lampiranUrl = data.files[i].file;
+                    
+                    try {
+                      // BUNGKUS URL DENGAN CORS PROXY (Gunakan ini untuk testing lokal)
+                      const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(lampiranUrl);
+                      
+                      const lampiranResponse = await fetch(proxyUrl);
+                      
+                      if (lampiranResponse.ok) {
+                        const lampiranBytes = await lampiranResponse.arrayBuffer();
+                        const lampiranDoc = await PDFDocument.load(lampiranBytes);
+                        
+                        const lampiranPages = await mergedPdf.copyPages(lampiranDoc, lampiranDoc.getPageIndices());
+                        lampiranPages.forEach((page) => mergedPdf.addPage(page));
+                      } else {
+                        console.warn(`Gagal fetch dari proxy untuk file ke-${i+1}`);
+                      }
+                    } catch (parseErr) {
+                      console.warn(`File lampiran ke-${i + 1} dilewati.`, parseErr);
+                    }
+                  }
+                }
 
-                // 5. Download hasil gabungan
+                // --- C. DOWNLOAD HASIL GABUNGAN ---
                 const mergedPdfBytes = await mergedPdf.save();
                 const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
                 const url = window.URL.createObjectURL(blob);
@@ -661,21 +678,22 @@ async function printInvoice(pesanan_id) {
                 const a = document.createElement('a');
                 a.style.display = 'none';
                 a.href = url;
-                a.download = `Quotation_${pesanan_id}_Lengkap.pdf`;
+                // Nama file bisa disesuaikan, misal pakai data.no_qtn kalau ada
+                a.download = `Quotation_${data.no_qtn || pesanan_id}_Lengkap.pdf`; 
                 document.body.appendChild(a);
                 a.click();
                 
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
 
-                Swal.fire('Berhasil', 'Dokumen lengkap berhasil diunduh.', 'success');
+                Swal.fire('Berhasil', 'Dokumen Quotation & Lampiran berhasil diunduh.', 'success');
 
               } catch (err) {
                 console.error('Error saat merge:', err);
                 Swal.fire('Gagal', 'Terjadi kesalahan saat menggabungkan dokumen.', 'error');
               }
 
-              // Hapus iframe setelah selesai
+              // Hapus iframe agar DOM tidak penuh
               if (document.body.contains(iframe)) {
                 document.body.removeChild(iframe);
               }
@@ -691,10 +709,17 @@ async function printInvoice(pesanan_id) {
           // melainkan mengirimkan datanya ke parent window.
           iframe.src = `quotation_print.html?id=${pesanan_id}&action=get_data`; 
           
-          iframe.style.position = 'absolute';
+          // Ganti bagian style iframe yang lama dengan ini:
+          iframe.style.position = 'fixed'; // Gunakan fixed agar tetap di layar, tidak merusak scroll
+          iframe.style.top = '0';
+          iframe.style.left = '0';
           iframe.style.width = '210mm';
           iframe.style.height = '297mm';
-          iframe.style.left = '-9999px';
+         iframe.style.opacity = '1';          // Biarkan opacity 1 agar browser tetap merender isinya
+          iframe.style.left = '-9999px';       // TRIK BARU: Lempar iframenya jauh ke luar layar
+          iframe.style.visibility = 'visible'; // Pastikan tetap visible untuk mesin render
+          iframe.style.zIndex = '-9999';
+          iframe.style.pointerEvents = 'none'; // Abaikan jika tidak sengaja terklik
           iframe.style.border = 'none';
           
           document.body.appendChild(iframe);
@@ -710,83 +735,7 @@ async function printInvoice(pesanan_id) {
   }
 }
 
-async function tryGenerateNoQtn() {
-  const tanggalEl = document.getElementById("tanggal");
-  const typeEl = document.getElementById("type_id");
-  const noQtnEl = document.getElementById("no_qtn");
 
-  if (!tanggalEl || !typeEl || !noQtnEl) return;
-
-  const order_date = tanggalEl.value;
-  const type_id = typeEl.value;
-
-  // 1. Simpan nomor LAMA secara konstan sebagai backup
-  const nomorLamaBackup = noQtnEl.value.trim();
-
-  if (!order_date || !type_id || type_id === "0" || type_id === "") return;
-
-  // Cek apakah sudah ada nomor (bukan baru/kosong)
-  const sudahAdaNomor =
-    nomorLamaBackup !== "" &&
-    nomorLamaBackup !== "[no_qtn kosong]" &&
-    nomorLamaBackup.length > 5;
-
-  if (sudahAdaNomor) {
-    const confirm = await Swal.fire({
-      title: "Update Nomor Quotation?",
-      text: `Tanggal berubah. Apakah Anda ingin memperbarui nomor "${nomorLamaBackup}" secara otomatis?`,
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "Ya, Update",
-      cancelButtonText: "Tidak, Pakai Nomor Lama",
-      reverseButtons: true,
-      allowOutsideClick: false,
-    });
-
-    // 🛑 JIKA USER PILIH TIDAK
-    if (!confirm.isConfirmed) {
-      // Kembalikan ke nomor lama di tampilan
-      noQtnEl.value = nomorLamaBackup;
-
-      // 🔥 PENTING: Paksa Autosave & sistem internal sinkronisasi ulang
-      noQtnEl.dispatchEvent(new Event("input", { bubbles: true }));
-      noQtnEl.dispatchEvent(new Event("change", { bubbles: true }));
-      return;
-    }
-  }
-
-  // 3. JALANKAN GENERATE
-  try {
-    noQtnEl.value = "Generating...";
-
-    const response = await fetch(`${baseUrl}/generate/noqtn`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${API_TOKEN}`,
-      },
-      body: JSON.stringify({
-        order_date,
-        type_id,
-        owner_id: user.owner_id,
-        user_id: user.user_id,
-      }),
-    });
-
-    const result = await response.json();
-
-    if (result.data && result.data.no_qtn_content) {
-      noQtnEl.value = result.data.no_qtn_content;
-      // Sinkronisasi nomor baru ke sistem
-      noQtnEl.dispatchEvent(new Event("input", { bubbles: true }));
-    } else {
-      noQtnEl.value = nomorLamaBackup;
-    }
-  } catch (error) {
-    console.error("Gagal generate no_qtn:", error);
-    noQtnEl.value = nomorLamaBackup;
-  }
-}
 
 async function tambahItem() {
   const typeId = document.getElementById("type_id").value;
