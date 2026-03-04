@@ -642,18 +642,22 @@ async function printInvoice(pesanan_id) {
                 const quoPages = await mergedPdf.copyPages(quoDoc, quoDoc.getPageIndices());
                 quoPages.forEach((page) => mergedPdf.addPage(page));
 
-                // --- B. PROSES LAMPIRAN (Dari key data.files) ---
-                // Pastikan key 'files' ada dan berupa array yang tidak kosong
-                // --- B. PROSES LAMPIRAN ---
                 if (data.files && Array.isArray(data.files) && data.files.length > 0) {
                   for (let i = 0; i < data.files.length; i++) {
-                    const lampiranUrl = data.files[i].file;
+                    const fullUrl = data.files[i].file;
                     
+                    const fileName = fullUrl.split('/').pop(); 
+                    
+                    const lampiranUrl = `${baseUrl}/file/quotation/${encodeURIComponent(decodeURIComponent(fileName))}`;
+
                     try {
-                      // BUNGKUS URL DENGAN CORS PROXY (Gunakan ini untuk testing lokal)
-                      const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(lampiranUrl);
-                      
-                      const lampiranResponse = await fetch(proxyUrl);
+                      // 3. Ambil file dari endpoint API (Sertakan token karena ini endpoint backend)
+                      const lampiranResponse = await fetch(lampiranUrl, {
+                        method: 'GET',
+                        headers: {
+                          'Authorization': `Bearer ${API_TOKEN}`
+                        }
+                      });
                       
                       if (lampiranResponse.ok) {
                         const lampiranBytes = await lampiranResponse.arrayBuffer();
@@ -662,7 +666,7 @@ async function printInvoice(pesanan_id) {
                         const lampiranPages = await mergedPdf.copyPages(lampiranDoc, lampiranDoc.getPageIndices());
                         lampiranPages.forEach((page) => mergedPdf.addPage(page));
                       } else {
-                        console.warn(`Gagal fetch dari proxy untuk file ke-${i+1}`);
+                        console.warn(`Gagal fetch file ke-${i+1} dari endpoint. Status: ${lampiranResponse.status}`);
                       }
                     } catch (parseErr) {
                       console.warn(`File lampiran ke-${i + 1} dilewati.`, parseErr);
@@ -679,7 +683,7 @@ async function printInvoice(pesanan_id) {
                 a.style.display = 'none';
                 a.href = url;
                 // Nama file bisa disesuaikan, misal pakai data.no_qtn kalau ada
-                a.download = `Quotation_${data.no_qtn || pesanan_id}_Lengkap.pdf`; 
+                a.download = `${data.no_qtn || pesanan_id}.pdf`; 
                 document.body.appendChild(a);
                 a.click();
                 

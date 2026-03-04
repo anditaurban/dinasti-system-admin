@@ -49,6 +49,7 @@ function loadScript(src, callback) {
   document.body.appendChild(script);
 }
 
+
 const scriptsToLoad = [
   `./assets/js/utils.js?v=${new Date().getTime()}`,
   `./assets/js/api.js?v=${new Date().getTime()}`,
@@ -182,6 +183,10 @@ async function loadAppSections() {
     ]);
 
   sectionDataDiv.innerHTML = `${headNavbar}${sideNavbar}${mainContent}${footNavbar}${footer}`;
+  const yearElement = document.getElementById("currentYear");
+  if (yearElement) {
+    yearElement.textContent = new Date().getFullYear();
+  }
   modedev();
   addSideNavListeners();
 

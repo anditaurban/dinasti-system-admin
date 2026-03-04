@@ -74,7 +74,7 @@ window.rowTemplate = function (item, index, perPage = 10) {
         </div>
         
         <button id="btn-lampiran-${item.pesanan_id}" data-files="${filesEncoded}" onclick="event.stopPropagation(); openLampiranModal('${item.pesanan_id}', '${item.owner_id || 1}')" class="mt-2 flex items-center gap-1 border border-gray-300 rounded-full px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 transition">
-  📎 <span id="count-${item.pesanan_id}"></span> Lampiran
+  📎 <span></span> Lampiran
   <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
 </button>
       </div>
@@ -1211,7 +1211,7 @@ async function hapusLampiran(fileId, pesananId) {
       });
 
       const response = await fetch(`${baseUrl}/delete/quotation_file/${fileId}`, {
-        method: 'DELETE', // Atau POST tergantung dokumentasi API kamu
+        method: 'PUT', // Atau POST tergantung dokumentasi API kamu
         headers: { 'Authorization': `Bearer ${API_TOKEN}` }
       });
 
