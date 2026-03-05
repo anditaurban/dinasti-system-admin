@@ -2178,3 +2178,81 @@ async function restoreAutosaveData(data) {
     Swal.fire("Error", "Gagal memulihkan draft.", "error");
   }
 }
+
+async function tryGenerateNoQtn() {
+  const tanggalEl = document.getElementById("tanggal");
+  const typeEl = document.getElementById("type_id");
+  const noQtnEl = document.getElementById("no_qtn");
+
+  if (!tanggalEl || !typeEl || !noQtnEl) return;
+
+  const order_date = tanggalEl.value;
+  const type_id = typeEl.value;
+
+  // 1. Simpan nomor LAMA secara konstan sebagai backup
+  const nomorLamaBackup = noQtnEl.value.trim();
+
+  if (!order_date || !type_id || type_id === "0" || type_id === "") return;
+
+  // Cek apakah sudah ada nomor (bukan baru/kosong)
+  const sudahAdaNomor =
+    nomorLamaBackup !== "" &&
+    nomorLamaBackup !== "[no_qtn kosong]" &&
+    nomorLamaBackup.length > 5;
+
+  if (sudahAdaNomor) {
+    const confirm = await Swal.fire({
+      title: "Update Nomor Quotation?",
+      text: `Tanggal berubah. Apakah Anda ingin memperbarui nomor "${nomorLamaBackup}" secara otomatis?`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Ya, Update",
+      cancelButtonText: "Tidak, Pakai Nomor Lama",
+      reverseButtons: true,
+      allowOutsideClick: false,
+    });
+
+    // 🛑 JIKA USER PILIH TIDAK
+    if (!confirm.isConfirmed) {
+      // Kembalikan ke nomor lama di tampilan
+      noQtnEl.value = nomorLamaBackup;
+
+      // 🔥 PENTING: Paksa Autosave & sistem internal sinkronisasi ulang
+      noQtnEl.dispatchEvent(new Event("input", { bubbles: true }));
+      noQtnEl.dispatchEvent(new Event("change", { bubbles: true }));
+      return;
+    }
+  }
+
+  // 3. JALANKAN GENERATE
+  try {
+    noQtnEl.value = "Generating...";
+
+    const response = await fetch(`${baseUrl}/generate/noqtn`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+      body: JSON.stringify({
+        order_date,
+        type_id,
+        owner_id: user.owner_id,
+        user_id: user.user_id,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (result.data && result.data.no_qtn_content) {
+      noQtnEl.value = result.data.no_qtn_content;
+      // Sinkronisasi nomor baru ke sistem
+      noQtnEl.dispatchEvent(new Event("input", { bubbles: true }));
+    } else {
+      noQtnEl.value = nomorLamaBackup;
+    }
+  } catch (error) {
+    console.error("Gagal generate no_qtn:", error);
+    noQtnEl.value = nomorLamaBackup;
+  }
+}
