@@ -73,10 +73,25 @@ window.rowTemplate = function (item, index, perPage = 10) {
           </button>
         </div>
         
-        <button id="btn-lampiran-${item.pesanan_id}" data-files="${filesEncoded}" onclick="event.stopPropagation(); openLampiranModal('${item.pesanan_id}', '${item.owner_id || 1}')" class="mt-2 flex items-center gap-1 border border-gray-300 rounded-full px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 transition">
-  📎 <span></span> Lampiran
-  <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-</button>
+
+        <button id="btn-lampiran-${item.pesanan_id}" data-files="${filesEncoded}" onclick="event.stopPropagation(); openLampiranModal('${item.pesanan_id}', '${item.owner_id || 1}')" 
+          class="mt-2 flex items-center gap-2 border border-gray-300 rounded-full px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 transition">
+          
+          <div class="flex items-center gap-1">
+            📎 <span>Lampiran</span>
+          </div>
+
+          <span class="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] border 
+            ${fileCount > 0 
+              ? 'bg-blue-600 text-white border-blue-600' 
+              : 'bg-white text-gray-400 border-gray-200'}">
+            ${fileCount}
+          </span>
+
+          <svg class="w-3 h-3 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </button>
       </div>
     </td>
 

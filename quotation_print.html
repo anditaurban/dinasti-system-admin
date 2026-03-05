@@ -40,15 +40,16 @@
     }
 
     .quotation-footer {
-      position: absolute;
-      bottom: 10mm;
-      left: 0;
-      right: 0;
+      /* position: absolute; <-- HAPUS INI */
+      /* bottom: 10mm;       <-- HAPUS INI */
+      margin-top: 30px;   /* Tambahkan jarak dari elemen atasnya */
       text-align: center;
       font-size: 11px;
       padding-top: 10px;
-      width: 210mm;
-      margin: 0 auto;
+      width: 100%;        /* Sesuaikan lebarnya */
+      margin-left: auto;
+      margin-right: auto;
+      page-break-inside: avoid; /* Cegah teks terpotong beda halaman */
     }
 
     @media print {
@@ -63,7 +64,7 @@
 </head>
 
 <body>
-  <div id="invoiceContainer" class="w-[210mm] mx-auto p-[10mm] bg-white min-h-[277mm] relative pb-20"></div>
+  <div id="invoiceContainer" class="w-[210mm] mx-auto px-[10mm] bg-white min-h-[277mm] relative pb-20"></div>
 
   <script>
     const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -306,7 +307,7 @@
           qrTableHtml += `</table>`;
 
           approvedSection = `
-                <div class="text-sm text-right mt-10">
+                <div class="text-sm text-right mt-10" style="page-break-inside: avoid;">
                   <p class="font-semibold">APPROVED BY</p>
                   
                   <div class="mt-2 flex justify-end">
@@ -429,12 +430,15 @@
         if (isDownload || isGetData) {
           // Beri nafas 1 detik sebelum mesin mengambil screenshot DOM
           setTimeout(() => {
+            // Cek di bagian setTimeout isGetData atau isDownload
             const pdfOptions = {
-              margin: 0,
+              // Berikan 10mm di Atas agar berlaku di halaman 1, 2, 3, dst.
+              margin: [10, 0, 15, 0], 
               filename: `${noValue || "invoice"}.pdf`,
               image: { type: "jpeg", quality: 0.98 },
               html2canvas: { scale: 2, useCORS: true, letterRendering: true },
               jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+              pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             };
 
             if (isGetData) {
