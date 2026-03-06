@@ -642,16 +642,22 @@ async function printInvoice(pesanan_id) {
                 const quoPages = await mergedPdf.copyPages(quoDoc, quoDoc.getPageIndices());
                 quoPages.forEach((page) => mergedPdf.addPage(page));
 
+                // --- B. PROSES LAMPIRAN (Dari key data.files) ---
                 if (data.files && Array.isArray(data.files) && data.files.length > 0) {
-                  for (let i = 0; i < data.files.length; i++) {
-                    const fullUrl = data.files[i].file;
+                  
+                  const urutanFiles = [...data.files].reverse(); 
+                  
+                  for (let i = 0; i < urutanFiles.length; i++) {
+                    const fullUrl = urutanFiles[i].file;
                     
+                    // 1. Ekstrak hanya nama filenya saja dari URL panjang
                     const fileName = fullUrl.split('/').pop(); 
                     
+                    // 2. Susun URL baru menggunakan baseUrl
                     const lampiranUrl = `${baseUrl}/file/quotation/${encodeURIComponent(decodeURIComponent(fileName))}`;
 
                     try {
-                      // 3. Ambil file dari endpoint API (Sertakan token karena ini endpoint backend)
+                      // 3. Ambil file dari endpoint API
                       const lampiranResponse = await fetch(lampiranUrl, {
                         method: 'GET',
                         headers: {
