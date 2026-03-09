@@ -35,6 +35,7 @@ async function loadReceiptDetail(receipt_id) {
 
     // inject ke HTML
     document.getElementById("receiptNumber").textContent = d.receipt_number;
+     document.getElementById("receiptTanggal").textContent = d.tanggal;
     document.getElementById("invoiceNumber").textContent = d.inv_number;
     document.getElementById("refNumber").textContent = d.ref;
     document.getElementById("pelangganNama").textContent = d.pelanggan_nama;
