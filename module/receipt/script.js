@@ -6,7 +6,7 @@ setDataType("sales_receipt");
 fetchAndUpdateData();
 
 // =========================================
-// 1. ROW TEMPLATE (DENGAN LOGIKA DELETE & PREVIEW)
+// 1. ROW TEMPLATE (DENGAN LOGIKA DELETE, PREVIEW, & UPLOAD)
 // =========================================
 window.rowTemplate = function (item, index, perPage = 10) {
   const { currentPage } = state[currentDataType];
@@ -28,11 +28,9 @@ window.rowTemplate = function (item, index, perPage = 10) {
   }
 
   // --- B. LOGIC TOMBOL DELETE (Hanya jika Pending) ---
-  // Normalisasi status ke lowercase untuk pengecekan
   const currentStatus = (item.status || "Pending").toLowerCase();
   let deleteButtonHtml = "";
 
-  // Cek: Jika status 'pending', maka tampilkan tombol delete
   if (currentStatus === "pending") {
     deleteButtonHtml = `
       <div class="border-t my-1"></div>
@@ -46,7 +44,6 @@ window.rowTemplate = function (item, index, perPage = 10) {
   // --- C. RENDER HTML ---
   return `
   <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50">
-  
     <td class="px-6 py-4 text-sm border-b sm:border-0 flex justify-between sm:table-cell bg-gray-800 text-white sm:bg-transparent sm:text-gray-700">
       <span class="font-medium sm:hidden">Tanggal</span>
       ${item.tanggal_transaksi}
@@ -95,27 +92,25 @@ window.rowTemplate = function (item, index, perPage = 10) {
       
       <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow-lg z-50 text-sm right-0 mt-2 py-1">
         
-        <button onclick="event.stopPropagation(); loadModuleContent('receipt_detail', '${
-          item.receipt_id
-        }', '${item.receipt_number}');"
+        <button onclick="event.stopPropagation(); loadModuleContent('receipt_detail', '${item.receipt_id}', '${item.receipt_number}');"
           class="block w-full text-left px-4 py-2 hover:bg-gray-100 transition">
           👁️ View Detail
         </button>
 
         ${viewProofButton}
 
+        <button onclick="event.stopPropagation(); handleUploadFile(${item.receipt_id})" 
+                class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-500 transition">
+          📤 ${item.file && item.file !== "null" ? "Update Bukti" : "Upload Bukti"}
+        </button>
         <div class="border-t my-1"></div>
 
-        <button onclick="event.stopPropagation(); confirmPayment('${
-          item.receipt_id
-        }', 2);" 
+        <button onclick="event.stopPropagation(); confirmPayment('${item.receipt_id}', 2);" 
           class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-600 transition">
             ✅ Valid
         </button>
         
-        <button onclick="event.stopPropagation(); confirmPayment('${
-          item.receipt_id
-        }', 3);" 
+        <button onclick="event.stopPropagation(); confirmPayment('${item.receipt_id}', 3);" 
           class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 transition">
             ❌ Tidak Valid
         </button>
@@ -308,5 +303,75 @@ async function confirmPayment(receipt_id, status_value) {
       text: error.message,
       icon: "error",
     });
+  }
+}
+// =========================================
+// 5. UPLOAD / UPDATE BUKTI FILE
+// =========================================
+async function handleUploadFile(receipt_id) {
+  // 1. Tampilkan dialog pemilihan file menggunakan SweetAlert2
+  const { value: file } = await Swal.fire({
+    title: 'Upload Bukti Pembayaran',
+    input: 'file',
+    inputAttributes: {
+      'accept': 'image/*,application/pdf', // Batasi tipe file: gambar & PDF
+      'aria-label': 'Upload file bukti pembayaran'
+    },
+    showCancelButton: true,
+    confirmButtonText: 'Upload',
+    cancelButtonText: 'Batal',
+    inputValidator: (value) => {
+      if (!value) {
+        return 'Anda harus memilih file terlebih dahulu!';
+      }
+    }
+  });
+
+  // 2. Jika file dipilih, proses upload ke endpoint PUT
+  if (file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    Swal.fire({
+      title: 'Mengunggah...',
+      text: 'Mohon tunggu sebentar',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
+
+    try {
+      const response = await fetch(`${baseUrl}/update/sales_receipt_file/${receipt_id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${API_TOKEN}`, 
+          // Catatan: Jangan tambahkan 'Content-Type' secara manual saat memakai FormData
+        },
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (response.ok || result?.response === "200" || result?.success) {
+        Swal.fire({
+          icon: "success",
+          title: "Berhasil!",
+          text: "Bukti pembayaran berhasil diunggah.",
+          timer: 2000,
+          showConfirmButton: false
+        });
+        
+        // Refresh data tabel agar tombol "Lihat Bukti" otomatis muncul
+        fetchAndUpdateData(); 
+      } else {
+        throw new Error(result.message || "Gagal mengunggah file.");
+      }
+    } catch (error) {
+      console.error("❌ Upload error:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Gagal",
+        text: error.message || "Terjadi kesalahan saat mengunggah file."
+      });
+    }
   }
 }

@@ -451,9 +451,7 @@ async function loadDetailSales(Id, Detail) {
                     <span class="bg-gray-100 px-1 rounded border">Tax ${ppnPercent}%: ${formatNumber(
                       ppnAmount,
                     )}</span>
-                    <span class="font-semibold text-gray-600">Total: ${formatNumber(
-                      (dp.amount || 0) + ppnAmount,
-                    )}</span>
+                    <span class="font-semibold text-gray-600">Amount: ${formatNumber(dp.amount || 0)}</span>
                 </div>
             `;
         }
@@ -468,7 +466,10 @@ async function loadDetailSales(Id, Detail) {
 
             <div class="flex items-center gap-2">
                 <span class="font-bold text-green-700 text-base">
-                    ${formatNumber(dp.amount || 0)}
+                ${formatNumber(
+                      (dp.amount || 0) + ppnAmount,
+                    )}
+                    
                 </span>
                 
                 <span class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold border ${statusClass}">
@@ -1022,13 +1023,13 @@ async function openSalesReceiptModal(
         }">
           <input type="radio" name="reference_radio" 
                 value="${value}"
-                data-nominal="${dp.remaining_balance}" 
+                data-nominal="${dp.total_amount}" 
                 data-description="${dp.description || ""}"
                 class="form-radio" ${disabled}>
           <span class="text-sm">
             ${dp.dp_number} - (Total: ${formatRupiah(
-              dp.amount,
-            )}, Sisa: ${formatRupiah(dp.remaining_balance)} 
+              dp.total_amount,
+            )}, Sisa: ${formatRupiah(dp.total_amount)} 
             (${dp.status_payment}) ${dp.description}
           </span>
         </label>

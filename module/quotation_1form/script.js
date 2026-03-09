@@ -645,10 +645,9 @@ async function printInvoice(pesanan_id) {
                 // --- B. PROSES LAMPIRAN (Dari key data.files) ---
                 if (data.files && Array.isArray(data.files) && data.files.length > 0) {
                   
-                  const urutanFiles = [...data.files].reverse(); 
-                  
-                  for (let i = 0; i < urutanFiles.length; i++) {
-                    const fullUrl = urutanFiles[i].file;
+                  // Karena API sudah ASC, kita langsung loop bawaan datanya saja
+                  for (let i = 0; i < data.files.length; i++) {
+                    const fullUrl = data.files[i].file;
                     
                     // 1. Ekstrak hanya nama filenya saja dari URL panjang
                     const fileName = fullUrl.split('/').pop(); 
