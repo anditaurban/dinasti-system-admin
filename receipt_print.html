@@ -150,6 +150,10 @@
         <h2 class="font-bold text-xl text-indigo-400">KUITANSI</h2>
         <table class="border-collapse text-xs mt-2">
           <tr>
+            <td class="px-2 py-1 text-left">Tanggal</td>
+            <td class="border px-3 py-1 text-center">${data.tanggal_transaksi || "-"}</td>
+          </tr>
+          <tr>
             <td class="px-2 py-1 text-left">Receipt</td>
             <td class="border px-3 py-1 text-center">${data.receipt_number || "-"}</td>
           </tr>
