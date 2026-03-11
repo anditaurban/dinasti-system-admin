@@ -8,26 +8,57 @@ fetchAndUpdateData();
 // =========================================
 // 1. ROW TEMPLATE (DENGAN LOGIKA DELETE, PREVIEW, & UPLOAD)
 // =========================================
+// =========================================
+// 1. ROW TEMPLATE (LOGIKA HIDE ICON & VALIDASI JIKA TANPA BUKTI)
+// =========================================
 window.rowTemplate = function (item, index, perPage = 10) {
   const { currentPage } = state[currentDataType];
   const globalIndex = (currentPage - 1) * perPage + index + 1;
 
-  // --- A. LOGIC TOMBOL LIHAT BUKTI ---
+  // --- Cek Ketersediaan File ---
+  const hasFile = item.file && item.file !== "null" && item.file !== "";
+  let fileUrl = "";
+  
+  // Default string kosong (Artinya elemen akan disembunyikan jika tidak ada file)
   let viewProofButton = "";
-  if (item.file && item.file !== "null" && item.file !== "") {
+  let fileIndicatorIcon = "";
+  let validationButtonsHtml = "";
+
+  if (hasFile) {
     const rawFilename = item.file.split("/").pop();
     const safeFilename = encodeURIComponent(rawFilename);
-    const fileUrl = `${baseUrl}/file/receipt/${safeFilename}`;
+    fileUrl = `${baseUrl}/file/receipt/${safeFilename}`;
 
+    // --- A. TOMBOL LIHAT BUKTI & ICON MATA (Hanya di-render jika ada file) ---
     viewProofButton = `
       <button onclick="event.stopPropagation(); handlePreview('${fileUrl}')" 
               class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600 font-medium transition duration-150 ease-in-out">
         👁️ Lihat Bukti
       </button>
     `;
+
+    fileIndicatorIcon = `
+      <button onclick="event.stopPropagation(); handlePreview('${fileUrl}')"
+              class="ml-2 hover:opacity-70 transition duration-150 ease-in-out" title="Lihat Bukti Transaksi">
+        👁️
+      </button>
+    `;
+
+    // --- B. TOMBOL VALIDASI (Hanya di-render jika ada file) ---
+    validationButtonsHtml = `
+      <div class="border-t my-1"></div>
+      <button onclick="event.stopPropagation(); confirmPayment('${item.receipt_id}', 2);" 
+        class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-600 transition">
+          ✅ Valid
+      </button>
+      <button onclick="event.stopPropagation(); confirmPayment('${item.receipt_id}', 3);" 
+        class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 transition">
+          ❌ Tidak Valid
+      </button>
+    `;
   }
 
-  // --- B. LOGIC TOMBOL DELETE (Hanya jika Pending) ---
+  // --- C. LOGIC TOMBOL DELETE (Hanya jika Pending) ---
   const currentStatus = (item.status || "Pending").toLowerCase();
   let deleteButtonHtml = "";
 
@@ -41,7 +72,7 @@ window.rowTemplate = function (item, index, perPage = 10) {
     `;
   }
 
-  // --- C. RENDER HTML ---
+  // --- D. RENDER HTML ---
   return `
   <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50">
     <td class="px-6 py-4 text-sm border-b sm:border-0 flex justify-between sm:table-cell bg-gray-800 text-white sm:bg-transparent sm:text-gray-700">
@@ -49,9 +80,12 @@ window.rowTemplate = function (item, index, perPage = 10) {
       ${item.tanggal_transaksi}
     </td>
   
-    <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
+    <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell items-center">
       <span class="font-medium sm:hidden">No. Receipt</span>
-      ${item.receipt_number}
+      <div class="flex items-center">
+        ${item.receipt_number}
+        ${fileIndicatorIcon}
+      </div>
     </td>
 
     <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
@@ -101,20 +135,10 @@ window.rowTemplate = function (item, index, perPage = 10) {
 
         <button onclick="event.stopPropagation(); handleUploadFile(${item.receipt_id})" 
                 class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-500 transition">
-          📤 ${item.file && item.file !== "null" ? "Update Bukti" : "Upload Bukti"}
-        </button>
-        <div class="border-t my-1"></div>
-
-        <button onclick="event.stopPropagation(); confirmPayment('${item.receipt_id}', 2);" 
-          class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-600 transition">
-            ✅ Valid
-        </button>
-        
-        <button onclick="event.stopPropagation(); confirmPayment('${item.receipt_id}', 3);" 
-          class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 transition">
-            ❌ Tidak Valid
+          📤 ${hasFile ? "Update Bukti" : "Upload Bukti"}
         </button>
 
+        ${validationButtonsHtml}
         ${deleteButtonHtml}
 
       </div>

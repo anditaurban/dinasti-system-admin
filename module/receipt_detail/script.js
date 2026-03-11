@@ -37,7 +37,7 @@ async function loadReceiptDetail(receipt_id) {
     document.getElementById("receiptNumber").textContent = d.receipt_number;
      document.getElementById("receiptTanggal").textContent = d.tanggal_transaksi;
     document.getElementById("invoiceNumber").textContent = d.inv_number;
-    document.getElementById("refNumber").textContent = d.ref;
+    document.getElementById("refNumber").textContent = d.po_number;
     document.getElementById("pelangganNama").textContent = d.pelanggan_nama;
     document.getElementById("terbilang").textContent = d.terbilang;
     document.getElementById("keterangan").textContent = d.keterangan;

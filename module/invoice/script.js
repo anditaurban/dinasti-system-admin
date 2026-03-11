@@ -13,14 +13,29 @@ window.rowTemplate = function (item, index, perPage = 10) {
   return `
   <tr class="flex flex-col sm:table-row border rounded sm:rounded-none mb-4 sm:mb-0 shadow-sm sm:shadow-none transition hover:bg-gray-50">
   
+    
     <td class="px-6 py-4 text-sm border-b sm:border-0 flex justify-between sm:table-cell bg-gray-800 text-white sm:bg-transparent sm:text-gray-700">
       <span class="font-medium sm:hidden">Tanggal Inv</span>
-      ${item.invoice_date}
+      <div class="flex flex-col gap-1">
+        <div class="font-medium text-gray-900">${item.invoice_date || '-'}</div>
+        <div class="text-xs text-gray-500">
+          ${item.invoiceDP && item.invoiceDP.length > 0 
+            ? item.invoiceDP.map(dp => dp.tanggal_invoiceDP).join('<br>') 
+            : '-'}
+        </div>
+      </div>
     </td>
   
     <td class="px-6 py-4 text-sm text-gray-700 border-b sm:border-0 flex justify-between sm:table-cell">
       <span class="font-medium sm:hidden">No. Invoice</span>
-      ${item.inv_number}
+      <div class="flex flex-col gap-1">
+        <div class="font-medium text-gray-900">${item.inv_number || '-'}</div>
+        <div class="text-xs text-gray-500">
+          ${item.invoiceDP && item.invoiceDP.length > 0 
+            ? item.invoiceDP.map(dp => dp.nomor_invoiceDP).join('<br>') 
+            : '-'}
+        </div>
+      </div>
     </td>
 
     <td class="px-6 py-4 text-sm border-b sm:border-0 flex justify-between sm:table-cell bg-gray-800 text-white sm:bg-transparent sm:text-gray-700">
