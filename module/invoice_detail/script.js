@@ -360,15 +360,21 @@ async function loadDetailSales(Id, Detail) {
         }
         const paymentId = p.payment_id; 
         
-        const deleteBtn = `
-            <button onclick="deletePayment('${paymentId}')" 
-               class="ml-2 w-6 h-6 flex items-center justify-center text-red-500 hover:text-red-700 transition"
-               title="Hapus Pembayaran" type="button">
-               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-               </svg>
-            </button>
-        `;
+        // 🔥 UBAH BAGIAN INI: Kondisikan tombol hapus
+        let deleteBtn = ""; // Default kosong (hide)
+        
+        // Cek jika status ada dan isinya "pending" (case-insensitive)
+        if (p.status && p.status.toLowerCase() === "pending") {
+            deleteBtn = `
+                <button onclick="deletePayment('${paymentId}')" 
+                   class="ml-2 w-6 h-6 flex items-center justify-center text-red-500 hover:text-red-700 transition"
+                   title="Hapus Pembayaran" type="button">
+                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                   </svg>
+                </button>
+            `;
+        }
         // -----------------------------------------------
 
         div.innerHTML = `
@@ -536,7 +542,7 @@ pembayaranSection.appendChild(div);
              ${
                dp.status_payment !== "paid"
                  ? `<button 
-                    onclick="openUpdateDPModal('${dpDataString}')" 
+                    onclick="openDPModal('edit', '${dpDataString}')"
                     class="px-2 py-0.5 border rounded text-[10px] bg-yellow-50 text-yellow-700 hover:bg-yellow-100 font-medium transition whitespace-nowrap">
                     ✏️ Edit
                   </button>`
@@ -572,7 +578,7 @@ pembayaranSection.appendChild(div);
     } else {
       // Jika invoice utama belum lunas, tampilkan tombol tambah DP
       invoiceDPButtonEl.innerHTML = `
-      <button onclick="tambahUangMuka('${data.pesanan_id}', '${data.contract_amount}')" 
+      <button onclick="openDPModal('add')"
         class="w-full py-1 px-2 border rounded bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs">
         ➕ Add Invoice DP/Progress
       </button>`;
@@ -690,259 +696,7 @@ function toggleSection(id) {
   icon.textContent = section.classList.contains("hidden") ? "►" : "▼";
 }
 
-async function tambahUangMuka(pesananId) {
-  // 1. Ambil data dari variabel global yang sudah diload
-  const data = currentInvoiceData;
-  if (!data) {
-    return Swal.fire("Error", "Data invoice belum siap.", "error");
-  }
 
-  // 2. Parsing angka untuk kebutuhan display dan validasi
-  const subtotal = parseFloat(data.subtotal) || 0;
-  const ppnValue = parseFloat(data.ppn) || 0;
-  const totalAmount = parseFloat(data.contract_amount) || parseFloat(data.total) || 0;
-  const remainingBalance = parseFloat(data.remaining_balance) || 0;
-
-  const { value: formValues } = await Swal.fire({
-    title: "Tambah Uang Muka (DP)",
-    width: "600px",
-    html: `
-  <div class="space-y-3 text-left text-gray-800">
-    <div class="grid grid-cols-2 gap-3">
-        <div>
-            <label class="block text-sm mb-1">Tanggal DP <span class="text-red-500">*</span></label>
-            <input type="date" id="dp_date"
-              class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring" />
-        </div>
-        <div>
-            <label class="block text-sm mb-1">Jatuh Tempo</label>
-            <input type="date" id="due_date"
-              class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring" />
-        </div>
-    </div>
-
-    <div class="bg-blue-50 p-3 rounded border border-blue-200 text-xs text-blue-900 space-y-1 shadow-inner">
-        <div class="flex justify-between">
-            <span class="text-gray-600">Subtotal (Dasar Hitung):</span>
-            <span class="font-medium">${formatRupiah(subtotal)}</span>
-        </div>
-        <div class="flex justify-between">
-            <span class="text-gray-600">PPN 11%:</span>
-            <span class="font-medium">${formatRupiah(ppnValue)}</span>
-        </div>
-        <div class="flex justify-between">
-            <span class="text-gray-600">Total Kontrak:</span>
-            <span class="font-bold">${formatRupiah(totalAmount)}</span>
-        </div>
-        <hr class="border-blue-200 my-1">
-        <div class="flex justify-between text-red-600 text-sm font-bold">
-            <span>Outstanding (Sisa Tagihan):</span>
-            <span>${formatRupiah(remainingBalance)}</span>
-        </div>
-    </div>
-
-    <div class="grid grid-cols-12 gap-3 bg-gray-50 p-3 rounded border border-gray-300">
-        <div class="col-span-4">
-            <label class="block text-sm mb-1">Persen (%) <span class="text-red-500">*</span></label>
-            <div class="relative">
-                <input type="number" id="percentage" step="0.1"
-                    class="w-full border border-gray-300 rounded px-3 py-2 text-right focus:outline-none focus:ring"
-                    placeholder="0" />
-                <span class="absolute right-3 top-2 text-sm text-gray-500">%</span>
-            </div>
-        </div>
-
-        <div class="col-span-8">
-            <label class="block text-sm mb-1">Nominal Dasar (Exclude PPN) <span class="text-red-500">*</span></label>
-            <input type="text" id="amount" onkeyup="formatCurrencyInput(this)"
-                class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring"
-                placeholder="Contoh: 1.000.000" />
-        </div>
-    </div>
-
-    <div class="flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-300">
-        <div class="flex items-center gap-2">
-            <input type="checkbox" id="is_tax" class="w-4 h-4">
-            <label for="is_tax" class="text-sm">Tax / PPN</label>
-        </div>
-        <div class="flex items-center gap-1 w-24">
-            <input type="number" id="tax_percent" value="11" disabled
-                class="w-full border border-gray-300 rounded px-2 py-1 text-right text-sm bg-gray-100 focus:outline-none">
-            <span class="text-sm">%</span>
-        </div>
-    </div>
-
-    <div class="space-y-1 text-right border-t border-gray-300 pt-2 text-sm">
-        <div class="flex justify-between">
-            <span>PPN Amount:</span>
-            <span id="preview_ppn_amount">Rp 0</span>
-        </div>
-        <div class="flex justify-between font-bold text-base">
-            <span>Total DP (Include PPN):</span>
-            <span id="preview_total_display" class="text-green-600">Rp 0</span>
-        </div>
-        <div id="warning_overpay" class="text-red-500 text-[10px] hidden text-right italic">
-            ⚠️ Peringatan: Total tagihan melebihi sisa (outstanding).
-        </div>
-    </div>
-
-    <div>
-      <label class="block text-sm mb-1">Deskripsi Invoice <span class="text-red-500">*</span></label>
-      <textarea id="description" rows="2"
-        class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring"
-        placeholder="Contoh: Uang muka 50%"></textarea>
-    </div>
-  </div>
-`,
-
-    focusConfirm: false,
-    showCancelButton: true,
-    confirmButtonText: "Simpan",
-    cancelButtonText: "Batal",
-
-    didOpen: () => {
-      document.getElementById("dp_date").valueAsDate = new Date();
-
-      const percentageInput = document.getElementById("percentage");
-      const amountInput = document.getElementById("amount");
-      const isTaxCheck = document.getElementById("is_tax");
-      const taxPercentInput = document.getElementById("tax_percent");
-
-      const previewPpn = document.getElementById("preview_ppn_amount");
-      const previewTotal = document.getElementById("preview_total_display");
-      const warningOverpay = document.getElementById("warning_overpay");
-
-      function parseRupiahInput(inputVal) {
-        if (!inputVal) return 0;
-        let clean = inputVal.replace(/[^0-9,]/g, "").replace(/,/g, ".");
-        return parseFloat(clean) || 0;
-      }
-
-      // ✨ REVISI: Hitungan persen sekarang dikali SUBTOTAL, bukan contractAmount
-      percentageInput.addEventListener("input", () => {
-        let pct = parseFloat(percentageInput.value) || 0;
-        let nominal = subtotal * (pct / 100); 
-        amountInput.value = formatRupiah(nominal);
-        calculateFinal();
-      });
-
-      // ✨ REVISI: Hitungan nominal kembali ke persen, dibagi SUBTOTAL
-      amountInput.addEventListener("keyup", () => {
-        let nominal = parseRupiahInput(amountInput.value);
-        if (subtotal > 0) {
-          let pct = (nominal / subtotal) * 100;
-          percentageInput.value = parseFloat(pct.toFixed(2));
-        }
-        calculateFinal();
-      });
-
-      function calculateFinal() {
-        let amount = parseRupiahInput(amountInput.value);
-        let taxRate = 0;
-
-        if (isTaxCheck.checked) {
-          taxPercentInput.removeAttribute("disabled");
-          taxPercentInput.classList.remove("bg-gray-100");
-          taxRate = parseFloat(taxPercentInput.value) || 0;
-        } else {
-          taxPercentInput.setAttribute("disabled", true);
-          taxPercentInput.classList.add("bg-gray-100");
-        }
-
-        let taxValue = amount * (taxRate / 100);
-        let total = amount + taxValue;
-
-        previewPpn.textContent = formatRupiah(taxValue);
-        previewTotal.textContent = formatRupiah(total);
-
-        // ✨ REVISI: Real-time UI Warning jika overpay
-        if (total > remainingBalance) {
-            previewTotal.classList.replace("text-green-600", "text-red-600");
-            warningOverpay.classList.remove("hidden");
-        } else {
-            previewTotal.classList.replace("text-red-600", "text-green-600");
-            warningOverpay.classList.add("hidden");
-        }
-      }
-
-      isTaxCheck.addEventListener("change", calculateFinal);
-      taxPercentInput.addEventListener("input", calculateFinal);
-    },
-
-    preConfirm: () => {
-      const rawVal = document.getElementById("amount").value;
-      const cleanVal = rawVal.replace(/[^0-9,]/g, "").replace(/,/g, ".");
-      const amountVal = parseFloat(cleanVal) || 0;
-
-      const isTax = document.getElementById("is_tax").checked;
-      const taxRate = isTax ? parseFloat(document.getElementById("tax_percent").value) || 0 : 0;
-
-      const ppnAmount = amountVal * (taxRate / 100);
-      const totalAmountInput = amountVal + ppnAmount;
-
-      // ✨ REVISI: Block submit jika Total DP melebihi sisa tagihan (Outstanding)
-      if (totalAmountInput > remainingBalance) {
-          Swal.showValidationMessage(`Gagal: Total tagihan DP (${formatRupiah(totalAmountInput)}) melebihi Sisa Tagihan (${formatRupiah(remainingBalance)}).`);
-          return false;
-      }
-
-      return {
-        dp_date: document.getElementById("dp_date").value,
-        due_date: document.getElementById("due_date").value,
-        amount: amountVal,
-        percentage: parseFloat(document.getElementById("percentage").value) || 0,
-        ppn_percent: taxRate,
-        ppn_amount: ppnAmount,
-        total_amount: totalAmountInput,
-        description: document.getElementById("description").value,
-      };
-    },
-  });
-
-  if (formValues) {
-    try {
-      const res = await fetch(`${baseUrl}/add/sales_dp`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${API_TOKEN}`,
-        },
-        body: JSON.stringify({
-          pesanan_id: pesananId,
-          owner_id: owner_id,
-          user_id: user_id,
-          dp_date: formValues.dp_date,
-          due_date: formValues.due_date,
-          amount: formValues.amount,
-          percentage: formValues.percentage,
-          ppn_percent: formValues.ppn_percent,
-          ppn_amount: formValues.ppn_amount,
-          total_amount: formValues.total_amount,
-          description: formValues.description,
-          invoice_id: window.detail_id,
-        }),
-      });
-
-      if (!res.ok) throw new Error("Gagal menyimpan data DP");
-
-      const result = await res.json();
-
-      await Swal.fire({
-        icon: "success",
-        title: "Berhasil",
-        text: result.message || "Uang muka berhasil ditambahkan",
-      });
-
-      loadModuleContent("invoice_detail", window.detail_id, window.detail_desc);
-    } catch (err) {
-      await Swal.fire({
-        icon: "error",
-        title: "Gagal",
-        text: err.message,
-      });
-    }
-  }
-}
 
 async function printInvoice(pesanan_id) {
   try {
@@ -1514,287 +1268,316 @@ async function handleSaveInvoiceInfo(formData) {
   }
 }
 
-/**
- * ======================================
- * FUNGSI BARU: Update Invoice DP
- * ======================================
- */
 
-async function openUpdateDPModal(dpDataString) {
-  let dpData;
-  try {
-    dpData = JSON.parse(decodeURIComponent(dpDataString));
-  } catch (e) {
-    console.error("Gagal parse data DP:", e);
-    Swal.fire("Error", "Gagal memuat data DP.", "error");
-    return;
+async function openDPModal(mode, param = null) {
+  // Ambil data utama dari variabel global
+  const data = currentInvoiceData;
+  if (!data) return Swal.fire("Error", "Data invoice belum siap.", "error");
+
+  const subtotal = parseFloat(data.subtotal) || 0;
+  const ppnValue = parseFloat(data.ppn) || 0;
+  const totalAmount = parseFloat(data.contract_amount) || parseFloat(data.total) || 0;
+  let remainingBalance = parseFloat(data.remaining_balance) || 0;
+
+  // ✨ TAMBAHAN: Cek apakah invoice utama menggunakan pajak
+  const isMainInvoiceTaxActive = ppnValue > 0;
+
+  // Variabel penampung state form
+  let dpData = {};
+  // Secara default mode 'add', centang PPN jika invoice utama pakai PPN
+  let isTaxActive = isMainInvoiceTaxActive; 
+  let displayTaxPercent = 11;
+  let initialPercent = "";
+  let title = "Tambah Uang Muka (DP)";
+  let btnText = "Simpan";
+
+  // 🔹 JIKA MODE EDIT: Parsing Data & Sesuaikan Limit
+  if (mode === "edit") {
+    try {
+      dpData = JSON.parse(decodeURIComponent(param));
+    } catch (e) {
+      return Swal.fire("Error", "Gagal memuat data DP.", "error");
+    }
+
+    if (dpData.status_payment === "paid") {
+      return Swal.fire("Info", "Invoice DP yang sudah lunas tidak dapat di-update.", "info");
+    }
+
+    const existingTax = parseFloat(dpData.ppn_percent || dpData.tax_percent || 0);
+    // Pastikan pajak hanya aktif jika dari database aktif DAN invoice utama pakai pajak
+    isTaxActive = isMainInvoiceTaxActive && (existingTax > 0 || dpData.is_tax == 1);
+    displayTaxPercent = existingTax > 0 ? existingTax : 11;
+
+    initialPercent = dpData.percentage;
+    if (!initialPercent && subtotal > 0 && dpData.amount > 0) {
+      initialPercent = (dpData.amount / subtotal) * 100;
+    }
+
+    // Penting: Kembalikan limit 'remainingBalance' sementara karena DP ini sedang diedit
+    remainingBalance += parseFloat(dpData.total_amount || 0);
+
+    title = "Update Invoice DP";
+    btnText = "Simpan Perubahan";
   }
 
-  if (dpData.status_payment === "paid") {
-    Swal.fire(
-      "Info",
-      "Invoice DP yang sudah lunas tidak dapat di-update.",
-      "info",
-    );
-    return;
-  }
-
-  // Ambil total kontrak dari variabel global (karena tidak disimpan di table DP)
-  const contractAmount = parseFloat(
-    currentInvoiceData?.contract_amount || currentInvoiceData?.subtotal || 0,
-  );
-
-  // Cek Logic Pajak dari data eksisting
-  // Jika ppn_percent > 0 atau is_tax == 1, maka aktifkan checkbox
-  const existingTaxPercent = parseFloat(
-    dpData.ppn_percent || dpData.tax_percent || 0,
-  );
-  const isTaxActive = existingTaxPercent > 0 || dpData.is_tax == 1;
-  const displayTaxPercent = existingTaxPercent > 0 ? existingTaxPercent : 11;
-
-  // Hitung persentase awal jika backend tidak kirim (backward compatibility)
-  let initialPercent = dpData.percentage;
-  if (!initialPercent && contractAmount > 0 && dpData.amount > 0) {
-    initialPercent = (dpData.amount / contractAmount) * 100;
-  }
-
+  // 🔹 TAMPILKAN SWEETALERT MODAL
   const { value: formValues } = await Swal.fire({
-    title: "Update Invoice DP",
+    title: title,
     width: "600px",
     html: `
-  <div class="space-y-3 text-left text-gray-800">
-    <div class="grid grid-cols-2 gap-3">
-        <div>
-            <label class="block text-sm mb-1">Tanggal DP</label>
-            <input type="date" id="dp_date_update"
-              class="w-full border border-gray-300 rounded px-3 py-2"
-              value="${dpData.dp_date || ""}">
-        </div>
-        <div>
-            <label class="block text-sm mb-1">Jatuh Tempo</label>
-            <input type="date" id="due_date_update"
-              class="w-full border border-gray-300 rounded px-3 py-2"
-              value="${dpData.due_date || ""}">
-        </div>
-    </div>
-
-    <div class="grid grid-cols-12 gap-3 bg-gray-50 p-3 rounded border border-gray-300">
-        <div class="col-span-12 mb-1 text-xs">
-            Basis Kontrak: ${formatRupiah(contractAmount)}
-        </div>
-
-        <div class="col-span-4">
-            <label class="block text-sm mb-1">Persen (%)</label>
-            <div class="relative">
-                <input type="number" id="percentage_update" step="0.1"
-                    class="w-full border border-gray-300 rounded px-3 py-2 text-right focus:outline-none focus:ring"
-                    value="${parseFloat(initialPercent || 0).toFixed(2)}" />
-                <span class="absolute right-3 top-2 text-sm text-gray-500">%</span>
+      <div class="space-y-3 text-left text-gray-800">
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label class="block text-sm mb-1">Tanggal DP <span class="text-red-500">*</span></label>
+                <input type="date" id="dp_date"
+                  class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring" 
+                  value="${dpData.dp_date || ''}" />
+            </div>
+            <div>
+                <label class="block text-sm mb-1">Jatuh Tempo</label>
+                <input type="date" id="due_date"
+                  class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring" 
+                  value="${dpData.due_date || ''}" />
             </div>
         </div>
 
-        <div class="col-span-8">
-            <label class="block text-sm mb-1">Nominal (Exclude PPN)</label>
-            <input type="text" id="amount_update" onkeyup="formatCurrencyInput(this)"
-                class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring"
-                value="${formatNumber(dpData.amount || 0)}">
+        <div class="bg-blue-50 p-3 rounded border border-blue-200 text-xs text-blue-900 space-y-1 shadow-inner">
+            <div class="flex justify-between">
+                <span class="text-gray-600">Subtotal (Dasar Hitung):</span>
+                <span class="font-medium">${formatRupiah(subtotal)}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600">PPN 11%:</span>
+                <span class="font-medium">${formatRupiah(ppnValue)}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600">Total Kontrak:</span>
+                <span class="font-bold">${formatRupiah(totalAmount)}</span>
+            </div>
+            <hr class="border-blue-200 my-1">
+            <div class="flex justify-between text-red-600 text-sm font-bold">
+                <span>Outstanding (Sisa Limit Input):</span>
+                <span>${formatRupiah(remainingBalance)}</span>
+            </div>
         </div>
-    </div>
 
-    <div class="flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-300">
-        <div class="flex items-center gap-2">
-            <input type="checkbox" id="is_tax_update" class="w-4 h-4"
-              ${isTaxActive ? "checked" : ""}>
-            <label for="is_tax_update" class="text-sm">Tax / PPN</label>
-        </div>
-        <div class="flex items-center gap-1 w-24">
-            <input type="number" id="tax_percent_update"
-              value="${displayTaxPercent}"
-              class="w-full border border-gray-300 rounded px-2 py-1 text-right text-sm focus:outline-none ${
-                isTaxActive ? "" : "bg-gray-100"
-              }"
-              ${isTaxActive ? "" : "disabled"}>
-            <span class="text-sm">%</span>
-        </div>
-    </div>
+        <div class="grid grid-cols-12 gap-3 bg-gray-50 p-3 rounded border border-gray-300">
+            <div class="col-span-4">
+                <label class="block text-sm mb-1">Persen (%) <span class="text-red-500">*</span></label>
+                <div class="relative">
+                    <input type="number" id="percentage" step="0.1"
+                        class="w-full border border-gray-300 rounded px-3 py-2 text-right focus:outline-none focus:ring"
+                        placeholder="0" value="${initialPercent ? parseFloat(initialPercent).toFixed(2) : ''}" />
+                    <span class="absolute right-3 top-2 text-sm text-gray-500">%</span>
+                </div>
+            </div>
 
-    <div class="space-y-1 text-right border-t border-gray-300 pt-2 text-sm">
-        <div class="flex justify-between">
-            <span>PPN Amount:</span>
-            <span id="preview_ppn_update">Rp 0</span>
+            <div class="col-span-8">
+                <label class="block text-sm mb-1">Nominal Dasar (Exclude PPN) <span class="text-red-500">*</span></label>
+                <input type="text" id="amount" onkeyup="formatCurrencyInput(this)"
+                    class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring"
+                    placeholder="Contoh: 1.000.000" value="${formatNumber(dpData.amount || 0)}" />
+            </div>
         </div>
-        <div class="flex justify-between">
-            <span>Total Tagihan (Include PPN):</span>
-            <span id="preview_total_update">Rp 0</span>
+
+        <div class="${isMainInvoiceTaxActive ? 'flex' : 'hidden'} items-center justify-between bg-gray-50 p-2 rounded border border-gray-300">
+            <div class="flex items-center gap-2">
+                <input type="checkbox" id="is_tax" class="w-4 h-4" ${isTaxActive ? 'checked' : ''}>
+                <label for="is_tax" class="text-sm">Tax / PPN</label>
+            </div>
+            <div class="flex items-center gap-1 w-24">
+                <input type="number" id="tax_percent" value="${displayTaxPercent}" 
+                    class="w-full border border-gray-300 rounded px-2 py-1 text-right text-sm focus:outline-none ${!isTaxActive ? 'bg-gray-100' : ''}" 
+                    ${!isTaxActive ? 'disabled' : ''}>
+                <span class="text-sm">%</span>
+            </div>
         </div>
-    </div>
 
-    <div>
-      <label class="block text-sm mb-1">Deskripsi Invoice</label>
-      <textarea id="description_update" rows="2"
-        class="w-full border border-gray-300 rounded px-3 py-2">${
-          dpData.description || ""
-        }</textarea>
-    </div>
-  </div>
-`,
+        ${!isMainInvoiceTaxActive ? `
+        <div class="bg-gray-50 p-2 rounded border border-gray-200 text-xs text-gray-500 italic">
+            ℹ️ Komponen pajak dinonaktifkan karena Invoice Utama tidak menggunakan PPN.
+        </div>
+        ` : ''}
 
+        <div class="space-y-1 text-right border-t border-gray-300 pt-2 text-sm">
+            <div class="flex justify-between">
+                <span>PPN Amount:</span>
+                <span id="preview_ppn_amount">Rp 0</span>
+            </div>
+            <div class="flex justify-between font-bold text-base">
+                <span>Total DP (Include PPN):</span>
+                <span id="preview_total_display" class="text-green-600">Rp 0</span>
+            </div>
+            <div id="warning_overpay" class="text-red-500 text-[10px] hidden text-right italic">
+                ⚠️ Peringatan: Total tagihan melebihi sisa limit.
+            </div>
+        </div>
+
+        <div>
+          <label class="block text-sm mb-1">Deskripsi Invoice <span class="text-red-500">*</span></label>
+          <textarea id="description" rows="2"
+            class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring"
+            placeholder="Contoh: Uang muka 50%">${dpData.description || ''}</textarea>
+        </div>
+      </div>
+    `,
     focusConfirm: false,
     showCancelButton: true,
-    confirmButtonText: "Simpan Perubahan",
+    confirmButtonText: btnText,
     cancelButtonText: "Batal",
-    // ... (Bagian atas Swal tetap sama) ...
 
-    // Di dalam openUpdateDPModal
-didOpen: () => {
-  // Gunakan ID dengan akhiran _update sesuai HTML modalnya
-  const percentageInput = document.getElementById("percentage_update");
-  const amountInput = document.getElementById("amount_update");
-  const isTaxCheck = document.getElementById("is_tax_update");
-  const taxPercentInput = document.getElementById("tax_percent_update");
-
-  const previewPpn = document.getElementById("preview_ppn_update");
-  const previewTotal = document.getElementById("preview_total_update");
-
-  function parseRupiahInput(inputVal) {
-    if (!inputVal) return 0;
-    let clean = inputVal.replace(/[^0-9,]/g, "").replace(/,/g, ".");
-    return parseFloat(clean) || 0;
-  }
-
-  function calculateFinal() {
-    let amount = parseRupiahInput(amountInput.value);
-    let taxRate = 0;
-
-    if (isTaxCheck.checked) {
-      taxPercentInput.removeAttribute("disabled");
-      taxPercentInput.classList.remove("bg-gray-100");
-      taxRate = parseFloat(taxPercentInput.value) || 0;
-    } else {
-      taxPercentInput.setAttribute("disabled", true);
-      taxPercentInput.classList.add("bg-gray-100");
-    }
-
-    let taxValue = amount * (taxRate / 100);
-    let total = amount + taxValue;
-
-    previewPpn.textContent = formatRupiah(taxValue);
-    previewTotal.textContent = formatRupiah(total);
-  }
-
-  // Tambahkan listener ke elemen yang benar
-  if(percentageInput) {
-    percentageInput.addEventListener("input", () => {
-      let pct = parseFloat(percentageInput.value) || 0;
-      let nominal = contractAmount * (pct / 100);
-      amountInput.value = formatRupiah(nominal);
-      calculateFinal();
-    });
-  }
-
-  if(amountInput) {
-    amountInput.addEventListener("keyup", () => {
-      let nominal = parseRupiahInput(amountInput.value);
-      if (contractAmount > 0) {
-        let pct = (nominal / contractAmount) * 100;
-        percentageInput.value = parseFloat(pct.toFixed(2));
+    didOpen: () => {
+      // Set default Date khusus mode Add
+      const dpDateEl = document.getElementById("dp_date");
+      if (mode === "add" && !dpDateEl.value) {
+         dpDateEl.valueAsDate = new Date();
       }
-      calculateFinal();
-    });
-  }
 
-  isTaxCheck?.addEventListener("change", calculateFinal);
-  taxPercentInput?.addEventListener("input", calculateFinal);
-  
-  // Jalankan kalkulasi pertama kali saat modal buka
-  calculateFinal();
-},
+      const percentageInput = document.getElementById("percentage");
+      const amountInput = document.getElementById("amount");
+      const isTaxCheck = document.getElementById("is_tax");
+      const taxPercentInput = document.getElementById("tax_percent");
 
-preConfirm: () => {
-  // Ambil nilai dari ID _update
-  const rawVal = document.getElementById("amount_update").value;
-  const cleanVal = rawVal.replace(/[^0-9,]/g, "").replace(/,/g, ".");
-  const amountVal = parseFloat(cleanVal) || 0;
+      const previewPpn = document.getElementById("preview_ppn_amount");
+      const previewTotal = document.getElementById("preview_total_display");
+      const warningOverpay = document.getElementById("warning_overpay");
 
-  const isTax = document.getElementById("is_tax_update").checked;
-  const taxRate = isTax ? parseFloat(document.getElementById("tax_percent_update").value) || 0 : 0;
+      function parseRupiahInput(inputVal) {
+        if (!inputVal) return 0;
+        let clean = inputVal.replace(/[^0-9,]/g, "").replace(/,/g, ".");
+        return parseFloat(clean) || 0;
+      }
 
-  return {
-    dp_id: dpData.dp_id, // Pastikan ID DP dibawa untuk update
-    dp_date: document.getElementById("dp_date_update").value,
-    due_date: document.getElementById("due_date_update").value,
-    amount: amountVal,
-    percentage: parseFloat(document.getElementById("percentage_update").value) || 0,
-    ppn_percent: taxRate,
-    ppn_amount: amountVal * (taxRate / 100),
-    total_amount: amountVal + (amountVal * (taxRate / 100)),
-    description: document.getElementById("description_update").value,
-  };
-}
+      // Hitungan UI Real-time
+      percentageInput.addEventListener("input", () => {
+        let pct = parseFloat(percentageInput.value) || 0;
+        let nominal = subtotal * (pct / 100); 
+        amountInput.value = formatRupiah(nominal);
+        calculateFinal();
+      });
 
-    // ... (Sisa kode sama) ...
+      amountInput.addEventListener("keyup", () => {
+        let nominal = parseRupiahInput(amountInput.value);
+        if (subtotal > 0) {
+          let pct = (nominal / subtotal) * 100;
+          percentageInput.value = parseFloat(pct.toFixed(2));
+        }
+        calculateFinal();
+      });
+
+      function calculateFinal() {
+        let amount = parseRupiahInput(amountInput.value);
+        let taxRate = 0;
+
+        if (isTaxCheck.checked) {
+          taxPercentInput.removeAttribute("disabled");
+          taxPercentInput.classList.remove("bg-gray-100");
+          taxRate = parseFloat(taxPercentInput.value) || 0;
+        } else {
+          taxPercentInput.setAttribute("disabled", true);
+          taxPercentInput.classList.add("bg-gray-100");
+        }
+
+        let taxValue = amount * (taxRate / 100);
+        let total = amount + taxValue;
+
+        previewPpn.textContent = formatRupiah(taxValue);
+        previewTotal.textContent = formatRupiah(total);
+
+        // Warning UI Overpay
+        if (total > remainingBalance) {
+            previewTotal.classList.replace("text-green-600", "text-red-600");
+            warningOverpay.classList.remove("hidden");
+        } else {
+            previewTotal.classList.replace("text-red-600", "text-green-600");
+            warningOverpay.classList.add("hidden");
+        }
+      }
+
+      isTaxCheck.addEventListener("change", calculateFinal);
+      taxPercentInput.addEventListener("input", calculateFinal);
+      
+      calculateFinal(); // Render hitungan pertama kali modal terbuka
+    },
+
+    preConfirm: () => {
+      const rawVal = document.getElementById("amount").value;
+      const cleanVal = rawVal.replace(/[^0-9,]/g, "").replace(/,/g, ".");
+      const amountVal = parseFloat(cleanVal) || 0;
+
+      const isTax = document.getElementById("is_tax").checked;
+      const taxRate = isTax ? parseFloat(document.getElementById("tax_percent").value) || 0 : 0;
+
+      const ppnAmount = amountVal * (taxRate / 100);
+      const totalAmountInput = amountVal + ppnAmount;
+
+      if (totalAmountInput > remainingBalance) {
+          Swal.showValidationMessage(`Gagal: Total tagihan (${formatRupiah(totalAmountInput)}) melebihi batas sisa (${formatRupiah(remainingBalance)}).`);
+          return false;
+      }
+
+      // Trik Bypass Backend untuk Pesan Error 400
+      let percentageForAPI = parseFloat(document.getElementById("percentage").value) || 0;
+      if (totalAmount > 0) {
+          percentageForAPI = (amountVal / totalAmount) * 100;
+      }
+
+      return {
+        dp_date: document.getElementById("dp_date").value,
+        due_date: document.getElementById("due_date").value,
+        amount: amountVal,
+        percentage: parseFloat(percentageForAPI.toFixed(2)), 
+        ppn_percent: taxRate,
+        ppn_amount: ppnAmount,
+        total_amount: totalAmountInput,
+        description: document.getElementById("description").value,
+      };
+    },
   });
 
+  // 🔹 EKSEKUSI API CALL (POST / PUT)
   if (formValues) {
-    await handleUpdateDP(formValues);
-  }
-}
-
-async function handleUpdateDP(formValues) {
-  Swal.fire({
-    title: "Menyimpan...",
-    text: "Sedang memperbarui data Invoice DP.",
-    allowOutsideClick: false,
-    didOpen: () => Swal.showLoading(),
-  });
-
-  try {
-    const res = await fetch(`${baseUrl}/update/sales_dp/${formValues.dp_id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${API_TOKEN}`,
-      },
-      body: JSON.stringify({
-        pesanan_id: currentInvoiceData.pesanan_id,
-        invoice_id: window.detail_id,
-        owner_id: owner_id,
-        user_id: user_id,
-
-        dp_date: formValues.dp_date,
-        due_date: formValues.due_date,
-
-        // PAYLOAD UTAMA
-        amount: formValues.amount, // Nominal Dasar
-        percentage: formValues.percentage, // Persentase
-        ppn_percent: formValues.ppn_percent, // 11 atau 0
-        ppn_amount: formValues.ppn_amount, // Nilai Pajak
-        total_amount: formValues.total_amount, // Nominal + Pajak
-
-        description: formValues.description,
-      }),
+    Swal.fire({
+      title: "Menyimpan...",
+      text: "Sedang memproses data ke server.",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
     });
 
-    if (!res.ok) {
-      const errData = await res.json();
-      throw new Error(errData.message || "Gagal memperbarui data DP");
+    try {
+      const endpoint = mode === 'add' 
+          ? `${baseUrl}/add/sales_dp` 
+          : `${baseUrl}/update/sales_dp/${dpData.dp_id}`;
+      const method = mode === 'add' ? 'POST' : 'PUT';
+
+      const res = await fetch(endpoint, {
+        method: method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+        body: JSON.stringify({
+          pesanan_id: data.pesanan_id,
+          owner_id: owner_id,
+          user_id: user_id,
+          invoice_id: window.detail_id,
+          ...formValues
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.message || "Gagal menyimpan data DP");
+      }
+
+      const result = await res.json();
+      await Swal.fire("Berhasil", result.message || "Uang muka berhasil disimpan", "success");
+      
+      loadDetailSales(window.detail_id, window.detail_desc);
+
+    } catch (err) {
+      await Swal.fire("Gagal", err.message, "error");
     }
-
-    const result = await res.json();
-
-    await Swal.fire({
-      icon: "success",
-      title: "Berhasil",
-      text: result.message || "Invoice DP berhasil diperbarui",
-    });
-
-    loadModuleContent("invoice_detail", window.detail_id, window.detail_desc);
-  } catch (err) {
-    await Swal.fire({
-      icon: "error",
-      title: "Gagal",
-      text: err.message,
-    });
   }
 }
 
