@@ -15,6 +15,8 @@ tableStates = {
   sales_target: { currentPage: 1, perPage: 10 },
   level: { currentPage: 1, perPage: 10 }, // Tambahan
   role: { currentPage: 1, perPage: 10 }, // Tambahan
+  expenses_category: { currentPage: 1, perPage: 10 }, // Tambahan
+  income_category: { currentPage: 1, perPage: 10 }, // Tambahan Pemasukan
 };
 
 /**
@@ -98,6 +100,31 @@ window.unitRowTemplate = function (item, dataType) {
     </tr>`;
 };
 
+window.expensesCategoryRowTemplate = function (item) {
+  const safeCategory = JSON.stringify(item.category).replace(/"/g, "&quot;");
+
+  return `
+    <tr class="flex flex-col sm:table-row border mb-4 sm:mb-0 transition hover:bg-gray-50">
+      <td class="px-6 py-4 text-sm border-b sm:border-0">${item.category}</td>
+      <td class="px-6 py-4 text-sm text-right sm:table-cell" style="width: 150px;">
+        <button onclick="handleEditExpensesCategory(${item.category_id}, ${safeCategory})" class="text-blue-500 hover:text-blue-700 mr-2"><i class="fas fa-edit"></i> Edit</button>
+        <button onclick="handleDeleteExpensesCategory(${item.category_id})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i> Hapus</button>
+      </td>
+    </tr>`;
+};
+window.incomeCategoryRowTemplate = function (item) {
+  const safeCategory = JSON.stringify(item.category).replace(/"/g, "&quot;");
+
+  return `
+    <tr class="flex flex-col sm:table-row border mb-4 sm:mb-0 transition hover:bg-gray-50">
+      <td class="px-6 py-4 text-sm border-b sm:border-0">${item.category}</td>
+      <td class="px-6 py-4 text-sm text-right sm:table-cell" style="width: 150px;">
+        <button onclick="handleEditIncomeCategory(${item.category_id}, ${safeCategory})" class="text-blue-500 hover:text-blue-700 mr-2"><i class="fas fa-edit"></i> Edit</button>
+        <button onclick="handleDeleteIncomeCategory(${item.category_id})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i> Hapus</button>
+      </td>
+    </tr>`;
+};
+
 window.salesTargetRowTemplate = function (item, dataType) {
   // Format mata uang IDR
   const formattedNominal = new Intl.NumberFormat("id-ID", {
@@ -176,6 +203,9 @@ loadUnits();
 loadUpdateLog();
 loadLevel();
 loadRole();
+loadExpensesCategory();
+loadIncomeCategory(); // Panggil di kumpulan initial load
+
 
 function switchSection(btn, section) {
   // reset button style
@@ -814,6 +844,24 @@ async function loadTableData(dataType, page = 1) {
       pageSelectId: "rolePageSelect",
       headerId: "roleTableHeader",
       rowTemplate: window.roleRowTemplate,
+    },
+    expenses_category: {
+      endpoint: (p) => `${baseUrl}/table/expenses_category/${owner_id}/${p}`,
+      tbodyId: "expensesCategoryTableBody",
+      paginationId: "expensesCategoryPagination",
+      infoId: "expensesCategoryInfoText",
+      pageSelectId: "expensesCategoryPageSelect",
+      headerId: "expensesCategoryTableHeader",
+      rowTemplate: window.expensesCategoryRowTemplate,
+    },
+    income_category: {
+      endpoint: (p) => `${baseUrl}/table/income_category/${owner_id}/${p}`,
+      tbodyId: "incomeCategoryTableBody",
+      paginationId: "incomeCategoryPagination",
+      infoId: "incomeCategoryInfoText",
+      pageSelectId: "incomeCategoryPageSelect",
+      headerId: "incomeCategoryTableHeader",
+      rowTemplate: window.incomeCategoryRowTemplate,
     },
     top: {
       endpoint: (p) => `${baseUrl}/table/term_of_payment/${owner_id}/${p}`,
@@ -1497,6 +1545,112 @@ async function saveSalesTargetData(mode, id, data) {
   }
 }
 
+// =====================================================================
+// == CRUD Handlers (Expenses Category) ==
+// =====================================================================
+
+function handleAddExpensesCategory() {
+  showExpensesCategoryModal("add");
+}
+
+function handleEditExpensesCategory(id, category) {
+  showExpensesCategoryModal("edit", id, category);
+}
+
+async function handleDeleteExpensesCategory(id) {
+  await handleDeleteGeneric(
+    "expenses_category",
+    id,
+    `${baseUrl}/delete/expenses_category/${id}`,
+    "Kategori Pengeluaran"
+  );
+}
+
+async function showExpensesCategoryModal(mode, id = null, category = "") {
+  const title = mode === "add" ? "Tambah Kategori Pengeluaran" : "Edit Kategori Pengeluaran";
+  const { value: formValues } = await Swal.fire({
+    title: title,
+    html: `
+      <div class="space-y-3 text-left">
+        <label class="block text-sm font-medium">Nama Kategori</label>
+        <input id="swal_category" type="text" value="${category}" class="w-full border rounded-lg px-3 py-2 mb-3" placeholder="Contoh: Admin Fee, Tax, dll">
+      </div>`,
+    showCancelButton: true,
+    preConfirm: () => {
+      const cat = document.getElementById("swal_category").value;
+      if (!cat) {
+        Swal.showValidationMessage("Kategori tidak boleh kosong!");
+        return false;
+      }
+      return { category: cat };
+    },
+  });
+
+  if (formValues) {
+    const endpoint = mode === "add" 
+      ? `${baseUrl}/add/expenses_category` 
+      : `${baseUrl}/update/expenses_category/${id}`;
+    
+    const method = mode === "add" ? "POST" : "PUT";
+    
+    // Memanfaatkan fungsi saveGenericData yang sudah ada
+    saveGenericData("expenses_category", endpoint, method, { owner_id: owner_id, category: formValues.category });
+  }
+}
+
+// =====================================================================
+// == CRUD Handlers (Income Category) ==
+// =====================================================================
+
+function handleAddIncomeCategory() {
+  showIncomeCategoryModal("add");
+}
+
+function handleEditIncomeCategory(id, category) {
+  showIncomeCategoryModal("edit", id, category);
+}
+
+async function handleDeleteIncomeCategory(id) {
+  await handleDeleteGeneric(
+    "income_category",
+    id,
+    `${baseUrl}/delete/income_category/${id}`,
+    "Kategori Pemasukan"
+  );
+}
+
+async function showIncomeCategoryModal(mode, id = null, category = "") {
+  const title = mode === "add" ? "Tambah Kategori Pemasukan" : "Edit Kategori Pemasukan";
+  const { value: formValues } = await Swal.fire({
+    title: title,
+    html: `
+      <div class="space-y-3 text-left">
+        <label class="block text-sm font-medium">Nama Kategori</label>
+        <input id="swal_income_category" type="text" value="${category}" class="w-full border rounded-lg px-3 py-2 mb-3" placeholder="Contoh: Internal Cost, Buy Back, dll">
+      </div>`,
+    showCancelButton: true,
+    preConfirm: () => {
+      const cat = document.getElementById("swal_income_category").value;
+      if (!cat) {
+        Swal.showValidationMessage("Kategori tidak boleh kosong!");
+        return false;
+      }
+      return { category: cat };
+    },
+  });
+
+  if (formValues) {
+    const endpoint = mode === "add" 
+      ? `${baseUrl}/add/income_category` 
+      : `${baseUrl}/update/income_category/${id}`;
+    
+    const method = mode === "add" ? "POST" : "PUT";
+    
+    // Menggunakan saveGenericData seperti sebelumnya
+    saveGenericData("income_category", endpoint, method, { owner_id: owner_id, category: formValues.category });
+  }
+}
+
 // --- Level Handlers ---
 function handleAddLevel() {
   showLevelModal("add");
@@ -1622,7 +1776,14 @@ function loadLevel() {
 function loadRole() {
   loadTableData("role", 1);
 }
+function loadExpensesCategory() {
+  loadTableData("expenses_category", 1);
+}
 
+
+function loadIncomeCategory() {
+  loadTableData("income_category", 1);
+}
 async function loadDropdown(selectId, apiUrl, valueField, labelField) {
   const select = document.getElementById(selectId);
   // Reset opsi

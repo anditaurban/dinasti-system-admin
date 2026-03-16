@@ -26,16 +26,22 @@ async function fetchInitialData() {
   try {
     if (!projectId) throw new Error("ID Project tidak ditemukan.");
 
+    // Tambahkan timestamp untuk mencegah browser melakukan caching (Cache Buster)
+    const timeStamp = new Date().getTime();
+
     // 1. Parallel Fetch: Detail Project, List Material, Table History
     const [resDetail, resMaterial, resHistory] = await Promise.all([
-      fetch(`${baseUrl}/detail/project/${projectId}`, {
+      fetch(`${baseUrl}/detail/project/${projectId}?_t=${timeStamp}`, {
         headers: { Authorization: `Bearer ${API_TOKEN}` },
+        cache: 'no-store' // Paksa bypass cache
       }),
-      fetch(`${baseUrl}/list/item_material/${projectId}`, {
+      fetch(`${baseUrl}/list/item_material/${projectId}?_t=${timeStamp}`, {
         headers: { Authorization: `Bearer ${API_TOKEN}` },
+        cache: 'no-store'
       }),
-      fetch(`${baseUrl}/table/actual_costing/${projectId}/1`, {
+      fetch(`${baseUrl}/table/actual_costing/${projectId}/1?_t=${timeStamp}`, {
         headers: { Authorization: `Bearer ${API_TOKEN}` },
+        cache: 'no-store' 
       }),
     ]);
 
@@ -613,6 +619,18 @@ function renderHistoryTable(data) {
 
     const isApproved = item.approval_status === "yes";
 
+    // Langsung get data dari backend (asumsi backend mengirimkan "1st", "2nd", dst di item.approval_reminder)
+    let reminderBadge = "";
+    if (item.approval_reminder && !isApproved) {
+      reminderBadge = `
+        <div class="mt-1 flex justify-center">
+            <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-orange-100 text-orange-600 border border-orange-200">
+                ⏳ ${item.approval_reminder}
+            </span>
+        </div>
+      `;
+    }
+
     let approvalHtml = "";
     if (isApproved) {
       approvalHtml = `
@@ -626,19 +644,10 @@ function renderHistoryTable(data) {
         `;
     } else {
       approvalHtml = `
-            <div class="flex items-center gap-1 justify-center mt-1 text-gray-400">
+            <div class="flex flex-col items-center gap-1 justify-center mt-1 text-gray-400">
                 <span class="text-xs">Waiting Approval</span>
             </div>
-        `;
-    }
-
-    let reminderIcon = "";
-    if (item.approval_reminder === "reminded") {
-      reminderIcon = `
-            <span class="absolute -top-1 -right-1 flex h-3 w-3" title="Reminder Sent">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-            </span>
+            ${reminderBadge}
         `;
     }
 
@@ -663,8 +672,7 @@ function renderHistoryTable(data) {
       : `<button onclick="handleDeleteActualCost(${item.purchase_id})" class="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center gap-2">🗑 Delete Order</button>`;
 
     const tr = document.createElement("tr");
-    tr.className =
-      "hover:bg-blue-50 transition group border-b bg-white relative z-10";
+tr.className = "hover:bg-blue-50 transition group border-b bg-white";
 
     const dropdownId = `dropdown-action-${item.purchase_id}`;
     const fileCount = item.total_files || 0;
@@ -731,14 +739,14 @@ function renderHistoryTable(data) {
             </div>
         </td>
         <td class="p-4 align-top text-center">
-            <div class="relative inline-block">${statusBadge} ${reminderIcon}</div>
+            <div class="relative inline-block">${statusBadge}</div>
             <div class="mt-2">${approvalHtml}</div>
         </td>
         <td class="p-4 align-top text-center relative">
             <button onclick="toggleActionDropdown('${dropdownId}', event)" class="text-gray-500 hover:text-gray-700 hover:bg-gray-100 p-2 rounded-full transition focus:outline-none">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/></svg>
             </button>
-            <div id="${dropdownId}" class="dropdown-menu-po hidden absolute right-0 mt-2 w-48 bg-white border rounded shadow-lg z-50 text-sm text-left overflow-hidden">
+            <div id="${dropdownId}" class="dropdown-menu-po hidden absolute right-0 top-10 w-48 bg-white border rounded shadow-lg z-[99] text-sm text-left overflow-hidden">
                 ${editBtnHtml}
                 ${
                   !isApproved
@@ -746,7 +754,7 @@ function renderHistoryTable(data) {
                     : ""
                 }
                 ${
-                  !isApproved && item.approval_reminder !== "reminded"
+                  !isApproved 
                     ? `<button onclick="sendPurchaseReminder('${item.purchase_id}', '${item.no_po}')" class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-orange-500 flex items-center gap-2">📧 Send Reminder</button>`
                     : ""
                 }
@@ -768,7 +776,6 @@ function renderHistoryTable(data) {
     trPanel.innerHTML = `
         <td colspan="5" class="p-0">
             <div class="p-4 border-l-4 border-blue-400 flex flex-col md:flex-row gap-6">
-                <!-- A. AREA UPLOAD -->
                 <div class="w-full md:w-1/3 min-w-[250px] border-r pr-4 border-gray-200">
                     <h5 class="text-xs font-bold text-gray-500 uppercase mb-2">☁️ Upload Dokumen</h5>
                     <div class="space-y-2">
@@ -778,7 +785,6 @@ function renderHistoryTable(data) {
                      <p class="text-[10px] text-gray-400 mt-1 italic">*Max 2MB (Hanya Gambar: PNG, JPG, JPEG)</p>
                 </div>
 
-                <!-- B. AREA LIST FILE -->
                 <div class="w-full md:w-2/3">
                     <div class="flex justify-between items-center mb-2">
                         <h5 class="text-xs font-bold text-gray-500 uppercase">File Tersimpan</h5>
@@ -795,11 +801,10 @@ function renderHistoryTable(data) {
     tbody.appendChild(tr);
     tbody.appendChild(trPanel);
 
-    // --- FIX: FETCH DATA UNTUK MENGISI JUMLAH LAMPIRAN (0 problem) ---
-    // Panggil fungsi refresh secara otomatis agar counter terupdate saat pertama load
+    // --- FIX: FETCH DATA UNTUK MENGISI JUMLAH LAMPIRAN ---
     setTimeout(() => {
       refreshInlineFiles(item.purchase_id);
-    }, 100 + data.indexOf(item) * 100); // Stagger request sedikit agar tidak overload
+    }, 100 + data.indexOf(item) * 100); 
   });
 }
 
@@ -1029,14 +1034,19 @@ async function sendPurchaseReminder(purchaseId, noPo) {
     cancelButtonText: "Batal",
     confirmButtonColor: "#f97316",
   });
+
   if (!confirmResult.isConfirmed) return;
+
+  // Tampilkan loading screen
   Swal.fire({ title: "Mengirim...", didOpen: () => Swal.showLoading() });
+
   try {
     const payload = {
       purchase_id: parseInt(purchaseId),
       user_id: user.user_id,
       owner_id: user.owner_id,
     };
+
     const res = await fetch(
       `${baseUrl}/reminder/purchase_approval/${purchaseId}`,
       {
@@ -1048,17 +1058,31 @@ async function sendPurchaseReminder(purchaseId, noPo) {
         body: JSON.stringify(payload),
       }
     );
+
     const json = await res.json();
-    if (res.ok && json.response == "200" && json.data?.success) {
-      Swal.fire({
+
+    // Sesuaikan pengecekan dengan format JSON backend (json.response === "200" dan json.data.success === true)
+    if (res.ok && json.response === "200" && json.data && json.data.success) {
+      
+      // Tunggu alert success selesai atau tampil
+      await Swal.fire({
         icon: "success",
         title: "Berhasil!",
-        text: json.data.message || "Reminder berhasil dikirim.",
+        text: json.data.message, 
         timer: 2000,
         showConfirmButton: false,
       });
-      fetchInitialData();
+
+      // Refresh data setelah request berhasil
+      // PASTIKAN MENGGUNAKAN 'await' KARENA fetchInitialData ADALAH ASYNC
+      if (typeof fetchInitialData === 'function') {
+        await fetchInitialData(); 
+      } else {
+        console.warn("Fungsi fetchInitialData tidak ditemukan.");
+      }
+
     } else {
+      // Lempar error jika response bukan 200 atau success: false
       throw new Error(
         json.data?.message || json.message || "Gagal mengirim reminder."
       );

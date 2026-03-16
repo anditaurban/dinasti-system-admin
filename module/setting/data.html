@@ -21,6 +21,16 @@
             Integrasi
           </button>
 
+          <p class="text-xs font-semibold text-gray-500 uppercase mt-4">Finance</p>
+          <button class="setting-btn w-full text-left px-3 py-2 rounded hover:bg-gray-100"
+            onclick="switchSection(this, 'expenses-category')">
+            Kategori Pengeluaran
+          </button>
+          <button class="setting-btn w-full text-left px-3 py-2 rounded hover:bg-gray-100"
+            onclick="switchSection(this, 'income-category')">
+            Kategori Pemasukan
+          </button>
+
           <p class="text-xs font-semibold text-gray-500 uppercase mt-4">Sales</p>
           <button class="setting-btn w-full text-left px-3 py-2 rounded hover:bg-gray-100"
             onclick="switchSection(this, 'catatan')">
@@ -365,6 +375,71 @@
             <div class="block md:hidden text-sm text-center mb-12">
               <label for="rolePageSelect" class="mr-2">Go to Page:</label>
               <select id="rolePageSelect" class="px-2 py-1 border rounded"></select>
+            </div>
+          </div>
+        </div>
+
+        <div id="section-expenses-category" class="setting-section hidden">
+          <div class="flex justify-between items-center mb-4">
+            <h1 class="text-xl font-bold">Kategori Pengeluaran</h1>
+            <button onclick="handleAddExpensesCategory()"
+              class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors text-sm">
+              <i class="fas fa-plus"></i> Tambah Kategori
+            </button>
+        
+          </div>
+          
+
+          <div class="overflow-x-auto">
+            <table id="expensesCategoryTable" class="min-w-full text-sm border">
+              <thead id="expensesCategoryTableHeader" class="hidden md:table-header-group bg-gray-100 text-gray-600">
+                <tr>
+                  <th class="px-4 py-2 border">KATEGORI PENGELUARAN</th>
+                  <th class="px-4 py-2 border w-32">ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody id="expensesCategoryTableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="mt-4 flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+            <p id="expensesCategoryInfoText" class="hidden md:block text-gray-600 text-sm"></p>
+            <div id="expensesCategoryPagination" class="hidden md:flex w-full justify-end items-center flex-wrap gap-2 text-sm">
+            </div>
+            <div class="block md:hidden text-sm text-center mb-12">
+              <label for="expensesCategoryPageSelect" class="mr-2">Go to Page:</label>
+              <select id="expensesCategoryPageSelect" class="px-2 py-1 border rounded"></select>
+            </div>
+          </div>
+        </div>
+        <div id="section-income-category" class="setting-section hidden">
+          <div class="flex justify-between items-center mb-4">
+            <h1 class="text-xl font-bold">Kategori Pemasukan</h1>
+            <button onclick="handleAddIncomeCategory()"
+              class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors text-sm">
+              <i class="fas fa-plus"></i> Tambah Kategori
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table id="incomeCategoryTable" class="min-w-full text-sm border">
+              <thead id="incomeCategoryTableHeader" class="hidden md:table-header-group bg-gray-100 text-gray-600">
+                <tr>
+                  <th class="px-4 py-2 border">KATEGORI PEMASUKAN</th>
+                  <th class="px-4 py-2 border w-32">ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody id="incomeCategoryTableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="mt-4 flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+            <p id="incomeCategoryInfoText" class="hidden md:block text-gray-600 text-sm"></p>
+            <div id="incomeCategoryPagination" class="hidden md:flex w-full justify-end items-center flex-wrap gap-2 text-sm">
+            </div>
+            <div class="block md:hidden text-sm text-center mb-12">
+              <label for="incomeCategoryPageSelect" class="mr-2">Go to Page:</label>
+              <select id="incomeCategoryPageSelect" class="px-2 py-1 border rounded"></select>
             </div>
           </div>
         </div>

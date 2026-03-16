@@ -4,9 +4,20 @@ subpagemodule = "Project Costing";
 renderHeader();
 
 var projectId = window.detail_id;
-var projectDetailData = null; // Pastikan variabel global ini terdefinisi
+var projectDetailData = null;
 
-// --- 1. FUNGSI UTAMA: FETCH & RENDER (REVISI PESANAN ID 0) ---
+// --- FUNGSI HELPER PERSENTASE & NOMINAL ---
+function calculatePercentage(planValue, totalValue) {
+  if (!totalValue || totalValue == 0) return 0;
+  return ((parseFloat(planValue) / parseFloat(totalValue)) * 100).toFixed(2);
+}
+
+function calculateNominalFromPercent(percentValue, totalValue) {
+  if (!totalValue || totalValue == 0 || !percentValue) return 0;
+  return ((parseFloat(percentValue) / 100) * parseFloat(totalValue)).toFixed(0);
+}
+
+// --- 1. FUNGSI UTAMA: FETCH & RENDER ---
 async function fetchAndRenderProject(isRefresh = false) {
   if (!isRefresh) {
     Swal.fire({
@@ -29,50 +40,38 @@ async function fetchAndRenderProject(isRefresh = false) {
     const data = projectDetailData;
 
     // ============================================================
-    // LOGIKA LOCK / KUNCI (REVISI HANDLING ID 0)
+    // LOGIKA LOCK / KUNCI
     // ============================================================
-    // Jika pesanan_id = "0" atau 0, anggap BELUM ada pesanan.
     const hasPesanan =
       data.pesanan_id != null &&
       data.pesanan_id !== "" &&
       data.pesanan_id != "0" &&
       data.pesanan_id !== 0;
     const isDirectSales = data.position === "Direct Project";
-
-    // Status Lock: (Hanya Direct Project yang sudah punya pesanan_id)
     const isLocked = hasPesanan && isDirectSales;
 
-    // 1. Handle Tombol Update & Undo Sales
     const btnSave = document.getElementById("saveAllPlanCostBtn");
-    const btnUndo = document.getElementById("undoSalesBtn"); // Seleksi tombol baru
+    const btnUndo = document.getElementById("undoSalesBtn");
 
     if (btnSave) {
       if (isLocked) {
-        // --- KONDISI TERKUNCI (Sudah jadi Sales) ---
-
-        // Matikan tombol Save
         btnSave.disabled = true;
         btnSave.classList.remove("bg-yellow-500", "hover:bg-yellow-600");
         btnSave.classList.add("bg-gray-400", "cursor-not-allowed");
         btnSave.innerHTML = "🔒 Locked (Direct Project)";
         btnSave.onclick = null;
 
-        // Nyalakan tombol Undo Sales (Hanya di Direct Project yg terkunci)
         if (btnUndo) {
           btnUndo.classList.remove("hidden");
           btnUndo.onclick = () => handleUndoSales(data.pesanan_id);
         }
       } else {
-        // --- KONDISI TIDAK TERKUNCI ---
-
-        // Nyalakan tombol Save
         btnSave.disabled = false;
         btnSave.classList.remove("bg-gray-400", "cursor-not-allowed");
         btnSave.classList.add("bg-yellow-500", "hover:bg-yellow-600");
         btnSave.innerHTML = "💾 Update Plan Costing";
         btnSave.onclick = handleUpdateAllPlanCosting;
 
-        // Sembunyikan tombol Undo Sales
         if (btnUndo) {
           btnUndo.classList.add("hidden");
           btnUndo.onclick = null;
@@ -90,66 +89,25 @@ async function fetchAndRenderProject(isRefresh = false) {
     // ============================================================
     // A. RENDER CARD INFO
     // ============================================================
-    document.getElementById("projectNameDisplay").textContent = `${
-      data.project_name
-    } (${data.project_number || "-"}) - ${data.project_type}`;
-
-    document.getElementById("projectAmount").innerHTML = `
-        <div>${finance(data.project_value)}</div>
-        <div class="text-[10px] text-gray-400 font-normal mt-1">100% Base</div>
-    `;
-
-    document.getElementById("plan_costing").innerHTML = `
-        <div>${finance(data.plan_costing)}</div>
-        <div class="text-[10px] text-gray-500 font-normal mt-1">
-            ${data.plan_costing_percent}% dari Value
-        </div>
-    `;
-
-    const isOverBudget =
-      parseFloat(data.actual_costing) > parseFloat(data.plan_costing);
-    document.getElementById("actual_costing").innerHTML = `
-        <div>${finance(data.actual_costing)}</div>
-        <div class="text-[10px] font-normal mt-1 ${
-          isOverBudget ? "text-red-600 font-bold" : "text-gray-500"
-        }">
-            ${data.actual_costing_percent}% dari Value
-        </div>
-    `;
-
+    document.getElementById("projectNameDisplay").textContent = `${data.project_name} (${data.project_number || "-"}) - ${data.project_type}`;
+    document.getElementById("projectAmount").innerHTML = `<div>${finance(data.project_value)}</div><div class="text-[10px] text-gray-400 font-normal mt-1">100% Base</div>`;
+    document.getElementById("plan_costing").innerHTML = `<div>${finance(data.plan_costing)}</div><div class="text-[10px] text-gray-500 font-normal mt-1">${data.plan_costing_percent}% dari Value</div>`;
+    
+    const isOverBudget = parseFloat(data.actual_costing) > parseFloat(data.plan_costing);
+    document.getElementById("actual_costing").innerHTML = `<div>${finance(data.actual_costing)}</div><div class="text-[10px] font-normal mt-1 ${isOverBudget ? "text-red-600 font-bold" : "text-gray-500"}">${data.actual_costing_percent}% dari Value</div>`;
+    
     const balVal = parseFloat(data.balance_costing);
-    document.getElementById("balance_costing").innerHTML = `
-        <div class="${balVal < 0 ? "text-red-600" : "text-green-600"}">
-            ${finance(data.balance_costing)}
-        </div>
-        <div class="text-[10px] text-gray-500 font-normal mt-1">
-            ${data.balance_costing_percent}% (Efisiensi)
-        </div>
-    `;
-
-    document.getElementById("margin").innerHTML = `
-        <div>${finance(data.margin)}</div>
-        <div class="text-[10px] text-blue-600 font-normal mt-1">
-            ${data.margin_percent}% Est.
-        </div>
-    `;
-
+    document.getElementById("balance_costing").innerHTML = `<div class="${balVal < 0 ? "text-red-600" : "text-green-600"}">${finance(data.balance_costing)}</div><div class="text-[10px] text-gray-500 font-normal mt-1">${data.balance_costing_percent}% (Efisiensi)</div>`;
+    
+    document.getElementById("margin").innerHTML = `<div>${finance(data.margin)}</div><div class="text-[10px] text-blue-600 font-normal mt-1">${data.margin_percent}% Est.</div>`;
+    
     const profitVal = parseFloat(data.profit);
-    document.getElementById("profit").innerHTML = `
-        <div class="${profitVal < 0 ? "text-red-600" : "text-green-600"}">
-            ${finance(data.profit)}
-        </div>
-        <div class="text-[10px] font-bold text-gray-500 mt-1">
-            ${data.profit_percent}% Nett
-        </div>
-    `;
+    document.getElementById("profit").innerHTML = `<div class="${profitVal < 0 ? "text-red-600" : "text-green-600"}">${finance(data.profit)}</div><div class="text-[10px] font-bold text-gray-500 mt-1">${data.profit_percent}% Nett</div>`;
 
     document.getElementById("detailNoQO").textContent = data.no_qtn || "---";
-    document.getElementById("detailNoInv").textContent =
-      data.inv_number || "---";
+    document.getElementById("detailNoInv").textContent = data.inv_number || "---";
     document.getElementById("detailNoPO").textContent = data.po_number || "---";
-    document.getElementById("detailPIC").textContent =
-      data.project_manager_name || data.pic_name || "---";
+    document.getElementById("detailPIC").textContent = data.project_manager_name || data.pic_name || "---";
 
     // ============================================================
     // B. RENDER TABEL ITEMS
@@ -178,46 +136,44 @@ async function fetchAndRenderProject(isRefresh = false) {
           tr.dataset.itemId = item.project_item_id;
 
           const displayActual = item.actual_total || 0;
+          const itemPlanPercent = item.plan_percent ?? calculatePercentage(item.plan_total, item.item_total);
 
           tr.innerHTML = `
               <td class="px-3 py-2 align-top font-semibold text-center">${nomor++}</td>
               <td class="px-3 py-2 align-top">
                   <div class="font-medium text-gray-800">${item.product}</div>
-                  <div class="text-xs text-gray-500">${
-                    item.description || ""
-                  }</div>
+                  <div class="text-xs text-gray-500">${item.description || ""}</div>
               </td>
               ${
                 item.materials?.length
                   ? `<td colspan="6" class="text-gray-400 text-xs italic px-3 py-2 text-center bg-gray-50">Rincian di sub-item</td>`
                   : `<td class="px-3 py-2 text-right align-top">${item.qty}</td>
-                     <td class="px-3 py-2 text-center align-top">${
-                       item.unit
-                     }</td>
-                     <td class="px-3 py-2 text-right align-top">${finance(
-                       item.unit_price
-                     )}</td>
-                     <td class="px-3 py-2 text-right align-top">${finance(
-                       item.item_total
-                     )}</td>
-                     <td class="px-3 py-2 text-center align-top">
-                       <input class="plancosting text-right border px-2 py-1 w-full rounded text-sm ${getInputClass(
-                         isLocked
-                       )}" 
+                     <td class="px-3 py-2 text-center align-top">${item.unit}</td>
+                     <td class="px-3 py-2 text-right align-top">${finance(item.unit_price)}</td>
+                     <td class="px-3 py-2 text-right align-top">${finance(item.item_total)}</td>
+                     
+                     <td class="px-3 py-2 text-center align-middle">
+                      <div class="flex items-center justify-center gap-2">
+                      <div class="flex items-center gap-1 shrink-0">
+                            <input class="planpercent text-right border px-2 py-1 w-14 rounded text-sm ${getInputClass(isLocked)}" 
+                                  data-subtotal="${item.item_total}"
+                                  value="${itemPlanPercent}"
+                                  ${getReadOnlyAttr(isLocked)}>
+                            <span class="text-sm text-gray-500 font-bold">%</span>
+                        </div>  
+                      <input class="plancosting text-right border px-2 py-1 w-full rounded text-sm ${getInputClass(isLocked)}" 
+                              data-subtotal="${item.item_total}"
                               value="${finance(item.plan_total)}"
                               ${getReadOnlyAttr(isLocked)}>
-                     </td>
+                              
+                        
+                      </div>
+                    </td>
+
                      <td class="px-3 py-2 text-center align-top">
-                       <div class="flex items-center justify-end gap-2 ${
-                         displayActual > item.plan_total
-                           ? "text-red-600"
-                           : "text-green-600"
-                       } font-bold">
+                       <div class="flex items-center justify-end gap-2 ${displayActual > item.plan_total ? "text-red-600" : "text-green-600"} font-bold">
                            <span>${finance(displayActual)}</span>
-                           <button class="view-actual-cost-btn text-gray-500 hover:text-blue-600" 
-                                   data-korelasi="${
-                                     item.product
-                                   }" title="Lihat Detail">
+                           <button class="view-actual-cost-btn text-gray-500 hover:text-blue-600" data-korelasi="${item.product}" title="Lihat Detail">
                              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>
                            </button>
                        </div>
@@ -233,40 +189,35 @@ async function fetchAndRenderProject(isRefresh = false) {
               subTr.dataset.materialId = m.project_materials_id;
 
               const subActual = m.actual_total || 0;
+              const matPlanPercent = m.plan_percent ?? calculatePercentage(m.plan_total, m.material_total);
 
               subTr.innerHTML = `
                   <td></td>
-                  <td class="px-3 py-1 italic pl-8 text-gray-600 flex items-center gap-2">
-                    <span class="text-xs text-gray-400">↳</span> ${idx + 1}. ${
-                m.name
-              }
-                  </td>
+                  <td class="px-3 py-1 italic pl-8 text-gray-600 flex items-center gap-2"><span class="text-xs text-gray-400">↳</span> ${idx + 1}. ${m.name}</td>
                   <td class="px-3 py-1 text-right">${m.qty}</td>
                   <td class="px-3 py-1 text-center">${m.unit}</td>
                   <td class="px-3 py-1 text-right">${finance(m.unit_price)}</td>
-                  <td class="px-3 py-1 text-right text-gray-500">${finance(
-                    m.material_total
-                  )}</td>
+                  <td class="px-3 py-1 text-right text-gray-500">${finance(m.material_total)}</td>
+                  
                   <td class="px-3 py-1 text-center">
-                      <input class="plancosting text-right border px-2 py-1 w-full rounded text-sm ${getInputClass(
-                        isLocked
-                      )}" 
+                      <input class="plancosting text-right border px-2 py-1 w-full rounded text-sm mb-1 ${getInputClass(isLocked)}" 
+                             data-subtotal="${m.material_total}"
                              value="${finance(m.plan_total)}"
                              ${getReadOnlyAttr(isLocked)}>
+                             
+                      <div class="flex items-center justify-end gap-1">
+                          <input class="planpercent text-right border px-1 py-1 w-16 rounded text-[10px] ${getInputClass(isLocked)}" 
+                                 data-subtotal="${m.material_total}"
+                                 value="${matPlanPercent}"
+                                 ${getReadOnlyAttr(isLocked)}>
+                          <span class="text-[10px] text-gray-500 font-bold">%</span>
+                      </div>
                   </td>
+
                   <td class="px-3 py-1 text-center">
-                      <div class="flex items-center justify-end gap-2 ${
-                        subActual > m.plan_total
-                          ? "text-red-600"
-                          : "text-green-600"
-                      } font-bold">
+                      <div class="flex items-center justify-end gap-2 ${subActual > m.plan_total ? "text-red-600" : "text-green-600"} font-bold">
                           <span>${finance(subActual)}</span>
-                          <button class="view-actual-cost-btn text-gray-400 hover:text-blue-600" 
-                                  data-korelasi="${
-                                    item.product
-                                  }" data-material-name="${
-                m.name
-              }" title="Lihat Detail">
+                          <button class="view-actual-cost-btn text-gray-400 hover:text-blue-600" data-korelasi="${item.product}" data-material-name="${m.name}" title="Lihat Detail">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>
                           </button>
                       </div>
@@ -282,16 +233,56 @@ async function fetchAndRenderProject(isRefresh = false) {
     }
 
     // ============================================================
-    // C. EVENT LISTENERS
+    // C. EVENT LISTENERS (BIDIRECTIONAL / DUA ARAH)
     // ============================================================
     if (!isLocked) {
+      
+      // 1. Jika Input NOMINAL diubah -> Update Input PERSEN
       tbody.querySelectorAll(".plancosting").forEach((input) => {
         input.addEventListener("input", (e) => {
-          e.target.value = finance(e.target.value.replace(/\D/g, ""));
+          const rawValue = e.target.value.replace(/\D/g, "");
+          e.target.value = finance(rawValue); // Format Rupiah
+
+          const valNum = parseFloat(rawValue) || 0;
+          const subtotal = parseFloat(e.target.dataset.subtotal) || 0;
+          const newPercent = calculatePercentage(valNum, subtotal);
+          
+          // Cari input persen yang satu sel (satu <td>) dengannya
+          const tdEl = e.target.closest('td');
+          const percentInput = tdEl.querySelector('.planpercent');
+          if (percentInput) {
+            percentInput.value = newPercent;
+          }
         });
       });
+
+      // 2. Jika Input PERSEN diubah -> Update Input NOMINAL
+      tbody.querySelectorAll(".planpercent").forEach((input) => {
+        input.addEventListener("input", (e) => {
+          // Hanya izinkan angka dan titik (untuk desimal)
+          let val = e.target.value.replace(/[^0-9.]/g, "");
+          // Cegah dobel titik desimal
+          if ((val.match(/\./g) || []).length > 1) {
+            val = val.replace(/\.$/, ""); 
+          }
+          e.target.value = val;
+
+          const percentNum = parseFloat(val) || 0;
+          const subtotal = parseFloat(e.target.dataset.subtotal) || 0;
+          const newNominal = calculateNominalFromPercent(percentNum, subtotal);
+
+          // Cari input nominal yang satu sel (satu <td>) dengannya
+          const tdEl = e.target.closest('td');
+          const nominalInput = tdEl.querySelector('.plancosting');
+          if (nominalInput) {
+            nominalInput.value = finance(newNominal);
+          }
+        });
+      });
+
     }
 
+    // Listener Modal
     tbody.onclick = (e) => {
       const btn = e.target.closest(".view-actual-cost-btn");
       if (btn) {
@@ -313,39 +304,43 @@ async function handleUpdateAllPlanCosting() {
   const payload = { items: [] };
   const tableBody = document.getElementById("tabelItemView");
 
-  // Loop data dari state projectDetailData untuk memastikan struktur benar
   projectDetailData.items.forEach((item) => {
-    const itemRow = tableBody.querySelector(
-      `tr[data-item-id="${item.project_item_id}"]`
-    );
-
-    // Skip jika row tidak ditemukan di DOM (safety check)
+    const itemRow = tableBody.querySelector(`tr[data-item-id="${item.project_item_id}"]`);
     if (!itemRow && (!item.materials || item.materials.length === 0)) return;
 
     const itemPayload = {
       project_item_id: item.project_item_id,
       plan_total: 0,
+      plan_percent: 0,
       materials: [],
     };
 
     if (item.materials?.length > 0) {
       item.materials.forEach((m) => {
-        const matRow = tableBody.querySelector(
-          `tr[data-material-id="${m.project_materials_id}"]`
-        );
+        const matRow = tableBody.querySelector(`tr[data-material-id="${m.project_materials_id}"]`);
         if (matRow) {
-          const valRaw = matRow.querySelector(".plancosting").value;
-          const val = parseRupiah(valRaw);
+          const inputNominal = matRow.querySelector(".plancosting");
+          const inputPercent = matRow.querySelector(".planpercent");
+          
+          const valNominal = parseRupiah(inputNominal.value);
+          const valPercent = parseFloat(inputPercent.value) || 0;
+
           itemPayload.materials.push({
             project_materials_id: m.project_materials_id,
-            plan_total: val,
+            plan_total: valNominal,
+            plan_percent: valPercent
           });
         }
       });
     } else if (itemRow) {
-      const valRaw = itemRow.querySelector(".plancosting").value;
-      const val = parseRupiah(valRaw);
-      itemPayload.plan_total = val;
+      const inputNominal = itemRow.querySelector(".plancosting");
+      const inputPercent = itemRow.querySelector(".planpercent");
+      
+      const valNominal = parseRupiah(inputNominal.value);
+      const valPercent = parseFloat(inputPercent.value) || 0;
+      
+      itemPayload.plan_total = valNominal;
+      itemPayload.plan_percent = valPercent;
     }
 
     payload.items.push(itemPayload);
@@ -364,17 +359,15 @@ async function handleUpdateAllPlanCosting() {
     const json = await res.json();
 
     if (res.ok) {
-      // Notifikasi Sukses Singkat
       await Swal.fire({
         icon: "success",
         title: "Berhasil",
         text: "Data Plan Costing telah diperbarui",
-        timer: 3000, // Jeda 3 Detik
+        timer: 3000,
         timerProgressBar: true,
         showConfirmButton: false,
       });
 
-      // KEY FIX: Panggil fetchAndRenderProject(true) alih-alih reload modul
       fetchAndRenderProject(true);
     } else {
       throw new Error(json.message || "Gagal update data");
@@ -387,9 +380,7 @@ async function handleUpdateAllPlanCosting() {
 
 // --- 3. FUNGSI HELPER (MODAL VIEW ACTUAL) ---
 function showActualCostDetail(korelasiPekerjaan, korelasiMaterial) {
-  const item = projectDetailData.items.find(
-    (i) => i.product === korelasiPekerjaan
-  );
+  const item = projectDetailData.items.find((i) => i.product === korelasiPekerjaan);
   if (!item) return;
 
   let details = [];
@@ -428,7 +419,6 @@ function showActualCostDetail(korelasiPekerjaan, korelasiMaterial) {
 }
 
 // --- FUNGSI BARU: UNDO SALES (ROLLBACK) ---
-// --- FUNGSI BARU: UNDO SALES (ROLLBACK) ---
 async function handleUndoSales(pesananId) {
   if (!pesananId) {
     Swal.fire("Error", "ID Pesanan tidak ditemukan.", "error");
@@ -457,9 +447,7 @@ async function handleUndoSales(pesananId) {
   try {
     const res = await fetch(`${baseUrl}/delete/project_sales/${pesananId}`, {
       method: "PUT",
-      headers: {
-        Authorization: `Bearer ${API_TOKEN}`,
-      },
+      headers: { Authorization: `Bearer ${API_TOKEN}` },
     });
 
     const json = await res.json();
@@ -473,7 +461,6 @@ async function handleUndoSales(pesananId) {
         showConfirmButton: false,
       });
 
-      // REVISI: Redirect ke halaman list project alih-alih refresh detail
       loadModuleContent("project");
     } else {
       throw new Error(json.message || "Gagal melakukan rollback sales.");
