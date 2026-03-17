@@ -47,6 +47,7 @@ const endpointList = [
   "product_bundling",
   "user",
   "client",
+  "internal_receivable",
   "vendor_contact",
   "vendor",
   "contact",

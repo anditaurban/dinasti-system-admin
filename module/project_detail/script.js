@@ -90,7 +90,11 @@ async function fetchAndRenderProject(isRefresh = false) {
     // A. RENDER CARD INFO
     // ============================================================
     document.getElementById("projectNameDisplay").textContent = `${data.project_name} (${data.project_number || "-"}) - ${data.project_type}`;
-    document.getElementById("projectAmount").innerHTML = `<div>${finance(data.project_value)}</div><div class="text-[10px] text-gray-400 font-normal mt-1">100% Base</div>`;
+    document.getElementById("projectAmount").innerHTML = `
+  <div>${finance(data.project_value)}</div>
+  <div class="text-[10px] text-gray-400 font-normal mt-1">100% Base</div>
+  <div class="text-[10px] text-gray-400 font-normal mt-1">inx. Tax ${finance(data.ppn)}</div>
+`;
     document.getElementById("plan_costing").innerHTML = `<div>${finance(data.plan_costing)}</div><div class="text-[10px] text-gray-500 font-normal mt-1">${data.plan_costing_percent}% dari Value</div>`;
     
     const isOverBudget = parseFloat(data.actual_costing) > parseFloat(data.plan_costing);

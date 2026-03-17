@@ -16,48 +16,61 @@ function validateFormData(formData, requiredFields = []) {
 }
 
 async function fillFormData(data) {
-  console.log("🔄 Isi form dengan data:", data);
-  // Helper untuk menunggu sampai <option> tersedia
-  async function waitForOption(selectId, expectedValue, timeout = 3000) {
-    return new Promise((resolve) => {
-      const interval = 100;
-      let waited = 0;
+  let source = data.detail ? data.detail : data;
+  const item = Array.isArray(source) ? source[0] : source;
 
-      const check = () => {
-        const select = document.getElementById(selectId);
-        const exists = Array.from(select.options).some(
-          (opt) => opt.value === expectedValue?.toString(),
-        );
-        if (exists || waited >= timeout) {
-          resolve();
-        } else {
-          waited += interval;
-          setTimeout(check, interval);
-        }
-      };
+  console.log("🔄 Isi form dengan data (Edit Mode):", item);
 
-      check();
-    });
+  // 1. Logic User ID
+  let userId = item.user_id;
+  if (!userId || userId == 0 || userId == "0") {
+    const userSessionStr = localStorage.getItem("user");
+    if (userSessionStr) {
+      try {
+        const userSession = JSON.parse(userSessionStr);
+        userId = userSession.user_id;
+      } catch (e) {
+        userId = "";
+      }
+    } else {
+      userId = "";
+    }
   }
-  const roleValue = data.role_id || "";
-  const levelValue = data.level_id || "";
 
-  await waitForOption("formRole", roleValue);
-  await waitForOption("formLevel", levelValue);
+  // 2. Set Hidden Inputs
+  const formId = document.getElementById("formId");
+  if (formId) formId.value = item.internal_receivable_id || "";
 
-  const formRole = document.getElementById("formRole");
-  const formLevel = document.getElementById("formLevel");
+  const formUserId = document.getElementById("formUserId");
+  if (formUserId) formUserId.value = userId;
 
-  // Hidden owner_id
-  document.querySelector("input[name='owner_id']").value = data.owner_id || "1";
+  const formStatusId = document.getElementById("formStatusId");
+  if (formStatusId) formStatusId.value = item.status_id || 1;
 
-  // Isi field form sesuai API baru
-  document.getElementById("formName").value = data.name || "";
-  document.getElementById("formAlias").value = data.alias || "";
-  document.getElementById("formEmail").value = data.email || "";
-  document.getElementById("formLevel").value = data.level_id || "";
-  document.getElementById("formRole").value = data.role_id || "";
-  document.getElementById("formPhone").value = data.phone || "";
+  // JIKA DATA DROPDOWN BELUM ADA, KITA LOAD DULU SECARA PAKSA SAAT EDIT
+  await loadCategories();
+  await loadEmployees();
+
+  // 3. Set Value Dropdown
+  // Pastikan key dari item cocok dengan JSON (employee_id & category_id)
+  const employeeValue = item.employee_id ? String(item.employee_id) : "";
+  const categoryValue = item.category_id ? String(item.category_id) : "";
+
+  const formEmployee = document.getElementById("formEmployee");
+  if (formEmployee) formEmployee.value = employeeValue;
+
+  const formCategory = document.getElementById("formCategory");
+  if (formCategory) formCategory.value = categoryValue;
+
+  // 4. Set Value Input Teks/Tanggal
+  const formTanggal = document.getElementById("formTanggal");
+  if (formTanggal) formTanggal.value = item.receivable_date || "";
+
+  const formNominal = document.getElementById("formNominal");
+  if (formNominal) formNominal.value = item.nominal || "";
+
+  const formKeterangan = document.getElementById("formKeterangan");
+  if (formKeterangan) formKeterangan.value = item.information || "";
 }
 
 async function loadDropdown(selectId, apiUrl, valueField, labelField) {

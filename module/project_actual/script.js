@@ -665,14 +665,21 @@ function renderHistoryTable(data) {
         : "";
 
     const editBtnHtml = isApproved
-      ? ""
-      : `<button onclick="editActualCost(${item.purchase_id})" class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700 flex items-center gap-2">✏️ Edit Transaction</button>`;
+      ? `<button onclick="editActualCost(${item.purchase_id}, true)" class="block w-full text-left px-4 py-2 hover:bg-yellow-50 text-yellow-600 flex items-center gap-2">📝 Lengkapi Invoice</button>`
+      : `<button onclick="editActualCost(${item.purchase_id}, false)" class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700 flex items-center gap-2">✏️ Edit Transaction</button>`;
+
     const deleteBtnHtml = isApproved
       ? ""
       : `<button onclick="handleDeleteActualCost(${item.purchase_id})" class="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center gap-2">🗑 Delete Order</button>`;
 
+    // -- LOGIKA TAMPILAN INVOICE --
+    // Jika tidak ada nomor invoice, tampilkan alert merah di bawah No PO
+    const invoiceDisplay = item.no_inv
+      ? `<div class="pt-2 border-t border-dashed"><div class="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Invoice</div><div class="font-medium text-gray-600 text-sm">${item.no_inv}</div><div class="text-xs text-gray-500">📅 ${item.inv_date}</div></div>`
+      : `<div class="pt-2 border-t border-dashed bg-red-50 p-2 rounded mt-2"><div class="text-[11px] text-red-500 italic font-medium">⚠️ Tidak ada info tgl/no inv, silakan lengkapi.</div></div>`;
+
     const tr = document.createElement("tr");
-tr.className = "hover:bg-blue-50 transition group border-b bg-white";
+    tr.className = "hover:bg-blue-50 transition group border-b bg-white";
 
     const dropdownId = `dropdown-action-${item.purchase_id}`;
     const fileCount = item.total_files || 0;
@@ -685,31 +692,19 @@ tr.className = "hover:bg-blue-50 transition group border-b bg-white";
             <div class="flex flex-col gap-3">
                 <div>
                     <div class="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Purchase Order</div>
-                    <div class="text-gray-800 text-sm font-bold">${
-                      item.no_po || "-"
-                    }</div>
-                    <div class="text-xs text-gray-500 flex items-center gap-1">📅 ${
-                      item.po_date
-                    }</div>
+                    <div class="text-gray-800 text-sm font-bold">${item.no_po || "-"}</div>
+                    <div class="text-xs text-gray-500 flex items-center gap-1">📅 ${item.po_date}</div>
 
-                    <button onclick="toggleFilePanel('${
-                      item.purchase_id
-                    }')" id="${toggleBtnId}" 
+                    <button onclick="toggleFilePanel('${item.purchase_id}')" id="${toggleBtnId}" 
                             class="mt-2 text-xs bg-white border border-gray-200 text-gray-500 px-3 py-1.5 rounded-md shadow-sm hover:bg-gray-50 hover:shadow transition flex items-center gap-2 w-full md:w-auto justify-between md:justify-start group-focus:ring-2">
                         <div class="flex items-center gap-2">
                             <span>📎</span>
-                            <span id="label-file-count-${
-                              item.purchase_id
-                            }" class="font-semibold">${fileCount} Lampiran</span>
+                            <span id="label-file-count-${item.purchase_id}" class="font-semibold">${fileCount} Lampiran</span>
                         </div>
                         <svg id="${arrowId}" class="w-3 h-3 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
                 </div>
-                ${
-                  item.no_inv
-                    ? `<div class="pt-2 border-t border-dashed"><div class="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Invoice</div><div class="font-medium text-gray-600 text-sm">${item.no_inv}</div><div class="text-xs text-gray-500">📅 ${item.inv_date}</div></div>`
-                    : ""
-                }
+                ${invoiceDisplay}
             </div>
         </td>
         <td class="p-4 align-top">
@@ -855,8 +850,7 @@ function resetForm() {
   document.getElementById("realCalcForm").reset();
   document.getElementById("calcVendorId").value = "0";
   document.getElementById("calcContactId").value = "0";
-  document.getElementById("calcNamaPic").innerHTML =
-    '<option value="">-- Pilih Vendor Dulu --</option>';
+  document.getElementById("calcNamaPic").innerHTML = '<option value="">-- Pilih Vendor Dulu --</option>';
   document.getElementById("calcNamaPic").disabled = true;
   document.getElementById("inputItemsBody").innerHTML = "";
   addNewRow();
@@ -870,18 +864,19 @@ function resetForm() {
     document.getElementById("calcNoPoPdf").value = "";
 
   currentUpdateCostId = null;
-  const btnSimpan = document.querySelector(
-    "#realCalcForm button[type='button'][onclick*='saveTransaction']"
-  );
+  const btnSimpan = document.querySelector("#realCalcForm button[type='button'][onclick*='saveTransaction']");
   if (btnSimpan) {
     btnSimpan.textContent = "Simpan Transaksi";
     btnSimpan.classList.remove("bg-orange-500", "hover:bg-orange-600");
     btnSimpan.classList.add("bg-blue-600", "hover:bg-blue-700");
   }
+  
+  // Buka semua kuncian form
+  toggleFormLock(false);
   generateNoPO();
 }
 
-async function editActualCost(id) {
+async function editActualCost(id, isApprovedForm = false) {
   Swal.fire({ title: "Memuat Data...", didOpen: () => Swal.showLoading() });
   try {
     const res = await fetch(`${baseUrl}/detail/actual_costing/${id}`, {
@@ -906,8 +901,7 @@ async function editActualCost(id) {
     document.getElementById("calcPoDate").value = data.po_date_ymd;
     document.getElementById("calcNoPo").value = data.no_po;
     if (document.getElementById("calcNoPoPdf"))
-      document.getElementById("calcNoPoPdf").value =
-        data.no_po_pdf || data.no_po;
+      document.getElementById("calcNoPoPdf").value = data.no_po_pdf || data.no_po;
 
     document.getElementById("calcInvoiceDate").value = data.inv_date_ymd;
     document.getElementById("calcInvoiceNo").value = data.no_inv;
@@ -945,28 +939,26 @@ async function editActualCost(id) {
     }
 
     document.getElementById("summaryDiscPercent").value = data.discount_percent;
-    document.getElementById("summaryDiscNominal").value = finance(
-      data.discount_nominal
-    );
+    document.getElementById("summaryDiscNominal").value = finance(data.discount_nominal);
     document.getElementById("summaryTaxCheck").checked = data.ppn_nominal > 0;
-    document.getElementById("summaryTaxNominal").value = finance(
-      data.ppn_nominal
-    );
+    document.getElementById("summaryTaxNominal").value = finance(data.ppn_nominal);
 
     currentUpdateCostId = id;
-    const btnSimpan = document.querySelector(
-      "#realCalcForm button[type='button'][onclick*='saveTransaction']"
-    );
+    const btnSimpan = document.querySelector("#realCalcForm button[type='button'][onclick*='saveTransaction']");
     if (btnSimpan) {
-      btnSimpan.textContent = "Update Transaksi";
+      // Ubah teks tombol berdasarkan mode
+      btnSimpan.textContent = isApprovedForm ? "Update Invoice" : "Update Transaksi";
       btnSimpan.classList.replace("bg-blue-600", "bg-orange-500");
       btnSimpan.classList.replace("hover:bg-blue-700", "hover:bg-orange-600");
     }
 
-    setTimeout(calculateGrandTotal, 600);
-    document
-      .getElementById("realCalcForm")
-      .scrollIntoView({ behavior: "smooth" });
+    // Kunci form jika mode lengkapi invoice (Approved)
+    setTimeout(() => {
+        calculateGrandTotal();
+        toggleFormLock(isApprovedForm);
+    }, 600);
+
+    document.getElementById("realCalcForm").scrollIntoView({ behavior: "smooth" });
     Swal.close();
   } catch (err) {
     console.error(err);
@@ -1421,6 +1413,47 @@ function closePreview() {
   }, 200);
 }
 
+// ================================================================
+// HELPER: LOCK FORM UNTUK UPDATE INVOICE SAJA
+// ================================================================
+function toggleFormLock(isLocked) {
+  const lockIds = [
+    "calcPoDate", "calcNamaVendor", "calcNamaPic", "calcGlobalNotes",
+    "summaryDiscPercent", "summaryDiscNominal", "summaryTaxCheck"
+  ];
+  
+  // Kunci form header & footer
+  lockIds.forEach(id => {
+    const el = document.getElementById(id);
+    if(el) {
+        el.disabled = isLocked;
+        if(isLocked) el.classList.add("bg-gray-100", "cursor-not-allowed");
+        else el.classList.remove("bg-gray-100", "cursor-not-allowed");
+    }
+  });
+
+  // Kunci inputan dalam tabel (Pekerjaan, Material, Harga, dll)
+  document.querySelectorAll("#inputItemsBody input, #inputItemsBody select").forEach(el => {
+    el.disabled = isLocked;
+    if(isLocked) el.classList.add("bg-gray-100", "cursor-not-allowed");
+    else el.classList.remove("bg-gray-100", "cursor-not-allowed");
+  });
+
+  // Sembunyikan tombol hapus row (🗑️)
+  document.querySelectorAll("#inputItemsBody button").forEach(btn => {
+    btn.style.display = isLocked ? "none" : "block";
+  });
+
+  // Sembunyikan tombol "Tambah Item"
+  const btnAddRow = document.querySelector("button[onclick='addNewRow()']");
+  if(btnAddRow) btnAddRow.style.display = isLocked ? "none" : "flex";
+  
+  // PASTIKAN FIELD INVOICE SELALU TERBUKA
+  const invDate = document.getElementById("calcInvoiceDate");
+  const invNo = document.getElementById("calcInvoiceNo");
+  if(invDate) { invDate.disabled = false; invDate.classList.remove("bg-gray-100", "cursor-not-allowed"); }
+  if(invNo) { invNo.disabled = false; invNo.classList.remove("bg-gray-100", "cursor-not-allowed"); }
+}
 document.addEventListener("keydown", function (event) {
   if (event.key === "Escape") {
     closePreview();
