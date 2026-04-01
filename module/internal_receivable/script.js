@@ -44,7 +44,7 @@ window.rowTemplate = function (item, index, perPage = 10) {
 
     <td class="align-top px-4 py-3 border-r border-gray-200 sm:table-cell">
       
-        <div class="text-gray-900 line-clamp-2">${item.nominal}</div>
+        <div class="text-gray-900 line-clamp-2">${finance(item.nominal)}</div>
       
     </td>
 
@@ -286,7 +286,7 @@ formHtml = `
     <div>
       <label class="block text-sm font-semibold text-gray-700 mb-2">Nominal <span class="text-red-500">*</span></label>
       <input id="formNominal" name="nominal" type="number" 
-             class="w-full px-4 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 shadow-sm font-bold text-indigo-700" 
+             class="w-full px-4 py-2.5 border border-gray-300 rounded-md" 
              placeholder="0">
     </div>
 
