@@ -33,6 +33,11 @@ window.rowTemplate = function (item, index, perPage = 10) {
             class="block w-full text-left px-4 py-2 hover:bg-gray-100" data-id="${
               item.internal_receivable_id
             }">✏️ Edit Data</button>
+            <button 
+  onclick="event.stopPropagation(); window.currentReceivableId = '${item.internal_receivable_id}'; loadModuleContent('internal_receipt', '${item.internal_receivable_id}');"
+  class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+  👁️ View Detail
+</button>
           <button onclick="event.stopPropagation(); handleDelete(${
             item.internal_receivable_id
           })" 

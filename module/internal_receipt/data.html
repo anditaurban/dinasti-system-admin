@@ -1,0 +1,69 @@
+<div class="bg-white p-6 rounded-xl shadow-md border border-slate-100">
+  <section class="space-y-6">
+
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+      <div class="flex items-start gap-4">
+        <button onclick="loadModuleContent('internal_receivable')" 
+                class="mt-1 flex-shrink-0 p-2 bg-white border border-slate-300 rounded-full hover:bg-slate-100 hover:text-blue-600 text-slate-500 transition shadow-sm" 
+                title="Kembali ke Internal Receivable">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+        </button>
+        
+        <div>
+          <div class="flex flex-wrap items-center gap-3 mb-1">
+            <h1 id="pageTitle" class="text-2xl font-extrabold text-slate-800 tracking-tight">Internal Receipt</h1>
+            <span id="receivableInfoBadge" class="hidden px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full shadow-sm">
+              </span>
+          </div>
+          <nav id="breadcrumb" class="text-slate-500 text-sm flex items-center flex-wrap gap-1"></nav>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 text-sm">
+      <div class="w-full md:w-auto relative">
+        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">🔎</span>
+        <input type="text" id="searchInput" onkeyup="debounceSearch()" placeholder="Cari data receipt..."
+          class="pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg w-full md:w-96 focus:ring-2 focus:ring-indigo-500 shadow-sm" />
+      </div>
+
+      <div class="flex flex-wrap items-center justify-end gap-3 w-full md:w-auto">
+        <button onclick="exportData()"
+          class="bg-emerald-500 text-white px-4 py-2.5 rounded-lg hover:bg-emerald-600 font-medium shadow-sm transition flex items-center gap-2">
+          <span>Export Excel</span>
+        </button>
+        <button id="addButton" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2.5 rounded-lg shadow-sm transition">
+          + Create Receipt
+        </button>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto shadow-sm rounded-xl border border-slate-200 bg-white">
+      <table class="min-w-full text-sm text-slate-600">
+        <thead id="tableHeader" class="hidden md:table-header-group bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-xs">
+          <tr>
+            <th class="px-5 py-4 text-left border-r border-slate-200 w-[15%]">Tanggal & Ref</th>
+            <th class="px-5 py-4 text-left border-r border-slate-200 w-[20%]">Informasi Akun</th>
+            <th class="px-5 py-4 text-left border-r border-slate-200">Keterangan</th>
+            <th class="px-5 py-4 text-left border-r border-slate-200 w-[15%]">Nominal</th>
+            <th class="px-5 py-4 text-center border-r border-slate-200 w-[12%]">Status</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody" class="divide-y divide-slate-100">
+          </tbody>
+      </table>
+    </div>
+
+    <div class="mt-4 flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+      <p id="infoText" class="hidden md:block text-slate-500 text-sm font-medium"></p>
+      <div id="pagination" class="hidden md:flex flex-wrap justify-between items-center gap-2 text-sm w-full"></div>
+
+      <div class="block md:hidden text-sm text-center mb-12">
+        <label for="pageSelect" class="mr-2 text-slate-600">Go to Page:</label>
+        <select id="pageSelect" class="px-3 py-1.5 border border-slate-300 rounded-md bg-white"></select>
+      </div>
+    </div>
+  </section>
+</div>
