@@ -47,119 +47,107 @@ dummyDetailData = [
 ];
 
 window.rowTemplate = function (item, index, perPage = 10) {
+  // Format null atau undefined menjadi string kosong atau dash
+  const safeText = (val) => (val && val !== "null" && val !== null ? val : "-");
+
   return `
   <tr class="flex flex-col sm:table-row border-b border-gray-200 hover:bg-gray-50 text-sm text-gray-700 transition">
     
     <td class="align-top px-4 py-3 border-r border-gray-200 sm:table-cell">
       <div class="flex flex-col gap-1">
-        <div class="text-xs text-gray-500">${item.tanggal_transaksi}</div>
-        <div class="text-gray-900 font-medium break-all">${
-          item.inv_number
-        }</div>
+        <div class="text-xs text-gray-500 font-semibold">${safeText(item.tanggal_transaksi)}</div>
+        <div class="text-gray-900 font-medium break-all" title="Invoice Number">
+          Inv: ${safeText(item.inv_number)}
+        </div>
+        <div class="text-xs text-gray-500 break-all">
+          PO: ${safeText(item.po_number)} <br> 
+          Kwt: ${safeText(item.receipt_number)}
+        </div>
+      </div>
+    </td>
+
+    <td class="align-top px-4 py-3 border-r border-gray-200 sm:table-cell">
+      <div class="flex flex-col gap-0.5">
+        <div class="font-bold text-gray-900 line-clamp-2">
+          ${item.project_name && item.project_name !== "null" ? item.project_name : safeText(item.pelanggan_nama)}
+        </div>
+        
+        <div class="flex flex-wrap gap-1 mt-1 mb-1">
+          ${item.tipe && item.tipe !== "null" ? `<span class="px-1.5 py-0.5 rounded text-[10px] bg-purple-100 text-purple-700 font-normal capitalize">${item.tipe}</span>` : ''}
+          ${item.source_type && item.source_type !== "null" ? `<span class="px-1.5 py-0.5 rounded text-[10px] bg-orange-100 text-orange-700 font-normal capitalize">${item.source_type}</span>` : ''}
+          ${item.transaction_type && item.transaction_type !== "null" ? `<span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-700 font-normal capitalize">${item.transaction_type}</span>` : ''}
+        </div>
+
+        <div class="text-xs text-gray-600 font-medium">${safeText(item.pelanggan_nama)}</div>
+        <div class="text-[10px] text-gray-400">
+          User: ${safeText(item.user_nama)} ${item.pic_name && item.pic_name !== "null" ? `(${item.pic_name})` : ''}
+        </div>
       </div>
     </td>
 
     <td class="align-top px-4 py-3 border-r border-gray-200 sm:table-cell">
       <div class="flex flex-col gap-1">
-        <div class="font-bold text-gray-900 line-clamp-2">${
-          item.project_name
-        }</div>
-        <div class="text-xs text-gray-500">${item.pelanggan_nama}</div>
+        <div class="font-medium text-green-600">${finance(item.received_amount)}</div>
+        <div class="text-xs text-gray-500">${item.received_percentage || 0}% from Total</div>
+        <div class="text-[10px] text-gray-400 mt-1">
+          Kontrak: ${finance(item.contract_amount)}<br>
+          Kumulatif: ${finance(item.cumulative_received)}
+        </div>
       </div>
     </td>
 
     <td class="align-top px-4 py-3 border-r border-gray-200 sm:table-cell">
       <div class="flex flex-col gap-1">
-        <div class="font-medium text-gray-900">${finance(
-          item.received_amount
-        )}</div>
-        <div class="text-xs text-gray-500">${
-          item.received_percentage
-        }% from Total</div>
+        <div class="font-medium text-red-500">${finance(item.balance_amount)}</div>
+        <div class="text-xs text-gray-500">${item.balance_percentage || 0}% from Total</div>
       </div>
     </td>
 
     <td class="align-top px-4 py-3 border-r border-gray-200 sm:table-cell">
-      <div class="flex flex-col gap-1">
-        <div class="font-medium text-gray-900">${finance(
-          item.balance_amount
-        )}</div>
-        <div class="text-xs text-gray-500">${
-          item.balance_percentage
-        }% from Total</div>
-      </div>
+      <div class="text-gray-700 line-clamp-3 mb-1">${safeText(item.keterangan)}</div>
+      ${item.tag && item.tag !== "null" ? `<span class="inline-block bg-gray-100 text-gray-600 border border-gray-300 rounded px-2 py-0.5 text-[10px] mb-1">${item.tag}</span>` : ''}
     </td>
 
     <td class="align-top px-4 py-3 border-r border-gray-200 sm:table-cell">
-      <div class="text-gray-700 line-clamp-3">${item.keterangan}</div>
-    </td>
-
-    <td class="align-top px-4 py-3 border-r border-gray-200 sm:table-cell">
-       <div class="flex flex-col">
+       <div class="flex flex-col gap-1">
         ${
-          item.nama_akun !== "-"
-            ? `<span class="font-semibold">${item.nama_akun} (${item.number_account})</span>`
+          item.nama_akun && item.nama_akun !== "-" && item.nama_akun !== "null"
+            ? `<span class="font-semibold text-gray-800">${item.nama_akun} <br><span class="font-normal text-xs">(${safeText(item.number_account)})</span></span>`
             : "-"
         }
-        <span class="text-xs text-gray-500">${
-          item.owner_account !== "-" ? item.owner_account : ""
+        <span class="text-[10px] text-gray-500 uppercase">${
+          item.owner_account && item.owner_account !== "-" && item.owner_account !== "null" ? item.owner_account : ""
         }</span>
       </div>
     </td>
 
-    <td class="align-middle px-4 py-3 border-r border-gray-200 text-center sm:table-cell">
-      <span class="text-xs font-medium text-gray-600 block">
-        ${item.aging_days.replace("days", "Days").replace("to", "<br>to")}
-      </span>
-    </td>
 
-    <td class="align-middle px-4 py-3 text-center sm:table-cell">
+    <td class="align-middle px-4 py-3 text-center sm:table-cell relative group cursor-pointer">
       <span class="text-xs font-bold px-2 py-1 rounded ${
-        item.receivable_status === "Received"
+        (item.receivable_status || "").toLowerCase() === "received"
           ? "text-green-700 bg-green-100"
           : "text-gray-600 bg-gray-200"
       }">
-        ${item.receivable_status.toUpperCase()}
+        ${item.receivable_status ? item.receivable_status.toUpperCase() : "-"}
       </span>
-      <div class="dropdown-menu hidden fixed w-48 bg-white border rounded shadow-lg z-50 text-sm right-0 mt-2 py-1">
+      
+      <div class="dropdown-menu hidden group-hover:block absolute w-48 bg-white border border-gray-200 rounded shadow-lg z-50 text-sm right-0 mt-2 py-1">
         
-       <button onclick="event.stopPropagation(); viewReceiptHistory('${item.receipt_id}', '${item.project_name.replace(/'/g, "\\'")}');"
-    class="block w-full text-left px-4 py-2 hover:bg-gray-100 transition">
-    👁️ Riwayat Penerimaan
-</button>
-
-         <button onclick="event.stopPropagation(); showExpenseModal('${
-                item.keuangan_id
-              }')"
-                class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700 transition duration-150 ease-in-out">
-                ✏️ Edit
-          </button>
-
-
-        <div class="border-t my-1"></div>
-
-        <button onclick="event.stopPropagation(); confirmPayment('${
-          item.receipt_id
-        }', 2);" 
+        <button onclick="event.stopPropagation(); confirmPayment('${item.receipt_id}', 2);" 
           class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-600 transition">
             ✅ Valid
         </button>
         
-        <button onclick="event.stopPropagation(); confirmPayment('${
-          item.receipt_id
-        }', 3);" 
+        <button onclick="event.stopPropagation(); confirmPayment('${item.receipt_id}', 3);" 
           class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 transition">
             ❌ Tidak Valid
         </button>
-
-    
 
       </div>
     </td>
 
   </tr>`;
 };
-
 async function confirmPayment(receipt_id, status_value) {
   const { isConfirmed } = await Swal.fire({
     title: "Konfirmasi Pembayaran",
