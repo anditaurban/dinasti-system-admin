@@ -26,9 +26,7 @@ if (btnAdd) {
 // ==========================================
 // 2. FUNGSI FETCH TITLE INFORMATION
 // ==========================================
-// ==========================================
-// 2. FUNGSI FETCH TITLE INFORMATION
-// ==========================================
+
 async function fetchReceivableDetailTitle(id) {
   if (!id || id == 0) return;
   try {
@@ -39,10 +37,12 @@ async function fetchReceivableDetailTitle(id) {
     const result = await res.json();
     
     if (result.detail) {
-      // 🚀 SIMPAN NOMINAL PARENT SEBAGAI PATOKAN MAKSIMAL
       window.currentParentNominal = parseFloat(result.detail.nominal) || 0;
+      window.currentRemainingAmount = parseFloat(result.detail.remaining_amount) || 0;
+      
+      // 🚀 SIMPAN NAMA PROJECT DARI PARENT SEBAGAI CADANGAN
+      window.currentProjectName = result.detail.project_name || result.detail.nama_project || '';
 
-      // Inject informasi ke Badge
       if (result.detail.information) {
         const badge = document.getElementById("receivableInfoBadge");
         if (badge) {
@@ -124,7 +124,7 @@ function renderReceiptTable(data, page) {
 
   let tableRows = "";
   listData.forEach((item, index) => {
-    tableRows += window.rowTemplat(item, index);
+    tableRows += rowTemplat(item, index);
   });
   
   tbody.innerHTML = tableRows;
@@ -139,13 +139,16 @@ function renderReceiptTable(data, page) {
   }
 }
 
-// Template Baris Tabel
-// ==========================================
-// Template Baris Tabel (Update Kolom Aksi)
-// ==========================================
-window.rowTemplat = function (item, index, perPage = 10) {
+function rowTemplat(item, index, perPage = 10) {
   const statusLabel = item.internal_receivable_status == 1 ? "SELESAI" : "PENDING";
   const statusClass = item.internal_receivable_status == 1 ? "text-emerald-700 bg-emerald-100" : "text-amber-700 bg-amber-100";
+
+  const previewFileAction = item.file ? `
+        <button type="button" onclick="openPreviewModal('${item.file}'); closeAllDropdowns()" 
+                class="w-full text-left px-4 py-2 text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-medium transition-colors flex items-center gap-2">
+          📄 Lihat Bukti
+        </button>
+  ` : '';
 
   return `
   <tr class="flex flex-col sm:table-row border-b border-slate-100 hover:bg-slate-50 text-sm transition relative">
@@ -187,7 +190,9 @@ window.rowTemplat = function (item, index, perPage = 10) {
       </button>
 
       <div id="dropdown-${item.keuangan_id}" 
-           class="dropdown-menu hidden absolute right-8 top-12 w-36 bg-white border border-slate-200 rounded-xl shadow-xl z-50 text-sm py-2 text-left origin-top-right transition-all">
+           class="dropdown-menu hidden absolute right-full mr-2 bottom-0 w-40 bg-white border border-slate-200 rounded-xl shadow-xl z-[100] text-sm py-2 text-left origin-bottom-right transition-all">
+        
+        ${previewFileAction}
         
         <button type="button" onclick="openReceiptModal(${item.keuangan_id}); closeAllDropdowns()" 
                 class="w-full text-left px-4 py-2 text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 font-medium transition-colors flex items-center gap-2">
@@ -195,20 +200,156 @@ window.rowTemplat = function (item, index, perPage = 10) {
         </button>
         
         <button type="button" onclick="deleteReceiptLokal('${item.keuangan_id}'); closeAllDropdowns()"
-                class="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 font-medium transition-colors flex items-center gap-2">
+                class="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 hover:text-red-700 font-medium transition-colors flex items-center gap-2">
           🗑 Hapus
         </button>
       </div>
     </td>
   </tr>`;
-};
+}
+
+// ==========================================
+// FUNGSI MODAL PREVIEW FILE (GAMBAR VIA FETCH BLOB)
+// ==========================================
+async function openPreviewModal(fileUrl) {
+  // Hapus modal lama jika ada
+  const existingModal = document.getElementById("previewModalOverlay");
+  if (existingModal) existingModal.remove();
+
+  // Buat HTML Modal dengan state Loading
+  const modalHTML = `
+    <div id="previewModalOverlay" class="fixed inset-0 bg-slate-900 bg-opacity-75 z-[60] flex justify-center items-center px-4 backdrop-blur-sm" onclick="closePreviewModal()">
+      
+      <div class="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+        
+        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+          <h2 class="text-lg font-extrabold text-slate-800">Preview Bukti Receipt</h2>
+          <button type="button" onclick="closePreviewModal()" class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-full transition leading-none">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+
+        <div class="p-6 overflow-auto flex-1 flex flex-col justify-center items-center bg-slate-200/50 min-h-[50vh] relative">
+          
+          <div id="previewLoading" class="flex flex-col items-center">
+             <div class="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+             <p class="mt-3 text-slate-500 font-medium">Memuat gambar rahasia...</p>
+          </div>
+
+          <div id="previewError" class="hidden flex-col items-center text-center">
+             <p class="text-4xl mb-2">❌</p>
+             <p class="text-red-500 font-medium">Akses ditolak atau file tidak ditemukan.</p>
+          </div>
+
+          <img id="previewImageResult" 
+               alt="Bukti File" 
+               class="hidden max-w-full max-h-[60vh] object-contain rounded-lg shadow-md transition-opacity duration-300">
+        </div>
+
+        <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 text-sm">
+          <button type="button" onclick="downloadSecureFile('${fileUrl}')" class="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-bold shadow-md shadow-indigo-200 transition items-center gap-2 flex">
+            ⬇️ Download File
+          </button>
+          <button type="button" onclick="closePreviewModal()" class="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-100 font-bold transition">
+            Tutup
+          </button>
+        </div>
+
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML("beforeend", modalHTML);
+
+  // Mulai proses fetch gambar dengan Token
+  const loadingEl = document.getElementById("previewLoading");
+  const errorEl = document.getElementById("previewError");
+  const imgEl = document.getElementById("previewImageResult");
+
+  try {
+    const response = await fetch(fileUrl, {
+      method: "GET",
+      headers: { "Authorization": `Bearer ${API_TOKEN}` }
+    });
+
+    if (!response.ok) throw new Error("Gagal memuat gambar");
+
+    // Ubah response menjadi Blob
+    const imageBlob = await response.blob();
+    // Buat URL lokal sementara dari Blob tersebut
+    const imageObjectURL = URL.createObjectURL(imageBlob);
+
+    // Set URL lokal ke img src
+    imgEl.src = imageObjectURL;
+    
+    // Simpan object URL di element untuk dibersihkan nanti saat modal ditutup
+    imgEl.dataset.blobUrl = imageObjectURL;
+
+    // Tampilkan gambar, sembunyikan loading
+    loadingEl.classList.add("hidden");
+    imgEl.classList.remove("hidden");
+
+  } catch (error) {
+    loadingEl.classList.add("hidden");
+    errorEl.classList.remove("hidden");
+    errorEl.classList.add("flex");
+  }
+}
+
+function closePreviewModal() {
+  const modal = document.getElementById("previewModalOverlay");
+  if (modal) {
+    // Bersihkan memory browser dari URL Blob sebelum menghapus modal
+    const imgEl = document.getElementById("previewImageResult");
+    if (imgEl && imgEl.dataset.blobUrl) {
+      URL.revokeObjectURL(imgEl.dataset.blobUrl);
+    }
+    modal.remove();
+  }
+}
+
+// Fungsi untuk mendownload file yang butuh Bearer Token
+async function downloadSecureFile(fileUrl) {
+  try {
+    const response = await fetch(fileUrl, {
+      method: "GET",
+      headers: { "Authorization": `Bearer ${API_TOKEN}` }
+    });
+
+    if (!response.ok) {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'Gagal mengunduh file', showConfirmButton: false, timer: 2000 });
+        return;
+    }
+
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    
+    // Buat elemen <a> sementara untuk men-trigger download
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    
+    // Ambil nama file dari URL asli
+    const fileName = fileUrl.substring(fileUrl.lastIndexOf('/') + 1) || "downloaded_file.png";
+    a.download = fileName;
+    
+    document.body.appendChild(a);
+    a.click();
+    
+    // Bersihkan
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+
+  } catch (error) {
+    Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'Terjadi kesalahan jaringan', showConfirmButton: false, timer: 2000 });
+  }
+}
 
 // ==========================================
 // LOGIKA DROPDOWN AKSI
 // ==========================================
 
 // Fungsi untuk membuka/menutup dropdown tertentu
-window.togleDropdown = function(dropdownId) {
+function togleDropdown(dropdownId) {
   const menu = document.getElementById(dropdownId);
   const isHidden = menu.classList.contains("hidden");
 
@@ -219,15 +360,15 @@ window.togleDropdown = function(dropdownId) {
   if (isHidden) {
     menu.classList.remove("hidden");
   }
-};
+}
 
 // Fungsi untuk menutup semua dropdown
-window.closeAllDropdowns = function() {
+function closeAllDropdowns() {
   const allDropdowns = document.querySelectorAll(".dropdown-menu");
   allDropdowns.forEach(dropdown => {
     dropdown.classList.add("hidden");
   });
-};
+}
 
 // Event listener global: Tutup dropdown jika klik di sembarang tempat (di luar dropdown)
 document.addEventListener("click", function(event) {
@@ -292,18 +433,29 @@ async function openReceiptModal(editId = null) {
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label class="block text-sm font-bold text-slate-700 mb-2">Nominal <span class="text-red-500">*</span></label>
-                  <input id="receiptFormNominal" name="nominal" type="number" required
-                         class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 shadow-sm transition" placeholder="0">
-                  <p id="maxNominalInfo" class="mt-1 text-xs text-indigo-600 font-semibold"></p>
+            <div>
+              <label class="block text-sm font-bold text-slate-700 mb-2">Nominal Pembayaran <span class="text-red-500">*</span></label>
+              <div class="flex items-center gap-3">
+                
+                <input id="receiptFormNominalPercent" name="nominal_percent" type="number" step="0.01" required
+                       class="w-24 sm:w-28 px-3 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 shadow-sm transition text-center placeholder-slate-400 font-semibold" placeholder="%">
+                
+                <span class="text-slate-400 font-bold text-lg">%</span>
+                
+                <div class="relative flex-1">
+                   <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">Rp</span>
+                   
+                   <input type="hidden" id="receiptFormNominalReal" name="nominal">
+                   
+                   <input id="receiptFormNominalDisplay" type="text" required autocomplete="off"
+                          class="w-full pl-11 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 shadow-sm transition text-right font-bold text-slate-700 text-lg" placeholder="0">
                 </div>
-                <div>
-                  <label class="block text-sm font-bold text-slate-700 mb-2">Nominal Percent (%) <span class="text-red-500">*</span></label>
-                  <input id="receiptFormNominalPercent" name="nominal_percent" type="number" step="0.01" required
-                         class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 shadow-sm transition" placeholder="0">
-                </div>
+              </div>
+
+              <div class="flex justify-between items-center mt-2">
+                <p id="maxNominalInfo" class="text-[11px] text-slate-500 font-medium"></p>
+                <p id="remainingAmountInfo" class="text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-bold border border-emerald-100"></p>
+              </div>
             </div>
 
             <div>
@@ -346,53 +498,82 @@ async function openReceiptModal(editId = null) {
   const loadingElement = document.getElementById("modalLoading");
   const btnSubmit = document.getElementById("btnSubmitReceipt");
 
+  const formProjectName = document.getElementById("receiptFormProjectName");
+  if (formProjectName) {
+    formProjectName.value = window.currentProjectName || '';
+  }
+
   // ========================================================
-  // 🚀 LOGIKA SINKRONISASI NOMINAL DAN PERSEN (AUTO KALKULASI)
+  // 🚀 LOGIKA SINKRONISASI NOMINAL (FORMAT RIBUAN) DAN PERSEN
   // ========================================================
-  const inputNominal = document.getElementById("receiptFormNominal");
+  const inputNominalReal = document.getElementById("receiptFormNominalReal");
+  const inputNominalDisplay = document.getElementById("receiptFormNominalDisplay");
   const inputPercent = document.getElementById("receiptFormNominalPercent");
+  
   const maxNominalInfo = document.getElementById("maxNominalInfo");
+  const remainingAmountInfo = document.getElementById("remainingAmountInfo");
+  
   const maxNominal = window.currentParentNominal || 0;
+  let limitNominalAllowed = window.currentRemainingAmount || maxNominal; 
+
+  // Helper Format Ribuan (menggunakan titik)
+  const formatRupiah = (angka) => {
+    return new Intl.NumberFormat('id-ID').format(angka);
+  };
+
+  const updateHelperText = (limitVal) => {
+    if (maxNominal > 0) {
+      maxNominalInfo.innerHTML = `Total: Rp ${formatRupiah(maxNominal)}`;
+      remainingAmountInfo.innerHTML = `Sisa: Rp ${formatRupiah(limitVal)}`;
+    }
+  };
+
+  if (!isEdit) updateHelperText(limitNominalAllowed);
 
   if (maxNominal > 0) {
-    // Tampilkan info maksimal di bawah input
-    maxNominalInfo.innerHTML = `Maksimal: <b>${typeof finance === 'function' ? finance(maxNominal) : maxNominal}</b>`;
-
-    // 1. Jika User Mengetik di Input Nominal
-    inputNominal.addEventListener("input", function() {
-      let val = parseFloat(this.value) || 0;
+    // 1. Jika User Mengetik di Input Display
+    inputNominalDisplay.addEventListener("input", function(e) {
+      // Hapus semua karakter selain angka
+      let rawString = this.value.replace(/[^0-9]/g, '');
+      let val = parseInt(rawString) || 0;
       
-      // Cegah melebihi batas maksimal
-      if (val > maxNominal) {
-        val = maxNominal;
-        this.value = val;
-        // Tampilkan peringatan kecil (Toast)
-        Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'Nominal mencapai batas maksimal', showConfirmButton: false, timer: 1500 });
+      // Cegah melebihi batas SISA PEMBAYARAN
+      if (val > limitNominalAllowed) {
+        val = limitNominalAllowed;
+        Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'Nominal melebihi sisa pembayaran', showConfirmButton: false, timer: 1500 });
       }
+
+      // Update isi input (Display Format & Real Value)
+      this.value = val === 0 ? '' : formatRupiah(val);
+      inputNominalReal.value = val;
       
-      // Kalkulasi persen otomatis
+      // Kalkulasi persen
       let pct = (val / maxNominal) * 100;
-      inputPercent.value = Number.isInteger(pct) ? pct : pct.toFixed(2); // Hilangkan .00 jika bulat
+      inputPercent.value = Number.isInteger(pct) ? pct : pct.toFixed(2);
     });
 
     // 2. Jika User Mengetik di Input Persentase
     inputPercent.addEventListener("input", function() {
       let pct = parseFloat(this.value) || 0;
-      
-      // Cegah melebihi 100%
-      if (pct > 100) {
-        pct = 100;
-        this.value = pct;
-        Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'Persentase maksimal 100%', showConfirmButton: false, timer: 1500 });
+      let val = Math.round((pct / 100) * maxNominal);
+
+      // Cegah melebihi SISA PEMBAYARAN
+      if (val > limitNominalAllowed) {
+        val = limitNominalAllowed;
+        pct = (val / maxNominal) * 100; 
+        this.value = Number.isInteger(pct) ? pct : pct.toFixed(2);
+        Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'Persentase melebihi sisa pembayaran', showConfirmButton: false, timer: 1500 });
       }
       
-      // Kalkulasi nominal otomatis
-      let val = (pct / 100) * maxNominal;
-      inputNominal.value = Math.round(val); // Dibulatkan agar tidak ada koma di nominal rupiah
+      // Update isi input (Display Format & Real Value)
+      inputNominalDisplay.value = val === 0 ? '' : formatRupiah(val);
+      inputNominalReal.value = val;
     });
   }
-  // ========================================================
 
+  // ========================================================
+  // 🚀 LOGIKA FETCH DATA UNTUK MODE EDIT
+  // ========================================================
   if (isEdit) {
     try {
       const res = await fetch(`${baseUrl}/detail/internal_receipt/${editId}`, {
@@ -404,14 +585,27 @@ async function openReceiptModal(editId = null) {
       if (res.ok && result.detail) {
         const data = result.detail;
         
+        const sisaDariAPI = parseFloat(data.remaining_amount) || window.currentRemainingAmount;
+        const nominalReceiptIni = parseFloat(data.nominal) || 0;
+        limitNominalAllowed = sisaDariAPI + nominalReceiptIni;
+        updateHelperText(limitNominalAllowed);
+
         document.getElementById("receiptFormTanggal").value = data.tanggal_transaksi || '';
-        document.getElementById("receiptFormNoKwitansi").value = data.no_ref || ''; 
-        document.getElementById("receiptFormNominal").value = data.nominal || '';
+        document.getElementById("receiptFormNoKwitansi").value = data.no_kwitansi || data.no_ref || ''; 
+        
+        // 🚀 Set Nilai Real dan Display Format saat load data
+        inputNominalReal.value = nominalReceiptIni;
+        inputNominalDisplay.value = nominalReceiptIni === 0 ? '' : formatRupiah(nominalReceiptIni);
+        
         document.getElementById("receiptFormNominalPercent").value = data.nominal_percent || '';
-        document.getElementById("receiptFormProjectName").value = data.project_name || '';
+        
+        if (data.project_name) {
+          formProjectName.value = data.project_name;
+        }
+
         document.getElementById("receiptFormKeterangan").value = data.keterangan || '';
         
-        await loadAkunForReceiptModal(data.akun_id || data.akun);
+        await loadAkunForReceiptModal(data.akun || data.akun_id);
       } else {
         throw new Error(result.message || "Data tidak ditemukan");
       }
@@ -471,29 +665,23 @@ async function submitReceiptDataLokal(event) {
   const endpointUrl = isEdit ? `${baseUrl}/update/internal_receipt/${keuanganId}` : `${baseUrl}/add/internal_receipt`;
   const fetchMethod = isEdit ? "PUT" : "POST";
 
-  // Hapus ID keuangan dari body form
+  // 1. Bersihkan Payload ID (HANYA keuangan_id yang dibuang, internal_receivable_id TETAP DIKIRIM)
   formData.delete("keuangan_id");
 
-  // 🚀 JURUS ANTI GAGAL API: Kita kirim dua-duanya sekaligus!
-  // Karena form name="akun_id", datanya tersimpan di key akun_id (Sempurna untuk Add/POST)
-  // Untuk Edit/PUT, backend butuh "akun", jadi kita copy isinya ke key "akun"
-  const akunVal = formData.get("akun_id");
-  if (akunVal) {
-    formData.append("akun", akunVal); 
+  // 2. Tangani File Upload (Jangan kirim file kosong saat mode Edit/PUT)
+  const fileField = formData.get("file");
+  if (isEdit && (!fileField || fileField.size === 0)) {
+    formData.delete("file");
   }
 
-  let receivableId = formData.get("internal_receivable_id");
-  if (!receivableId || receivableId === "") {
-    formData.set("internal_receivable_id", "0"); 
-  }
-
-  formData.append("owner_id", typeof owner_id !== "undefined" ? owner_id : "1"); 
+  // 3. Set owner_id dan user_id
+  formData.set("owner_id", typeof owner_id !== "undefined" ? owner_id : "1"); 
   let userId = "4"; 
   try {
     const userSession = JSON.parse(localStorage.getItem("user"));
     if (userSession && userSession.user_id) userId = userSession.user_id;
   } catch (e) {}
-  formData.append("user_id", userId);
+  formData.set("user_id", userId);
 
   const submitBtn = document.getElementById("btnSubmitReceipt");
   const originalText = submitBtn.innerHTML;
@@ -514,7 +702,6 @@ async function submitReceiptDataLokal(event) {
 
     if (response.ok) { 
       closeReceiptModal();
-      
       await Swal.fire({
         icon: 'success',
         title: 'Berhasil!',
@@ -522,15 +709,13 @@ async function submitReceiptDataLokal(event) {
         showConfirmButton: false,
         timer: 1500
       });
-      
     } else {
       await Swal.fire({
         icon: 'error',
         title: 'Gagal Menyimpan',
-        text: result.message || "Terdapat kesalahan di sisi server."
+        // Tampilkan pesan error asli dari backend agar kita tahu kalau ada masalah lain
+        text: result.message || "Terdapat kesalahan di sisi server." 
       });
-      submitBtn.innerHTML = originalText;
-      submitBtn.disabled = false;
     }
   } catch (error) {
     await Swal.fire({
@@ -538,11 +723,9 @@ async function submitReceiptDataLokal(event) {
       title: 'Oops...',
       text: 'Terjadi kesalahan jaringan atau server crash!'
     });
-    
+  } finally {
     submitBtn.innerHTML = originalText;
     submitBtn.disabled = false;
-  } finally {
-    // Reload tabel setelah semuanya selesai
     fetchReceiptData(1);
   }
 }
@@ -550,7 +733,7 @@ async function submitReceiptDataLokal(event) {
 // ==========================================
 // 5. FUNGSI DELETE (SweetAlert2 Integration)
 // ==========================================
-window.deleteReceiptLokal = function(id) {
+async function deleteReceiptLokal(id) {
   Swal.fire({
     title: 'Hapus Data?',
     text: "Data receipt ini akan dihapus secara permanen!",
@@ -611,4 +794,4 @@ window.deleteReceiptLokal = function(id) {
 
     }
   });
-};
+}
