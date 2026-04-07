@@ -69,18 +69,14 @@ window.rowTemplate = function (item, index, perPage = 10) {
     <td class="align-top px-4 py-3 border-r border-gray-200 sm:table-cell">
       <div class="flex flex-col gap-0.5">
         <div class="font-bold text-gray-900 line-clamp-2">
-          ${item.project_name && item.project_name !== "null" ? item.project_name : safeText(item.pelanggan_nama)}
+          ${item.project_name}
         </div>
+        ${item.pelanggan_nama}
         
         <div class="flex flex-wrap gap-1 mt-1 mb-1">
           ${item.tipe && item.tipe !== "null" ? `<span class="px-1.5 py-0.5 rounded text-[10px] bg-purple-100 text-purple-700 font-normal capitalize">${item.tipe}</span>` : ''}
           ${item.source_type && item.source_type !== "null" ? `<span class="px-1.5 py-0.5 rounded text-[10px] bg-orange-100 text-orange-700 font-normal capitalize">${item.source_type}</span>` : ''}
           ${item.transaction_type && item.transaction_type !== "null" ? `<span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-700 font-normal capitalize">${item.transaction_type}</span>` : ''}
-        </div>
-
-        <div class="text-xs text-gray-600 font-medium">${safeText(item.pelanggan_nama)}</div>
-        <div class="text-[10px] text-gray-400">
-          User: ${safeText(item.user_nama)} ${item.pic_name && item.pic_name !== "null" ? `(${item.pic_name})` : ''}
         </div>
       </div>
     </td>
@@ -119,6 +115,10 @@ window.rowTemplate = function (item, index, perPage = 10) {
           item.owner_account && item.owner_account !== "-" && item.owner_account !== "null" ? item.owner_account : ""
         }</span>
       </div>
+    </td>
+
+    <td class="align-top px-4 py-3 border-r border-gray-200 sm:table-cell">
+      <div class="text-gray-700 line-clamp-3 mb-1">${item.aging_days}</div>
     </td>
 
 

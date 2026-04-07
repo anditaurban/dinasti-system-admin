@@ -175,13 +175,9 @@ function rowTemplat(item, index, perPage = 10) {
         <div class="text-slate-800 font-bold line-clamp-2">${typeof finance === 'function' ? finance(item.nominal) : item.nominal}</div>
     </td>
 
-    <td class="align-middle px-5 py-4 text-center sm:table-cell">
-      <span class="text-xs font-extrabold px-3 py-1.5 rounded-full ${statusClass}">
-        ${statusLabel}
-      </span>
-    </td>
+    
 
-    <td class="align-middle px-4 py-4 text-center sm:table-cell relative">
+    <td class="align-middle px-5 py-4 text-center sm:table-cell">
       <button type="button" onclick="event.stopPropagation(); togleDropdown('dropdown-${item.keuangan_id}')" 
               class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors focus:outline-none">
         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
