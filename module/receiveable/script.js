@@ -57,11 +57,7 @@ window.rowTemplate = function (item, index, perPage = 10) {
       <div class="flex flex-col gap-1">
         <div class="text-xs text-gray-500 font-semibold">${safeText(item.tanggal_transaksi)}</div>
         <div class="text-gray-900 font-medium break-all" title="Invoice Number">
-          Inv: ${safeText(item.inv_number)}
-        </div>
-        <div class="text-xs text-gray-500 break-all">
-          PO: ${safeText(item.po_number)} <br> 
-          Kwt: ${safeText(item.receipt_number)}
+          ${safeText(item.inv_number)}
         </div>
       </div>
     </td>
