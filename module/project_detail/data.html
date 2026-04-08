@@ -73,8 +73,13 @@
 </div>
 
   <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6 text-sm">
-    <h3 class="font-semibold mb-3 border-b pb-2">Informasi Project</h3>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="flex justify-between items-center mb-3 border-b pb-2">
+      <h3 class="font-semibold">Informasi Project</h3>
+      <button onclick="openEditDateModal()" class="text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium bg-blue-50 px-2 py-1 rounded transition">
+        ✏️ Edit Tanggal
+      </button>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
       <div><span class="block text-xs text-gray-500 uppercase">NO QO</span><span id="detailNoQO"
           class="font-bold block text-gray-800">---</span></div>
       <div><span class="block text-xs text-gray-500 uppercase">NO INV</span><span id="detailNoInv"
@@ -83,6 +88,15 @@
           class="font-bold block text-gray-800">---</span></div>
       <div><span class="block text-xs text-gray-500 uppercase">PIC</span><span id="detailPIC"
           class="font-bold block text-gray-800">---</span></div>
+      
+      <div>
+        <span class="block text-xs text-gray-500 uppercase">START DATE <span class="text-red-500">*</span></span>
+        <span id="detailStartDate" class="font-bold block text-gray-800">---</span>
+      </div>
+      <div>
+        <span class="block text-xs text-gray-500 uppercase">FINISH DATE</span>
+        <span id="detailFinishDate" class="font-bold block text-gray-800">---</span>
+      </div>
     </div>
   </div>
 

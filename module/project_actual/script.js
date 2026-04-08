@@ -665,7 +665,7 @@ function renderHistoryTable(data) {
         : "";
 
     const editBtnHtml = isApproved
-      ? `<button onclick="editActualCost(${item.purchase_id}, true)" class="block w-full text-left px-4 py-2 hover:bg-yellow-50 text-yellow-600 flex items-center gap-2">📝 Lengkapi Invoice</button>`
+      ? `<button onclick="editActualCost(${item.purchase_id}, true)" class="block w-full text-left px-4 py-2 hover:bg-yellow-50 text-yellow-600 flex items-center gap-2">📝 Edit Invoice</button>`
       : `<button onclick="editActualCost(${item.purchase_id}, false)" class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700 flex items-center gap-2">✏️ Edit Transaction</button>`;
 
     const deleteBtnHtml = isApproved

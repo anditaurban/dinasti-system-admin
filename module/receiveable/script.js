@@ -85,10 +85,7 @@ window.rowTemplate = function (item, index, perPage = 10) {
       <div class="flex flex-col gap-1">
         <div class="font-medium text-green-600">${finance(item.received_amount)}</div>
         <div class="text-xs text-gray-500">${item.received_percentage || 0}% from Total</div>
-        <div class="text-[10px] text-gray-400 mt-1">
-          Kontrak: ${finance(item.contract_amount)}<br>
-          Kumulatif: ${finance(item.cumulative_received)}
-        </div>
+       
       </div>
     </td>
 

@@ -91,10 +91,10 @@ async function fetchAndRenderProject(isRefresh = false) {
     // ============================================================
     document.getElementById("projectNameDisplay").textContent = `${data.project_name} (${data.project_number || "-"}) - ${data.project_type}`;
     document.getElementById("projectAmount").innerHTML = `
-  <div>${finance(data.project_value)}</div>
-  <div class="text-[10px] text-gray-400 font-normal mt-1">100% Base</div>
-  <div class="text-[10px] text-gray-400 font-normal mt-1">inx. Tax ${finance(data.ppn)}</div>
-`;
+      <div>${finance(data.project_value)}</div>
+      <div class="text-[10px] text-gray-400 font-normal mt-1">100% Base</div>
+      <div class="text-[10px] text-gray-400 font-normal mt-1">inx. Tax ${finance(data.ppn)}</div>
+    `;
     document.getElementById("plan_costing").innerHTML = `<div>${finance(data.plan_costing)}</div><div class="text-[10px] text-gray-500 font-normal mt-1">${data.plan_costing_percent}% dari Value</div>`;
     
     const isOverBudget = parseFloat(data.actual_costing) > parseFloat(data.plan_costing);
@@ -112,6 +112,9 @@ async function fetchAndRenderProject(isRefresh = false) {
     document.getElementById("detailNoInv").textContent = data.inv_number || "---";
     document.getElementById("detailNoPO").textContent = data.po_number || "---";
     document.getElementById("detailPIC").textContent = data.project_manager_name || data.pic_name || "---";
+   // TAMPILKAN TANGGAL (Menggunakan endpoint dmy)
+    document.getElementById("detailStartDate").textContent = data.start_date_dmy || "---";
+    document.getElementById("detailFinishDate").textContent = data.finish_date_dmy || "---";
 
     // ============================================================
     // B. RENDER TABEL ITEMS
@@ -298,6 +301,90 @@ async function fetchAndRenderProject(isRefresh = false) {
   } catch (err) {
     console.error(err);
     if (!isRefresh) Swal.fire("Error", "Gagal load data project", "error");
+  }
+}
+
+// --- FUNGSI BARU: EDIT TANGGAL PROJECT ---
+async function openEditDateModal() {
+  if (!projectDetailData) return;
+
+  const currentStart = projectDetailData.start_date || "";
+  const currentFinish = projectDetailData.finish_date || "";
+
+  const { value: formValues } = await Swal.fire({
+    title: 'Edit Tanggal Project',
+    html: `
+      <div class="text-left mb-3">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Start Date <span class="text-red-500">*</span></label>
+        <input id="swal-start-date" type="date" class="border focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2" value="${currentStart}" required>
+      </div>
+      <div class="text-left mb-1">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Finish Date</label>
+        <input id="swal-finish-date" type="date" class="border focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2" value="${currentFinish}">
+      </div>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: 'Simpan Tanggal',
+    cancelButtonText: 'Batal',
+    preConfirm: () => {
+      const startInput = document.getElementById('swal-start-date').value;
+      const finishInput = document.getElementById('swal-finish-date').value;
+
+      // Validasi Start Date wajib diisi
+      if (!startInput) {
+        Swal.showValidationMessage('Start Date wajib diisi!');
+        return false;
+      }
+
+      return {
+        start_date: startInput,
+        finish_date: finishInput // Bisa string kosong jika tidak diisi
+      };
+    }
+  });
+
+  // Jika user klik simpan dan lolos validasi
+  if (formValues) {
+    await submitUpdateProjectDate(formValues.start_date, formValues.finish_date);
+  }
+}
+
+async function submitUpdateProjectDate(startDate, finishDate) {
+  Swal.fire({ title: "Menyimpan...", didOpen: () => Swal.showLoading() });
+
+  try {
+    const res = await fetch(`${baseUrl}/update/project_date/${projectId}`, {
+      method: "PUT", // Asumsi method menggunakan PUT, silakan ganti ke POST/PATCH jika API meminta tipe lain
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${API_TOKEN}`,
+      },
+      body: JSON.stringify({
+        start_date: startDate,
+        finish_date: finishDate
+      }),
+    });
+
+    const json = await res.json();
+
+    if (res.ok) {
+      await Swal.fire({
+        icon: "success",
+        title: "Berhasil",
+        text: "Tanggal project berhasil diperbarui!",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+
+      // Render ulang data agar tampilan langsung ter-update
+      fetchAndRenderProject(true);
+    } else {
+      throw new Error(json.message || "Gagal menyimpan tanggal.");
+    }
+  } catch (err) {
+    console.error(err);
+    Swal.fire("Gagal", err.message, "error");
   }
 }
 
