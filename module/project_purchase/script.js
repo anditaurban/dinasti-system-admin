@@ -323,23 +323,42 @@ async function handlePurchaseSubmit(e) {
   const btnSubmit = document.getElementById("submitPurchBtn");
   if (btnSubmit.disabled) return;
 
-  // --- 1. DEKLARASI VARIABEL (PENTING: Jangan Lupa Baris Ini) ---
+  // --- 1. DEKLARASI VARIABEL ---
   const elNominal = document.getElementById("purchNominal");
-  const elPercent = document.getElementById("purchPercent"); // <--- INI YANG KURANG
-
-  const nominalVal = parseRupiah(elNominal.value);
+  const elPercent = document.getElementById("purchPercent"); 
   const maxVal = parseFloat(elNominal.dataset.maxVal || 0);
 
-  // --- VALIDASI ---
-  const akunVal = document.getElementById("purchAkun").value;
+  // Ambil value angka murni dari nominal
+  // (Jika Anda punya fungsi parseRupiah(), gunakan itu. Jika tidak, gunakan regex replace default ini)
+  const nominalVal = typeof parseRupiah === "function" 
+      ? parseRupiah(elNominal.value) 
+      : (parseFloat(elNominal.value.replace(/\D/g, "")) || 0);
+
   const purchaseId = document.getElementById("purchNoPo").value;
+  const tglTrx = document.getElementById("purchDate").value;
+  const akunVal = document.getElementById("purchAkun").value;
+  const keterangan = document.getElementById("purchNotes").value.trim();
   const vendorId = document.getElementById("purchVendorId").value;
 
-  if (!akunVal)
-    return Swal.fire("Gagal", "Silakan pilih Akun Pembayaran", "warning");
-  if (!purchaseId) return Swal.fire("Gagal", "Silakan pilih No PO", "warning");
+  // --- 2. VALIDASI MANDATORY FIELDS (Pengecekan Wajib Isi) ---
+  let missingFields = [];
+  
+  if (!purchaseId) missingFields.push("No PO (Vendor)");
+  if (!tglTrx) missingFields.push("Tanggal Transaksi");
+  if (nominalVal <= 0) missingFields.push("Nominal Pembayaran");
+  if (!akunVal) missingFields.push("Akun Pembayaran");
+  if (!keterangan) missingFields.push("Keterangan");
 
-  // Validasi Nominal
+  // Jika ada kolom mandatory yang kosong, hentikan submit dan munculkan notifikasi
+  if (missingFields.length > 0) {
+    return Swal.fire({
+      icon: "warning",
+      title: "Data Belum Lengkap!",
+      html: `Silakan isi item mandatory berikut sebelum menyimpan:<br><br><b class="text-red-500">${missingFields.join("<br>")}</b>`
+    });
+  }
+
+  // Validasi Limit Nominal
   if (!currentUpdatePurchId && maxVal > 0 && nominalVal > maxVal) {
     return Swal.fire({
       icon: "error",
@@ -348,27 +367,24 @@ async function handlePurchaseSubmit(e) {
     });
   }
 
-  // --- SUSUN FORMDATA ---
+  // --- 3. SUSUN FORMDATA ---
   const formData = new FormData();
-  formData.append("owner_id", user.owner_id);
+  formData.append("owner_id", user.owner_id); // Pastikan object `user` sudah terdeklarasi di scope global Anda
   formData.append("user_id", user.user_id);
   formData.append("purchase_id", purchaseId);
   formData.append("project_id", projectId);
   formData.append("vendor_id", vendorId || "0");
   formData.append("akun", akunVal);
-  formData.append("payable_date", document.getElementById("purchDate").value);
-
+  formData.append("payable_date", tglTrx);
   formData.append("nominal", nominalVal);
 
-  // --- 2. PENGGUNAAN VARIABEL elPercent ---
-  // Pastikan elPercent sudah didefinisikan di atas (langkah 1)
   let percentVal = 0;
   if (elPercent) {
     percentVal = parseFloat(elPercent.value) || 0;
   }
   formData.append("nominal_percent", percentVal);
 
-  formData.append("keterangan", document.getElementById("purchNotes").value);
+  formData.append("keterangan", keterangan);
   formData.append("no_po_file", document.getElementById("purchNoPoFile").value);
 
   const fileInput = document.getElementById("purchFile");
@@ -376,7 +392,7 @@ async function handlePurchaseSubmit(e) {
     formData.append("file", fileInput.files[0]);
   }
 
-  // --- KIRIM DATA ---
+  // --- 4. KIRIM DATA ---
   const url = currentUpdatePurchId
     ? `${baseUrl}/update/project_payable/${currentUpdatePurchId}`
     : `${baseUrl}/add/project_payable`;

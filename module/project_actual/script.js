@@ -141,6 +141,10 @@ async function generateNoPO() {
 // 3. CORE: SAVE TRANSACTION
 // ================================================================
 
+// ================================================================
+// 3. CORE: SAVE TRANSACTION (UPDATED DENGAN COLLECTIVE VALIDATION)
+// ================================================================
+
 async function saveTransaction() {
   try {
     if (isSubmitting) return;
@@ -148,64 +152,106 @@ async function saveTransaction() {
     isSubmitting = true;
     calculateGrandTotal();
 
-    const currentUserId =
-      typeof user !== "undefined" && user.user_id ? parseInt(user.user_id) : 0;
-    const currentOwnerId =
-      typeof owner_id !== "undefined" ? parseInt(owner_id) : 0;
+    const currentUserId = typeof user !== "undefined" && user.user_id ? parseInt(user.user_id) : 0;
+    const currentOwnerId = typeof owner_id !== "undefined" ? parseInt(owner_id) : 0;
 
-    const vendorIdInput = document.getElementById("calcVendorId").value;
+    // --- VARIABEL HEADER ---
+    const tglPo = document.getElementById("calcPoDate").value;
     const noPo = document.getElementById("calcNoPo").value;
-    const inputPoPdf = document.getElementById("calcNoPoPdf");
-    const noPoPdf = inputPoPdf ? inputPoPdf.value : noPo;
-
+    const vendorIdInput = document.getElementById("calcVendorId").value;
     const picSelect = document.getElementById("calcNamaPic");
-    let selectedPicName = null;
+    const inputPoPdf = document.getElementById("calcNoPoPdf");
+    const noPoPdf = inputPoPdf && inputPoPdf.value ? inputPoPdf.value : noPo;
 
+    let selectedPicName = null;
     if (picSelect && picSelect.value && picSelect.value != "0") {
       selectedPicName = picSelect.options[picSelect.selectedIndex].text;
     }
 
-    if (!vendorIdInput || vendorIdInput == "0") {
-      isSubmitting = false;
-      return Swal.fire("Validasi", "Vendor belum dipilih.", "warning");
-    }
-    if (!noPo) {
-      isSubmitting = false;
-      return Swal.fire("Validasi", "Nomor PO belum terisi.", "warning");
-    }
+    // ==========================================
+    // 1. VALIDASI MANDATORY FIELDS (HEADER)
+    // ==========================================
+    let missingFields = [];
 
-    // --- SCRAPE ITEMS ---
+    if (!tglPo) missingFields.push("Tanggal PO");
+    if (!noPo) missingFields.push("No PO (Otomatis via Tanggal)");
+    if (!vendorIdInput || vendorIdInput == "0") missingFields.push("Nama Vendor");
+    if (!picSelect || picSelect.value == "0") missingFields.push("Nama PIC");
+
+    // ==========================================
+    // 2. VALIDASI MANDATORY FIELDS (ITEMS ROW)
+    // ==========================================
     const rows = document.querySelectorAll("#inputItemsBody tr");
     let itemsData = [];
-    let isRowValid = true;
+    let hasValidItem = false;
 
-    rows.forEach((row) => {
-      const itemId = row.querySelector(".input-pekerjaan").value;
-      const matId = row.querySelector(".input-material").value;
-      const prodName = row.querySelector(".input-product").value;
-      const qty = parseFloat(row.querySelector(".input-qty").value || 0);
-      const price = parseRupiah(row.querySelector(".input-price").value);
-      const unit = row.querySelector(".input-unit").value;
-
-      if (!itemId && !prodName && qty === 0) return;
-      if ((itemId && !prodName) || (prodName && !itemId)) isRowValid = false;
-
-      itemsData.push({
-        project_item_id: parseInt(itemId),
-        project_materials_id: parseInt(matId || 0),
-        name: prodName,
-        unit: unit,
-        qty: qty,
-        unit_price: price,
-      });
-    });
-
-    if (!isRowValid || itemsData.length === 0) {
-      isSubmitting = false;
-      return Swal.fire("Validasi", "Mohon lengkapi item transaksi.", "warning");
+    if (rows.length === 0) {
+      missingFields.push("Minimal 1 Item Detail Transaksi");
     }
 
-    // --- PREPARE PAYLOAD ---
+    rows.forEach((row, index) => {
+      const itemId = row.querySelector(".input-pekerjaan").value;
+      const matId = row.querySelector(".input-material").value;
+      const prodName = row.querySelector(".input-product").value.trim();
+      const qty = parseFloat(row.querySelector(".input-qty").value || 0);
+      const price = parseRupiah(row.querySelector(".input-price").value);
+      const unit = row.querySelector(".input-unit").value.trim();
+
+      // Cek apakah baris ini benar-benar tidak disentuh (kosong)
+      const isRowEmpty = !itemId && !prodName && price === 0;
+
+      if (isRowEmpty) {
+        // Jika baris kosong dan ini adalah satu-satunya baris di tabel, masukkan ke error
+        if (rows.length === 1) {
+          missingFields.push("Data Produk/Item Transaksi");
+        }
+        return; // Skip baris kosong ini
+      }
+
+      // Jika baris ada isinya (sebagian/penuh), cek kelengkapannya
+      let rowErrors = [];
+      if (!itemId) rowErrors.push("Korelasi Pekerjaan");
+      if (!prodName) rowErrors.push("Nama Produk");
+      if (price <= 0) rowErrors.push("Harga (Rp)");
+      if (qty <= 0) rowErrors.push("Qty");
+      if (!unit) rowErrors.push("Unit");
+
+      if (rowErrors.length > 0) {
+        // Beritahu user baris ke berapa yang kurang lengkap
+        missingFields.push(`Baris Item ke-${index + 1}: (${rowErrors.join(", ")})`);
+      } else {
+        hasValidItem = true;
+        itemsData.push({
+          project_item_id: parseInt(itemId),
+          project_materials_id: parseInt(matId || 0),
+          name: prodName,
+          unit: unit,
+          qty: qty,
+          unit_price: price,
+        });
+      }
+    });
+
+    // Cek jika user menambahkan banyak baris tapi semuanya dikosongkan
+    if (rows.length > 1 && !hasValidItem && missingFields.length === 0) {
+      missingFields.push("Minimal lengkapi 1 Data Produk/Item Transaksi");
+    }
+
+    // ==========================================
+    // 3. TAMPILKAN ALERT JIKA ADA YANG KOSONG
+    // ==========================================
+    if (missingFields.length > 0) {
+      isSubmitting = false;
+      return Swal.fire({
+        icon: "warning",
+        title: "Data Belum Lengkap!",
+        html: `Silakan lengkapi item mandatory berikut sebelum menyimpan:<br><br><div class="text-left bg-gray-50 p-3 rounded border text-red-500 font-medium text-sm leading-relaxed">${missingFields.join("<br>")}</div>`
+      });
+    }
+
+    // ==========================================
+    // 4. LANJUT SUSUN PAYLOAD & SUBMIT
+    // ==========================================
     const isUpdate = currentUpdateCostId !== null;
 
     const payload = {
@@ -213,23 +259,17 @@ async function saveTransaction() {
       user_id: currentUserId,
       project_id: parseInt(projectId),
       vendor_id: parseInt(vendorIdInput),
-      contact_id: parseInt(picSelect ? picSelect.value : 0),
+      contact_id: parseInt(picSelect.value),
       vendor_pic: selectedPicName,
-      po_date: document.getElementById("calcPoDate").value,
+      po_date: tglPo,
       inv_date: document.getElementById("calcInvoiceDate").value,
       no_po: noPo,
       no_po_pdf: noPoPdf,
       no_inv: document.getElementById("calcInvoiceNo").value,
       ppn_percent: document.getElementById("summaryTaxCheck").checked ? 11 : 0,
-      ppn_nominal: parseRupiah(
-        document.getElementById("summaryTaxNominal").value
-      ),
-      discount_percent: parseFloat(
-        document.getElementById("summaryDiscPercent").value || 0
-      ),
-      discount_nominal: parseRupiah(
-        document.getElementById("summaryDiscNominal").value
-      ),
+      ppn_nominal: parseRupiah(document.getElementById("summaryTaxNominal").value),
+      discount_percent: parseFloat(document.getElementById("summaryDiscPercent").value || 0),
+      discount_nominal: parseRupiah(document.getElementById("summaryDiscNominal").value),
       shipping: 0,
       notes: document.getElementById("calcGlobalNotes").value,
       items: itemsData,
@@ -257,10 +297,8 @@ async function saveTransaction() {
       ? `${baseUrl}/update/actual_costing/${currentUpdateCostId}`
       : `${baseUrl}/add/actual_costing`;
 
-    const method = isUpdate ? "PUT" : "POST";
-
     const res = await fetch(url, {
-      method: method,
+      method: isUpdate ? "PUT" : "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${API_TOKEN}`,
@@ -277,7 +315,6 @@ async function saveTransaction() {
         text: "Data tersimpan dengan sukses!",
         timer: 1500,
         showConfirmButton: false,
-        timerProgressBar: true,
       });
 
       resetForm();
